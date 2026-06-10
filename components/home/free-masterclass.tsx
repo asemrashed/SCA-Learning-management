@@ -145,7 +145,7 @@ export function FreeMasterclass() {
           className="mb-10"
         />
 
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-4">
           {filteredMasterclasses.map((mc, index) => (
             <motion.div
               key={mc.id}
@@ -169,23 +169,24 @@ export function FreeMasterclass() {
                   </Badge>
                 )}
               </div>
-              <div className="p-4">
-                <p className="mb-1 line-clamp-1 text-xs text-muted-foreground">
+              <div className="p-3 md:p-4">
+                <p className="mb-1 line-clamp-1 text-[10px] md:text-xs text-muted-foreground">
                   {mc.course}
                 </p>
-                <h3 className="mb-3 min-h-[48px] line-clamp-2 font-semibold text-foreground">
+                <h3 className="mb-3 min-h-[32px] md:min-h-[48px] line-clamp-2 text-xs md:text-base font-semibold text-foreground">
                   {mc.title}
                 </h3>
-                <div className="mb-4 flex items-center gap-1 text-xs text-destructive">
-                  <Calendar className="h-3 w-3" />
-                  <span>{mc.date}</span>
+                <div className="mb-4 flex items-center gap-1 text-[9px] md:text-xs text-destructive">
+                  <Calendar className="h-3 w-3 shrink-0" />
+                  <span className="truncate">{mc.date}</span>
                 </div>
                 <Button
                   variant="outline"
-                  className="w-full rounded-xl border-border bg-muted/50 text-foreground hover:border-primary hover:bg-primary hover:text-primary-foreground"
+                  className="w-full rounded-xl border-border bg-muted/50 text-foreground hover:border-primary hover:bg-primary hover:text-primary-foreground text-xs md:text-sm h-8 md:h-10 px-2 md:px-4"
                 >
-                  View Details
-                  <ArrowRight className="ml-2 h-4 w-4" />
+                  <span className="hidden sm:inline">View Details</span>
+                  <span className="sm:hidden">Details</span>
+                  <ArrowRight className="ml-1 h-3.5 w-3.5 md:ml-2 md:h-4 md:w-4" />
                 </Button>
               </div>
             </motion.div>

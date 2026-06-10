@@ -85,7 +85,7 @@ export function AboutSection() {
               Our expert-led programs combine hands-on projects, career support, and a vibrant
               learning community to accelerate your professional growth.
             </p>
-            <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="mb-8 grid grid-cols-2 gap-4">
               {features.map((feature) => (
                 <div key={feature} className="flex items-center gap-3">
                   <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary">
@@ -95,9 +95,11 @@ export function AboutSection() {
                 </div>
               ))}
             </div>
-            <Button size="lg" className="rounded-full px-8" asChild>
-              <Link href="/courses">Explore More</Link>
-            </Button>
+            <div className="flex justify-center lg:justify-start">
+              <Button size="lg" className="rounded-full px-8" asChild>
+                <Link href="/courses">Explore More</Link>
+              </Button>
+            </div>
           </motion.div>
         </div>
       </div>

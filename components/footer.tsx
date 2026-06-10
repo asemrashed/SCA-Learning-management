@@ -77,7 +77,7 @@ export function Footer() {
         <div className="container mx-auto px-4 pb-12 pt-8">
           <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
             {/* Brand */}
-            <div className="space-y-5">
+            <div className="flex flex-col items-center text-center lg:items-start lg:text-left space-y-5">
               <Link href="/" className="flex items-center gap-2">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
                   <GraduationCap className="h-5 w-5 text-primary-foreground" />
@@ -107,7 +107,7 @@ export function Footer() {
             </div>
 
             {/* Useful Links */}
-            <div>
+            <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
               <h3 className="mb-5 text-base font-semibold">Useful Links</h3>
               <ul className="space-y-3">
                 {usefulLinks.map((link) => (
@@ -124,7 +124,7 @@ export function Footer() {
             </div>
 
             {/* Support */}
-            <div>
+            <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
               <h3 className="mb-5 text-base font-semibold">Support</h3>
               <ul className="space-y-3">
                 {supportLinks.map((link) => (
@@ -141,22 +141,22 @@ export function Footer() {
             </div>
 
             {/* Contact */}
-            <div>
+            <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
               <h3 className="mb-5 text-base font-semibold">Contact Us</h3>
               <ul className="space-y-4">
-                <li className="flex items-start gap-3 text-sm text-secondary-foreground/70">
-                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                <li className="flex flex-col items-center text-center lg:flex-row lg:items-start lg:text-left gap-2 lg:gap-3 text-sm text-secondary-foreground/70">
+                  <MapPin className="h-4 w-4 shrink-0 text-primary" />
                   <span>
                     Ka-6/a, Navana Sylvania, Baridhara Road,
                     <br />
                     Nadda, Gulshan-2, Dhaka-1212
                   </span>
                 </li>
-                <li className="flex items-center gap-3 text-sm text-secondary-foreground/70">
+                <li className="flex flex-col items-center text-center lg:flex-row lg:items-start lg:text-left gap-2 lg:gap-3 text-sm text-secondary-foreground/70">
                   <Mail className="h-4 w-4 shrink-0 text-primary" />
                   <span>support@financeacademy.com</span>
                 </li>
-                <li className="flex items-center gap-3 text-sm text-secondary-foreground/70">
+                <li className="flex flex-col items-center text-center lg:flex-row lg:items-start lg:text-left gap-2 lg:gap-3 text-sm text-secondary-foreground/70">
                   <Phone className="h-4 w-4 shrink-0 text-primary" />
                   <span>+880 1629 998611</span>
                 </li>

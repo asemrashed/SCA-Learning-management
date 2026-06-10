@@ -69,23 +69,25 @@ export function CourseCard({
         )}
       </div>
 
-      <div className="p-4">
+      <div className="p-3 md:p-4">
         {/* Meta info */}
         {(batch || seatsLeft || daysLeft) && (
-          <div className="mb-3 flex flex-wrap gap-2">
+          <div className="mb-2.5 flex flex-wrap gap-1.5 md:gap-2">
             {batch && (
-              <span className="rounded-lg bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
+              <span className="rounded-lg bg-muted px-1.5 py-0.5 md:px-2.5 md:py-1 text-[9px] md:text-xs font-medium text-muted-foreground">
                 {batch}
               </span>
             )}
             {seatsLeft && (
-              <span className="rounded-lg bg-accent/10 px-2.5 py-1 text-xs font-medium text-accent">
-                {seatsLeft} seats left
+              <span className="rounded-lg bg-accent/10 px-1.5 py-0.5 md:px-2.5 md:py-1 text-[9px] md:text-xs font-medium text-accent">
+                <span className="sm:inline hidden">{seatsLeft} seats left</span>
+                <span className="inline sm:hidden">{seatsLeft} left</span>
               </span>
             )}
             {daysLeft && (
-              <span className="rounded-lg bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
-                {daysLeft} days left
+              <span className="rounded-lg bg-primary/10 px-1.5 py-0.5 md:px-2.5 md:py-1 text-[9px] md:text-xs font-medium text-primary">
+                <span className="sm:inline hidden">{daysLeft} days left</span>
+                <span className="inline sm:hidden">{daysLeft} days</span>
               </span>
             )}
           </div>
@@ -93,34 +95,34 @@ export function CourseCard({
 
         {/* Category */}
         {category && (
-          <p className="mb-1 text-xs font-medium text-muted-foreground">{category}</p>
+          <p className="mb-1 text-[10px] md:text-xs font-medium text-muted-foreground">{category}</p>
         )}
 
         {/* Title */}
-        <h3 className="mb-3 line-clamp-2 min-h-[48px] text-base font-semibold text-foreground">
+        <h3 className="mb-2 line-clamp-2 min-h-[32px] md:min-h-[48px] text-xs md:text-base font-semibold text-foreground">
           {title}
         </h3>
 
         {/* Stats */}
         {(rating || students || duration) && (
-          <div className="mb-4 flex items-center gap-4 text-sm text-muted-foreground">
+          <div className="mb-3 md:mb-4 flex flex-wrap items-center gap-2 md:gap-4 text-[10px] md:text-sm text-muted-foreground">
             {rating && (
-              <div className="flex items-center gap-1">
-                <svg className="h-4 w-4 fill-amber-400 text-amber-400" viewBox="0 0 20 20">
+              <div className="flex items-center gap-0.5 md:gap-1">
+                <svg className="h-3 w-3 md:h-4 md:w-4 fill-amber-400 text-amber-400" viewBox="0 0 20 20">
                   <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                 </svg>
                 <span>{rating}</span>
               </div>
             )}
             {students && (
-              <div className="flex items-center gap-1">
-                <Users className="h-4 w-4" />
+              <div className="flex items-center gap-0.5 md:gap-1">
+                <Users className="h-3 w-3 md:h-4 md:w-4" />
                 <span>{students.toLocaleString()}</span>
               </div>
             )}
             {duration && (
-              <div className="flex items-center gap-1">
-                <Clock className="h-4 w-4" />
+              <div className="flex items-center gap-0.5 md:gap-1">
+                <Clock className="h-3 w-3 md:h-4 md:w-4" />
                 <span>{duration}</span>
               </div>
             )}
@@ -129,12 +131,12 @@ export function CourseCard({
 
         {/* Price */}
         {price !== undefined && (
-          <div className="mb-4 flex items-center gap-2">
-            <span className="text-lg font-bold text-primary">
+          <div className="mb-3 md:mb-4 flex items-center gap-1.5 md:gap-2">
+            <span className="text-sm md:text-lg font-bold text-primary">
               {isFree ? "Free" : `$${price}`}
             </span>
             {originalPrice && originalPrice > price && (
-              <span className="text-sm text-muted-foreground line-through">
+              <span className="text-[10px] md:text-sm text-muted-foreground line-through">
                 ${originalPrice}
               </span>
             )}
@@ -145,10 +147,11 @@ export function CourseCard({
         <Link href={`/courses/${id}`}>
           <Button
             variant="outline"
-            className="w-full rounded-xl border-border bg-muted/50 hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all"
+            className="w-full rounded-xl border-border bg-muted/50 hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all text-xs md:text-sm h-8 md:h-10 px-2 md:px-4"
           >
-            View Details
-            <ArrowRight className="ml-2 h-4 w-4" />
+            <span className="hidden sm:inline">View Details</span>
+            <span className="sm:hidden">Details</span>
+            <ArrowRight className="ml-1 h-3.5 w-3.5 md:ml-2 md:h-4 md:w-4" />
           </Button>
         </Link>
       </div>

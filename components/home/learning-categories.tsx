@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { ArrowRight } from "lucide-react"
+import { ArrowRight, LayoutGrid } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { motion } from "framer-motion"
 import Image from "next/image"
@@ -74,19 +74,17 @@ export function LearningCategories() {
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
           viewport={{ once: true }}
-          className="mb-12 text-center"
+          className="mb-10 text-center"
         >
-          <span className="mb-4 inline-block rounded-full bg-secondary px-4 py-1.5 text-xs font-semibold text-secondary-foreground">
-            Categories
-          </span>
-          <h2 className="text-3xl font-bold text-foreground md:text-4xl">
-            Choice Favourite Course
-            <br />
-            from top category
-          </h2>
+          <div className="mb-4 flex items-center justify-center gap-2">
+            <LayoutGrid className="h-5 w-5 text-secondary" />
+            <h2 className="text-lg font-bold text-foreground md:text-xl">
+              Choice Favourite Course
+            </h2>
+          </div>
         </motion.div>
 
-        <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-[repeat(24,minmax(0,1fr))]">
+        <div className="grid gap-3 md:gap-6 grid-cols-2 lg:grid-cols-[repeat(24,minmax(0,1fr))]">
           {categories.map((category, index) => (
             <motion.div
               key={category.id}
@@ -98,15 +96,15 @@ export function LearningCategories() {
             >
               <Link
                 href={category.href}
-                className="group relative block h-full overflow-hidden rounded-2xl bg-white p-6 shadow-[0_10px_30px_rgba(0,0,0,0.05)] transition-all hover:shadow-[0_15px_40px_rgba(0,0,0,0.08)]"
+                className="group relative block h-full overflow-hidden rounded-2xl bg-white p-4 sm:p-6 shadow-[0_10px_30px_rgba(0,0,0,0.05)] transition-all hover:shadow-[0_15px_40px_rgba(0,0,0,0.08)]"
               >
                 <span className="pointer-events-none absolute -bottom-2 -right-1 text-[5rem] font-bold leading-none text-secondary/10 select-none">
                   {category.number}
                 </span>
 
-                <div className="relative z-10 flex gap-4 items-center h-full">
+                <div className="relative z-10 flex flex-col sm:flex-row gap-3 sm:gap-4 items-center sm:items-center h-full text-center sm:text-left">
                   {category.image && (
-                    <div className="flex h-20 w-20 md:h-24 md:w-24 shrink-0 items-center justify-center rounded-full bg-primary/20 p-2">
+                    <div className="flex h-14 w-14 sm:h-20 sm:w-20 md:h-24 md:w-24 shrink-0 items-center justify-center rounded-full bg-primary/20 p-1.5 sm:p-2">
                       <Image
                         src={category.image}
                         alt={category.title}
@@ -117,13 +115,13 @@ export function LearningCategories() {
                     </div>
                   )}
                   <div className="min-w-0 flex-1">
-                    <h3 className="mb-2 text-lg font-semibold text-foreground transition-colors group-hover:text-secondary">
+                    <h3 className="mb-1 sm:mb-2 text-sm sm:text-base md:text-lg font-semibold text-foreground transition-colors group-hover:text-secondary">
                       {category.title}
                     </h3>
-                    <p className="mb-4 text-sm text-muted-foreground line-clamp-2">
+                    <p className="mb-2 sm:mb-4 text-xs sm:text-sm text-muted-foreground line-clamp-2">
                       {category.description}
                     </p>
-                    <span className="inline-flex items-center rounded-full bg-primary/40 px-3 py-1 text-xs font-medium text-secondary">
+                    <span className="inline-flex items-center rounded-full bg-primary/40 px-2.5 py-0.5 sm:px-3 sm:py-1 text-[10px] sm:text-xs font-medium text-secondary">
                       • {category.courses}+ Courses
                     </span>
                   </div>

@@ -18,14 +18,14 @@ const HERO_PERSON_IMAGE =
 
 export function HeroSection() {
   return (
-    <section className="relative -mt-[4.75rem] text-white md:-mt-[5.25rem] h-[90dvh]">
+    <section className="relative -mt-[4.75rem] text-white md:-mt-[5.25rem] h-[95dvh] lg:h-[90dvh]">
       {/* Background image — object-top keeps torn bottom edge in view */}
       <div className="absolute inset-0 -bottom-8 md:-bottom-22 -top-20">
         <Image
           src="/HeroImage.png"
           alt=""
           fill
-          className="object-cover object-top scale-y-90"
+          className="object-cover object-top scale-y-110 md:scale-y-90"
           priority
           aria-hidden
         />
@@ -43,7 +43,7 @@ export function HeroSection() {
       </div>
 
       {/* Content — extra bottom padding reveals the torn paper shape */}
-      <div className="container relative z-10 mx-auto px-4 pb-36 pt-16 h-full flex items-center justify-center md:pt-30">
+      <div className="container relative z-10 mx-auto px-4 pb-20 pt-28 mt-20 md:mt-0 h-full flex items-center justify-center lg:pb-26 lg:pt-40">
         <div className="grid items-center gap-12 lg:grid-cols-2">
           <motion.div
             initial={{ opacity: 0, x: -30 }}

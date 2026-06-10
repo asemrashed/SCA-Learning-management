@@ -1,7 +1,7 @@
 "use client"
 
 import { useRef } from "react"
-import { ChevronRight, LucideIcon } from "lucide-react"
+import { ChevronLeft, ChevronRight, LucideIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -31,7 +31,7 @@ function getNavItemStyles(
     return {
       button: isActive
         ? "bg-white text-foreground shadow-md"
-        : "border border-white/25 bg-white/5 text-white group-hover:bg-white group-hover:text-foreground group-hover:shadow-md group-hover:border-white",
+        : "border border-white/25 bg-white/5 text-white hover:bg-white hover:text-foreground hover:shadow-md hover:border-white",
       iconWrap: isActive
         ? "bg-primary/30"
         : "bg-white/10 group-hover:bg-primary/30",
@@ -48,7 +48,7 @@ function getNavItemStyles(
     return {
       button: isActive
         ? "bg-secondary text-secondary-foreground shadow-md"
-        : "border border-border bg-white text-foreground group-hover:bg-secondary group-hover:text-secondary-foreground group-hover:border-secondary group-hover:shadow-md",
+        : "border border-border bg-white text-foreground hover:bg-secondary hover:text-secondary-foreground hover:border-secondary hover:shadow-md",
       iconWrap: isActive
         ? "bg-white/15"
         : "bg-muted group-hover:bg-white/15",
@@ -64,7 +64,7 @@ function getNavItemStyles(
   return {
     button: isActive
       ? "bg-secondary text-secondary-foreground shadow-md"
-      : "border border-border bg-white text-foreground group-hover:bg-secondary group-hover:text-secondary-foreground group-hover:border-secondary group-hover:shadow-md",
+      : "border border-border bg-white text-foreground hover:bg-secondary hover:text-secondary-foreground hover:border-secondary hover:shadow-md",
     iconWrap: isActive
       ? "bg-white/15"
       : "bg-muted group-hover:bg-white/15",
@@ -87,12 +87,32 @@ export function CategoryNav({
   const scrollRef = useRef<HTMLDivElement>(null)
   const isOnDark = variant === "on-dark"
 
+  const scrollLeft = () => {
+    scrollRef.current?.scrollBy({ left: -280, behavior: "smooth" })
+  }
+
   const scrollRight = () => {
     scrollRef.current?.scrollBy({ left: 280, behavior: "smooth" })
   }
 
   return (
-    <div className={cn("relative flex items-center gap-3", className)}>
+    <div className={cn("relative flex items-center gap-2 md:gap-3", className)}>
+      <Button
+        type="button"
+        variant="outline"
+        size="icon"
+        onClick={scrollLeft}
+        className={cn(
+          "flex h-9 w-9 md:h-10 md:w-10 shrink-0 items-center justify-center rounded-full shadow-sm transition-colors",
+          isOnDark
+            ? "border-white/25 bg-white/10 text-white hover:bg-white hover:text-foreground"
+            : "border-border bg-white hover:bg-secondary hover:text-secondary-foreground"
+        )}
+        aria-label="Scroll categories left"
+      >
+        <ChevronLeft className="h-4 w-4 md:h-5 md:w-5" />
+      </Button>
+
       <div
         ref={scrollRef}
         className="flex flex-1 gap-3 overflow-x-auto pb-1 scrollbar-hide"
@@ -134,20 +154,21 @@ export function CategoryNav({
           )
         })}
       </div>
+
       <Button
         type="button"
         variant="outline"
         size="icon"
         onClick={scrollRight}
         className={cn(
-          "hidden h-10 w-10 shrink-0 rounded-full shadow-sm transition-colors sm:flex",
+          "flex h-9 w-9 md:h-10 md:w-10 shrink-0 items-center justify-center rounded-full shadow-sm transition-colors",
           isOnDark
             ? "border-white/25 bg-white/10 text-white hover:bg-white hover:text-foreground"
             : "border-border bg-white hover:bg-secondary hover:text-secondary-foreground"
         )}
-        aria-label="Scroll categories"
+        aria-label="Scroll categories right"
       >
-        <ChevronRight className="h-5 w-5" />
+        <ChevronRight className="h-4 w-4 md:h-5 md:w-5" />
       </Button>
     </div>
   )

@@ -5,9 +5,9 @@ import Link from "next/link"
 import { Menu, X, Search, ChevronDown, Bell, Globe } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { cn } from "@/lib/utils"
 import { BRAND_NAME, BRAND_SHORT } from "@/lib/brand"
+import { motion, AnimatePresence } from "framer-motion"
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -109,74 +109,107 @@ export function Navbar({ variant = "default" }: NavbarProps) {
         </Button>
       </div>
 
-      {/* Mobile Menu */}
-      <Sheet open={isOpen} onOpenChange={setIsOpen}>
-        <SheetTrigger asChild className="lg:hidden">
-          <Button
-            variant="ghost"
-            size="icon"
-            className={isFloating ? "text-white" : ""}
-          >
-            <Menu className="h-6 w-6" />
-          </Button>
-        </SheetTrigger>
-        <SheetContent side="right" className="w-80 p-0">
-          <div className="flex h-full flex-col">
-            <div className="flex items-center justify-between border-b p-4">
-              <span className="text-lg font-bold">Menu</span>
-              <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)}>
-                <X className="h-5 w-5" />
-              </Button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-4">
-              <div className="relative mb-6">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input placeholder="Search courses..." className="pl-9" />
-              </div>
-
-              <div className="flex flex-col gap-2">
-                {navLinks.map((link) => (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    onClick={() => setIsOpen(false)}
-                    className="flex items-center rounded-xl px-4 py-3 text-sm font-medium transition-colors hover:bg-muted"
-                  >
-                    {link.label}
-                  </Link>
-                ))}
-              </div>
-
-              <div className="mt-6 flex flex-col gap-3">
-                <Button variant="outline" className="w-full rounded-xl">
-                  All Courses
-                  <ChevronDown className="ml-1 h-4 w-4" />
-                </Button>
-                <Button className="w-full rounded-xl bg-primary hover:bg-primary/90">
-                  Login / Sign Up
-                </Button>
-              </div>
-            </div>
-          </div>
-        </SheetContent>
-      </Sheet>
+      {/* Mobile Menu Toggle */}
+      <Button
+        variant="ghost"
+        size="icon"
+        className={cn(isFloating ? "text-white hover:bg-white/10" : "", "lg:hidden")}
+        onClick={() => setIsOpen(!isOpen)}
+        aria-label="Toggle menu"
+      >
+        {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+      </Button>
     </nav>
+  )
+
+  const dropdownContent = (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          exit={{ opacity: 0, height: 0 }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
+          className={cn(
+            "lg:hidden overflow-hidden z-50",
+            isFloating
+              ? "absolute left-0 right-0 top-full mt-2 rounded-[24px] bg-secondary border border-white/20 p-4 pb-6 shadow-xl max-h-[80vh] overflow-y-auto"
+              : "bg-card border-b border-border px-4 py-6 absolute left-0 right-0 top-full shadow-lg max-h-[80vh] overflow-y-auto"
+          )}
+        >
+          <div className="relative mb-6">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search courses..."
+              className={cn(
+                "pl-9 w-full",
+                isFloating
+                  ? "bg-white/10 border-white/20 text-white placeholder:text-white/50 focus-visible:ring-white/30"
+                  : "bg-muted/50 border-none focus-visible:ring-primary"
+              )}
+            />
+          </div>
+
+          <div className="flex flex-col gap-1">
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setIsOpen(false)}
+                className={cn(
+                  "flex items-center rounded-xl px-4 py-3 text-sm font-medium transition-colors",
+                  isFloating
+                    ? "text-white/80 hover:bg-white/10 hover:text-white"
+                    : "text-muted-foreground hover:bg-muted hover:text-primary"
+                )}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </div>
+
+          <div className="mt-6 flex flex-col gap-3">
+            <Button
+              variant="outline"
+              className={cn(
+                "w-full rounded-xl",
+                isFloating ? "border-white/20 bg-white/5 text-white hover:bg-white/10 hover:text-white" : ""
+              )}
+            >
+              All Courses
+              <ChevronDown className="ml-1 h-4 w-4" />
+            </Button>
+            <Button
+              className={cn(
+                "w-full rounded-xl",
+                isFloating ? "bg-primary text-primary-foreground hover:bg-primary/90" : "bg-primary hover:bg-primary/90"
+              )}
+            >
+              Login / Sign Up
+            </Button>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   )
 
   if (isFloating) {
     return (
-      <div className="container mx-auto w-full">
-        <div className="rounded-full border border-white/20 bg-secondary shadow-lg">
+      <div className="container mx-auto w-full relative">
+        <div className="border border-white/20 bg-secondary shadow-lg rounded-full">
           {navContent}
         </div>
+        {dropdownContent}
       </div>
     )
   }
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border bg-card/80 backdrop-blur-md">
-      <div className="container mx-auto">{navContent}</div>
+    <header className="sticky top-0 z-50 w-full border-b border-border bg-card/80 backdrop-blur-md relative">
+      <div className="container mx-auto">
+        {navContent}
+      </div>
+      {dropdownContent}
     </header>
   )
 }
