@@ -87,7 +87,7 @@ export function ProgressCard({
 
           {/* CTA */}
           <div className="mt-4">
-            <Link href={`/courses/${id}/learn`}>
+            <Link href={`/dashboard/courses/${id}`}>
               <Button className="w-full rounded-xl sm:w-auto">
                 {progress > 0 ? "Continue Learning" : "Start Learning"}
               </Button>

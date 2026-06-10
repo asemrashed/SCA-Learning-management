@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { BRAND_NAME, BRAND_SHORT } from "@/lib/brand"
+import { AuthNavActions } from "@/components/auth/auth-nav-actions"
 import { motion, AnimatePresence } from "framer-motion"
 
 const navLinks = [
@@ -97,16 +98,7 @@ export function Navbar({ variant = "default" }: NavbarProps) {
             </Button>
           </>
         )}
-        <Button
-          className={cn(
-            "rounded-full px-5",
-            isFloating
-              ? "bg-primary text-primary-foreground hover:bg-primary/90"
-              : "rounded-xl bg-primary hover:bg-primary/90"
-          )}
-        >
-          Login / Sign Up
-        </Button>
+        <AuthNavActions floating={isFloating} />
       </div>
 
       {/* Mobile Menu Toggle */}
@@ -179,14 +171,7 @@ export function Navbar({ variant = "default" }: NavbarProps) {
               All Courses
               <ChevronDown className="ml-1 h-4 w-4" />
             </Button>
-            <Button
-              className={cn(
-                "w-full rounded-xl",
-                isFloating ? "bg-primary text-primary-foreground hover:bg-primary/90" : "bg-primary hover:bg-primary/90"
-              )}
-            >
-              Login / Sign Up
-            </Button>
+            <AuthNavActions floating={isFloating} className="w-full flex-col sm:flex-row" onNavigate={() => setIsOpen(false)} />
           </div>
         </motion.div>
       )}

@@ -1,14 +1,15 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import { Providers } from '@/components/providers'
+import { BRAND_NAME } from '@/lib/brand'
 import './globals.css'
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  title: 'Sharif commerce Academy - Master New Skills',
+  title: `${BRAND_NAME} - Master New Skills`,
   description: 'Premium learning platform with live courses, expert instructors, and career support',
-  generator: 'v0.app',
   icons: {
     icon: [
       {
@@ -36,7 +37,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="bg-background" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`} suppressHydrationWarning>
-        {children}
+        <Providers>{children}</Providers>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>

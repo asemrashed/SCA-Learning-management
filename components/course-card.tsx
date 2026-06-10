@@ -6,6 +6,7 @@ import { Clock, Users, ArrowRight } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { motion } from "framer-motion"
+import { formatBdt } from "@/lib/format-currency"
 
 interface CourseCardProps {
   id: string
@@ -133,11 +134,11 @@ export function CourseCard({
         {price !== undefined && (
           <div className="mb-3 md:mb-4 flex items-center gap-1.5 md:gap-2">
             <span className="text-sm md:text-lg font-bold text-primary">
-              {isFree ? "Free" : `$${price}`}
+              {isFree ? "Free" : formatBdt(price)}
             </span>
             {originalPrice && originalPrice > price && (
               <span className="text-[10px] md:text-sm text-muted-foreground line-through">
-                ${originalPrice}
+                {formatBdt(originalPrice)}
               </span>
             )}
           </div>

@@ -19,6 +19,9 @@ import {
   Info,
 } from "lucide-react"
 import { motion } from "framer-motion"
+import { useSelector } from "react-redux"
+import { DEMO_STUDENT_NAME } from "@/lib/brand"
+import type { RootState } from "@/store/rootReducer"
 
 const enrolledCourses = [
   {
@@ -96,13 +99,16 @@ const recentActivity = [
 ]
 
 export default function DashboardPage() {
+  const user = useSelector((state: RootState) => state.auth.user)
+  const displayName = user?.name?.split(" ")[0] ?? DEMO_STUDENT_NAME
+
   return (
     <div className="p-6 md:p-8">
       {/* Header */}
       <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground md:text-3xl">
-            Welcome back, Mohammad!
+            Welcome back, {displayName}!
           </h1>
           <p className="text-muted-foreground">
             Continue your learning journey where you left off.
@@ -115,9 +121,11 @@ export default function DashboardPage() {
               3
             </span>
           </Button>
-          <Button className="rounded-xl">
-            Browse Courses
-            <ArrowRight className="ml-2 h-4 w-4" />
+          <Button className="rounded-xl" asChild>
+            <Link href="/courses">
+              Browse Courses
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
           </Button>
         </div>
       </div>

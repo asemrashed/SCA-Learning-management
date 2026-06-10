@@ -42,7 +42,7 @@ const courseData = {
   totalLessons: 24,
   completedLessons: 11,
   instructor: {
-    name: "Mohammad Asem Rashed",
+    name: "Ahmed Rahman",
     avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop",
   },
   modules: [
@@ -214,7 +214,7 @@ const courseData = {
 }
 
 const leaderboardData = [
-  { rank: 1, name: "Mohammad Asem Rashed", score: 1390, progress: 100, avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop" },
+  { rank: 1, name: "You", score: 1390, progress: 100, avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop" },
   { rank: 2, name: "Student 2", score: 0, progress: 0, avatar: null },
   { rank: 3, name: "Student 3", score: 0, progress: 0, avatar: null },
   { rank: 4, name: "Student 4", score: 0, progress: 0, avatar: null },

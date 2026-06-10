@@ -11,7 +11,7 @@ import {
   GraduationCap,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { BRAND_NAME } from "@/lib/brand"
+import { BRAND_EMAIL, BRAND_NAME, BRAND_PHONE } from "@/lib/brand"
 
 const usefulLinks = [
   { href: "/courses", label: "Courses" },
@@ -65,7 +65,7 @@ export function Footer() {
                 className="w-full rounded-full border-primary-foreground/30 bg-transparent px-8 text-base text-primary-foreground hover:bg-primary-foreground/10"
               >
                 <Phone className="mr-2 h-4 w-4" />
-                +880 1629 998611
+                {BRAND_PHONE}
               </Button>
             </div>
           </div>
@@ -154,11 +154,11 @@ export function Footer() {
                 </li>
                 <li className="flex flex-col items-center text-center lg:flex-row lg:items-start lg:text-left gap-2 lg:gap-3 text-sm text-secondary-foreground/70">
                   <Mail className="h-4 w-4 shrink-0 text-primary" />
-                  <span>support@financeacademy.com</span>
+                  <span>{BRAND_EMAIL}</span>
                 </li>
                 <li className="flex flex-col items-center text-center lg:flex-row lg:items-start lg:text-left gap-2 lg:gap-3 text-sm text-secondary-foreground/70">
                   <Phone className="h-4 w-4 shrink-0 text-primary" />
-                  <span>+880 1629 998611</span>
+                  <span>{BRAND_PHONE}</span>
                 </li>
               </ul>
             </div>

@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import {
   LayoutDashboard,
   BookOpen,
@@ -18,6 +18,10 @@ import { Button } from "@/components/ui/button"
 import { useState } from "react"
 import { cn } from "@/lib/utils"
 import { BRAND_NAME, BRAND_SHORT } from "@/lib/brand"
+import { useDispatch } from "react-redux"
+import { useLogoutMutation } from "@/features/auth/api"
+import { clearCredentials } from "@/features/auth/authSlice"
+import { clearSessionCookie } from "@/lib/auth-session"
 
 const sidebarItems = [
   {
@@ -45,7 +49,22 @@ interface DashboardSidebarProps {
 
 export function DashboardSidebar({ className }: DashboardSidebarProps) {
   const pathname = usePathname()
+  const router = useRouter()
+  const dispatch = useDispatch()
+  const [logout, { isLoading: isLoggingOut }] = useLogoutMutation()
   const [isCollapsed, setIsCollapsed] = useState(false)
+
+  const handleLogout = async () => {
+    try {
+      await logout().unwrap()
+    } catch {
+      // Clear local session even if API fails
+    }
+    dispatch(clearCredentials())
+    clearSessionCookie()
+    router.push("/login")
+    router.refresh()
+  }
 
   return (
     <aside
@@ -146,6 +165,8 @@ export function DashboardSidebar({ className }: DashboardSidebarProps) {
       <div className="border-t border-border p-4">
         <Button
           variant="ghost"
+          disabled={isLoggingOut}
+          onClick={handleLogout}
           className={cn(
             "w-full text-muted-foreground hover:text-destructive",
             isCollapsed ? "justify-center" : "justify-start"

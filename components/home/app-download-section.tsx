@@ -4,6 +4,7 @@ import Image from "next/image"
 import { Download, Smartphone, Monitor, Apple } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { motion } from "framer-motion"
+import { BRAND_NAME } from "@/lib/brand"
 
 export function AppDownloadSection() {
   return (
@@ -25,7 +26,7 @@ export function AppDownloadSection() {
               viewport={{ once: true }}
             >
               <h2 className="mb-4 text-3xl font-bold text-foreground md:text-4xl">
-                Download the FinanceAcademy App
+                Download the {BRAND_NAME} App
               </h2>
               <p className="mb-8 text-muted-foreground">
                 Get the best learning experience with our mobile app. Access courses offline, 
@@ -71,7 +72,7 @@ export function AppDownloadSection() {
               <div className="relative h-64 w-full max-w-sm md:h-80">
                 <Image
                   src="https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=400&h=300&fit=crop"
-                  alt="FinanceAcademy App"
+                  alt={`${BRAND_NAME} App`}
                   fill
                   className="rounded-[20px] object-cover shadow-xl"
                 />
