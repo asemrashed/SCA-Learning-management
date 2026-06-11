@@ -5,7 +5,10 @@ import type { AuthTokensResponse } from '@/types/api'
 import { clearSessionCookie } from '@/lib/auth-session'
 import { clearCredentials, setCredentials } from '@/features/auth/authSlice'
 
-const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api'
+const baseUrl = process.env.NEXT_PUBLIC_API_URL
+if (!baseUrl) {
+  throw new Error('NEXT_PUBLIC_API_URL is not set')
+}
 
 export const baseQuery = fetchBaseQuery({
   baseUrl,
