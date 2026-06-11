@@ -12,6 +12,7 @@ import { PasswordInput } from '@/components/auth/password-input'
 import { useLoginMutation } from '@/features/auth/api'
 import { setCredentials } from '@/features/auth/authSlice'
 import { setSessionCookie } from '@/lib/auth-session'
+import { homePathForRole } from '@/lib/dashboard-nav'
 
 const e164Phone = z
   .string()
@@ -47,7 +48,7 @@ export function LoginForm() {
       const result = await login({ phone: values.phone, password: values.password }).unwrap()
       dispatch(setCredentials({ accessToken: result.data.accessToken, user: result.data.user }))
       setSessionCookie()
-      const next = searchParams.get('next') || '/dashboard'
+      const next = searchParams.get('next') || homePathForRole(result.data.user.role)
       router.push(next)
       router.refresh()
     } catch {

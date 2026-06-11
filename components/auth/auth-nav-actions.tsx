@@ -9,6 +9,7 @@ import { useLogoutMutation } from '@/features/auth/api'
 import { clearCredentials } from '@/features/auth/authSlice'
 import { clearSessionCookie } from '@/lib/auth-session'
 import type { RootState } from '@/store/rootReducer'
+import { homePathForRole } from '@/lib/dashboard-nav'
 
 interface AuthNavActionsProps {
   floating?: boolean
@@ -46,7 +47,7 @@ export function AuthNavActions({ floating = false, className, onNavigate }: Auth
           )}
           asChild
         >
-          <Link href="/dashboard" onClick={onNavigate}>
+          <Link href={homePathForRole(user.role)} onClick={onNavigate}>
             {user.name.split(' ')[0]}
           </Link>
         </Button>

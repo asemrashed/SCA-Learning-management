@@ -1,9 +1,9 @@
 import { AppShell } from "@/components/app-shell"
 
-export default function DashboardLayout({
+export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  return <AppShell variant="student">{children}</AppShell>
+  return <AppShell variant="admin">{children}</AppShell>
 }
