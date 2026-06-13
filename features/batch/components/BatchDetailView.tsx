@@ -2,8 +2,8 @@
 
 import { useState } from "react"
 import Image from "next/image"
-import { Navbar } from "@/components/navbar"
-import { Footer } from "@/components/footer"
+import { AppLoading } from "@/components/status/app-loading"
+import { AppNotFound } from "@/components/status/app-not-found"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { VideoModal } from "@/components/video-modal"
@@ -29,28 +29,26 @@ export function BatchDetailView({ idOrSlug }: BatchDetailViewProps) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
-        <main className="container mx-auto px-4 py-20 text-center text-muted-foreground">
-          Loading batch...
-        </main>
-        <Footer />
-      </div>
+      <main className="py-8">
+        <div className="container mx-auto px-4">
+          <AppLoading message="Loading batch…" />
+        </div>
+      </main>
     )
   }
 
   if (isError || !batch) {
     return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
-        <main className="container mx-auto px-4 py-20 text-center">
-          <h1 className="text-xl font-semibold text-foreground">Batch not found</h1>
-          <p className="mt-2 text-muted-foreground">
-            This batch may have been removed or is not yet published.
-          </p>
-        </main>
-        <Footer />
-      </div>
+      <main className="py-8">
+        <div className="container mx-auto px-4">
+          <AppNotFound
+            title="Batch not found"
+            description="This batch may have been removed or is not yet published."
+            backHref="/batches"
+            backLabel="Back to Batches"
+          />
+        </div>
+      </main>
     )
   }
 
@@ -63,8 +61,7 @@ export function BatchDetailView({ idOrSlug }: BatchDetailViewProps) {
   const previewLesson = previewLessons[0]
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
+    <>
       <main className="py-8">
         <div className="container mx-auto px-4">
           <div className="grid gap-8 lg:grid-cols-3">
@@ -184,7 +181,6 @@ export function BatchDetailView({ idOrSlug }: BatchDetailViewProps) {
           </div>
         </div>
       </main>
-      <Footer />
 
       {previewLesson ? (
         <VideoModal
@@ -195,6 +191,6 @@ export function BatchDetailView({ idOrSlug }: BatchDetailViewProps) {
           duration={formatDuration(previewLesson.durationS)}
         />
       ) : null}
-    </div>
+    </>
   )
 }

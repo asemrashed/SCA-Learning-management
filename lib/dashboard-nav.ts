@@ -1,13 +1,14 @@
 import type { LucideIcon } from 'lucide-react'
 import {
   BookOpen,
+  ClipboardList,
   FileText,
   GraduationCap,
   Layers,
   LayoutDashboard,
+  PenLine,
   Settings,
   User,
-  Video,
 } from 'lucide-react'
 import { Role } from '@/types/api'
 
@@ -27,8 +28,8 @@ export const studentShellNav: ShellNavGroup[] = [
     group: 'Learning',
     items: [
       { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      { href: '/dashboard/batches', label: 'My Batches', icon: Layers },
       { href: '/dashboard/courses', label: 'My Courses', icon: BookOpen },
-      { href: '/dashboard/recordings', label: 'Recordings', icon: Video },
       { href: '/dashboard/resources', label: 'Resources', icon: FileText },
     ],
   },
@@ -49,6 +50,11 @@ export const adminShellNav: ShellNavGroup[] = [
       { href: '/admin', label: 'Overview', icon: LayoutDashboard },
       { href: '/admin/courses', label: 'Courses', icon: BookOpen },
       { href: '/admin/batches', label: 'Batches', icon: Layers },
+      { href: '/admin/resources', label: 'Resources', icon: FileText },
+      { href: '/admin/exams', label: 'Exams', icon: ClipboardList },
+      { href: '/admin/assignments', label: 'Assignments', icon: PenLine },
+      { href: '/admin/questions', label: 'Question bank', icon: ClipboardList },
+      { href: '/admin/certificates', label: 'Certificates', icon: GraduationCap },
     ],
   },
   {
@@ -67,6 +73,10 @@ export const instructorShellNav: ShellNavGroup[] = [
       { href: '/instructor', label: 'Overview', icon: LayoutDashboard },
       { href: '/instructor/batches', label: 'My Batches', icon: Layers },
       { href: '/instructor/courses', label: 'My Courses', icon: BookOpen },
+      { href: '/instructor/resources', label: 'Resources', icon: FileText },
+      { href: '/instructor/exams', label: 'Exams', icon: ClipboardList },
+      { href: '/instructor/assignments', label: 'Assignments', icon: PenLine },
+      { href: '/instructor/certificates', label: 'Certificates', icon: GraduationCap },
     ],
   },
   {

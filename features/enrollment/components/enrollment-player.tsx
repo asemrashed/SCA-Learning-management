@@ -10,6 +10,12 @@ import {
   useGetEnrollmentQuery,
   useMarkLessonCompleteMutation,
 } from "@/features/enrollment/api"
+import { LiveSessionsPanel } from "@/features/liveclass/components/live-sessions-panel"
+import { EnrollmentRecordingsPanel } from "@/features/liveclass/components/enrollment-recordings-panel"
+import { enrollmentListPath } from "@/features/enrollment/utils"
+import { AssignmentListPanel } from "@/features/assessment/components/assignment-list"
+import { ExamListPanel } from "@/features/assessment/components/exam-list"
+import { EnrollmentResourcesPanel } from "@/features/resource/components/enrollment-resources-panel"
 import type { EnrollmentDetail, EnrollmentLesson } from "@/types/api"
 import { EnrollmentKind } from "@/types/api"
 
@@ -135,6 +141,9 @@ export function EnrollmentPlayer({ enrollmentId }: { enrollmentId: string }) {
   const { data, isLoading, error, refetch } = useGetEnrollmentQuery(enrollmentId)
   const [markComplete] = useMarkLessonCompleteMutation()
   const [activeLesson, setActiveLesson] = useState<EnrollmentLesson | null>(null)
+  const [tab, setTab] = useState<
+    "lessons" | "resources" | "recordings" | "exams" | "assignments"
+  >("lessons")
 
   const detail = data?.data
   const allLessons = useMemo(
@@ -161,7 +170,7 @@ export function EnrollmentPlayer({ enrollmentId }: { enrollmentId: string }) {
       <div className="py-12 text-center">
         <p className="mb-4 text-muted-foreground">Enrollment not found.</p>
         <Button asChild variant="outline">
-          <Link href="/dashboard/courses">Back to My Courses</Link>
+          <Link href="/dashboard">Back to dashboard</Link>
         </Button>
       </div>
     )
@@ -169,12 +178,17 @@ export function EnrollmentPlayer({ enrollmentId }: { enrollmentId: string }) {
 
   const title =
     detail.kind === EnrollmentKind.BATCH ? detail.batch!.title : detail.course!.title
+  const productId =
+    detail.kind === EnrollmentKind.BATCH ? detail.batch!.id : detail.course!.id
+
+  const listPath = enrollmentListPath(detail.kind)
+  const listLabel = detail.kind === EnrollmentKind.BATCH ? "My Batches" : "My Courses"
 
   return (
     <div className="space-y-6">
       <div>
         <Button variant="ghost" size="sm" asChild className="mb-4">
-          <Link href="/dashboard/courses">← My Courses</Link>
+          <Link href={listPath}>← {listLabel}</Link>
         </Button>
         <h1 className="text-2xl font-bold">{title}</h1>
         <div className="mt-4 max-w-md">
@@ -186,26 +200,79 @@ export function EnrollmentPlayer({ enrollmentId }: { enrollmentId: string }) {
         </div>
       </div>
 
-      {activeLesson?.videoUrl ? (
-        <div className="overflow-hidden rounded-xl border bg-black shadow-sm">
-          <LessonVideoPlayer
-            key={activeLesson.id}
-            videoUrl={activeLesson.videoUrl}
-            title={activeLesson.title}
-          />
-        </div>
-      ) : (
-        <div className="flex aspect-video items-center justify-center rounded-xl border bg-muted/40 text-sm text-muted-foreground">
-          Select a lesson below to start watching
-        </div>
-      )}
+      <div className="flex flex-wrap gap-2 border-b pb-2">
+        {(
+          [
+            "lessons",
+            "resources",
+            "recordings",
+            "exams",
+            "assignments",
+          ] as const
+        ).map((key) => (
+          <Button
+            key={key}
+            variant={tab === key ? "default" : "ghost"}
+            size="sm"
+            onClick={() => setTab(key)}
+          >
+            {key.charAt(0).toUpperCase() + key.slice(1)}
+          </Button>
+        ))}
+      </div>
 
-      <ModulesBlock
-        detail={detail}
-        activeLessonId={activeLesson?.id ?? null}
-        onSelectLesson={setActiveLesson}
-        onComplete={(id) => void handleComplete(id)}
-      />
+      {tab === "lessons" ? (
+        <>
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_min(380px,34%)] lg:items-start">
+            <div className="min-w-0">
+              {activeLesson?.videoUrl ? (
+                <div className="overflow-hidden rounded-xl border bg-black shadow-sm">
+                  <LessonVideoPlayer
+                    key={activeLesson.id}
+                    videoUrl={activeLesson.videoUrl}
+                    title={activeLesson.title}
+                  />
+                </div>
+              ) : (
+                <div className="flex aspect-video items-center justify-center rounded-xl border bg-muted/40 text-sm text-muted-foreground">
+                  Select a lesson from the curriculum to start watching
+                </div>
+              )}
+            </div>
+
+            <div className="min-w-0 lg:sticky lg:top-24 lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto">
+              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                Curriculum
+              </h2>
+              <ModulesBlock
+                detail={detail}
+                activeLessonId={activeLesson?.id ?? null}
+                onSelectLesson={setActiveLesson}
+                onComplete={(id) => void handleComplete(id)}
+              />
+            </div>
+          </div>
+
+          <LiveSessionsPanel kind={detail.kind} productId={productId} />
+        </>
+      ) : null}
+
+      {tab === "resources" ? (
+        <EnrollmentResourcesPanel
+          batchId={detail.kind === EnrollmentKind.BATCH ? productId : undefined}
+          courseId={detail.kind === EnrollmentKind.COURSE ? productId : undefined}
+        />
+      ) : null}
+
+      {tab === "recordings" ? (
+        <EnrollmentRecordingsPanel kind={detail.kind} productId={productId} />
+      ) : null}
+
+      {tab === "exams" ? <ExamListPanel kind={detail.kind} scopeId={productId} /> : null}
+
+      {tab === "assignments" ? (
+        <AssignmentListPanel kind={detail.kind} scopeId={productId} />
+      ) : null}
     </div>
   )
 }

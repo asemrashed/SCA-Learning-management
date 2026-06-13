@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { CompactMediaSourceField, MediaSourceField } from "@/components/media-source-field"
 import {
   useCreateCourseMutation,
   useGetCourseQuery,
@@ -252,10 +253,14 @@ export function CourseAdminForm({ courseId }: CourseAdminFormProps) {
               rows={4}
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="thumbnail">Thumbnail URL</Label>
-            <Input id="thumbnail" value={thumbnail} onChange={(e) => setThumbnail(e.target.value)} />
-          </div>
+          <MediaSourceField
+            label="Thumbnail"
+            value={thumbnail}
+            onChange={setThumbnail}
+            folder="images"
+            accept="image/*"
+            placeholder="https://…"
+          />
           <div className="space-y-2">
             <Label htmlFor="price">Price (৳)</Label>
             <Input
@@ -416,23 +421,26 @@ export function CourseAdminForm({ courseId }: CourseAdminFormProps) {
                     }
                   />
                 </div>
-                <Input
-                  placeholder="Video URL"
+                <CompactMediaSourceField
+                  label="Video"
                   value={lesson.videoUrl ?? ""}
-                  onChange={(e) =>
+                  onChange={(url) =>
                     setModules((mods) =>
                       mods.map((m, i) =>
                         i === mi
                           ? {
                               ...m,
                               lessons: m.lessons.map((l, j) =>
-                                j === li ? { ...l, videoUrl: e.target.value } : l,
+                                j === li ? { ...l, videoUrl: url } : l,
                               ),
                             }
                           : m,
                       ),
                     )
                   }
+                  folder="videos"
+                  accept="video/*"
+                  placeholder="Video URL or YouTube link"
                 />
                 <div className="flex items-center gap-2">
                   <Checkbox

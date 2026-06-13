@@ -1,17 +1,16 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { Pause, Play, Volume2, VolumeX } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Slider } from "@/components/ui/slider"
 import { cn } from "@/lib/utils"
-import { formatVideoTime } from "@/lib/video-url"
 import { loadYoutubeIframeApi } from "@/lib/load-video-apis"
+import { VideoPlayerShell } from "@/components/video-player-shell"
 
 interface YoutubeEmbedPlayerProps {
   videoId: string
   title: string
   autoPlay?: boolean
+  flexible?: boolean
+  variant?: "default" | "modal"
   className?: string
 }
 
@@ -20,6 +19,8 @@ export function YoutubeEmbedPlayer({
   videoId,
   title,
   autoPlay = false,
+  flexible = false,
+  variant = "default",
   className,
 }: YoutubeEmbedPlayerProps) {
   const mountRef = useRef<HTMLDivElement>(null)
@@ -27,10 +28,12 @@ export function YoutubeEmbedPlayer({
   const [ready, setReady] = useState(false)
   const [playing, setPlaying] = useState(autoPlay)
   const [muted, setMuted] = useState(false)
+  const [volume, setVolume] = useState(100)
   const [progress, setProgress] = useState(0)
   const [current, setCurrent] = useState(0)
   const [duration, setDuration] = useState(0)
   const [ended, setEnded] = useState(false)
+  const [playbackRate, setPlaybackRate] = useState(1)
 
   const syncTime = useCallback(() => {
     const player = playerRef.current
@@ -71,6 +74,8 @@ export function YoutubeEmbedPlayer({
             if (destroyed) return
             setReady(true)
             syncTime()
+            const vol = playerRef.current?.getVolume?.()
+            if (typeof vol === "number") setVolume(vol)
             mountRef.current?.querySelector("iframe")?.setAttribute("tabindex", "-1")
           },
           onStateChange: (event) => {
@@ -123,6 +128,16 @@ export function YoutubeEmbedPlayer({
     }
   }
 
+  const changeVolume = (v: number) => {
+    const player = playerRef.current
+    if (!player?.setVolume) return
+    player.setVolume(v)
+    if (v === 0) player.mute()
+    else if (muted) player.unMute()
+    setVolume(v)
+    setMuted(v === 0)
+  }
+
   const seek = (value: number[]) => {
     const player = playerRef.current
     if (!player?.getDuration) return
@@ -133,77 +148,46 @@ export function YoutubeEmbedPlayer({
     setCurrent(t)
   }
 
-  return (
-    <div
-      className={cn("flex w-full flex-col bg-black", className)}
-      onContextMenu={(e) => e.preventDefault()}
-    >
-      <div className="relative aspect-video w-full overflow-hidden">
-        <div
-          ref={mountRef}
-          className="absolute inset-0 scale-[1.06] [&_iframe]:pointer-events-none [&_iframe]:h-full [&_iframe]:w-full"
-          aria-hidden
-        />
-        {/* Blocks every click/hover on YouTube chrome, title, logo, end-screen links */}
-        <div className="absolute inset-0 z-10" aria-hidden />
-        {!playing && !autoPlay && ready && (
-          <button
-            type="button"
-            onClick={togglePlay}
-            className="absolute inset-0 z-20 flex items-center justify-center bg-black/30"
-            aria-label={ended ? `Replay ${title}` : `Play ${title}`}
-          >
-            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/90 text-primary-foreground shadow-lg">
-              <Play className="ml-1 h-8 w-8" fill="currentColor" />
-            </span>
-          </button>
-        )}
-      </div>
+  const changePlaybackRate = (rate: number) => {
+    const player = playerRef.current
+    if (!player?.setPlaybackRate) return
+    player.setPlaybackRate(rate)
+    setPlaybackRate(rate)
+  }
 
-      <div className="z-30 flex shrink-0 flex-col gap-2 border-t border-white/10 bg-black/95 p-3">
-        <Slider
-          value={[progress]}
-          onValueChange={seek}
-          max={100}
-          step={0.1}
-          className="cursor-pointer"
-          disabled={!ready}
-        />
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-white hover:bg-white/20"
-              onClick={togglePlay}
-              disabled={!ready}
-              aria-label={playing ? "Pause" : "Play"}
-            >
-              {playing ? (
-                <Pause className="h-4 w-4" fill="currentColor" />
-              ) : (
-                <Play className="h-4 w-4" fill="currentColor" />
-              )}
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-white hover:bg-white/20"
-              onClick={toggleMute}
-              disabled={!ready}
-              aria-label={muted ? "Unmute" : "Mute"}
-            >
-              {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-            </Button>
-            <span className="text-xs text-white/80">
-              {formatVideoTime(current)} / {formatVideoTime(duration)}
-            </span>
-          </div>
-          <span className="truncate text-xs text-white/50">{title}</span>
-        </div>
-      </div>
-    </div>
+  return (
+    <VideoPlayerShell
+      title={title}
+      ready={ready}
+      playing={playing}
+      ended={ended}
+      muted={muted}
+      volume={volume}
+      progress={progress}
+      current={current}
+      duration={duration}
+      playbackRate={playbackRate}
+      autoPlay={autoPlay}
+      flexible={flexible}
+      variant={variant}
+      className={className}
+      onTogglePlay={togglePlay}
+      onToggleMute={toggleMute}
+      onVolumeChange={changeVolume}
+      onSeek={seek}
+      onPlaybackRateChange={changePlaybackRate}
+      videoArea={
+        <>
+          <div
+            ref={mountRef}
+            className={cn(
+              "absolute inset-0 scale-[1.06] [&_iframe]:pointer-events-none [&_iframe]:h-full [&_iframe]:w-full",
+            )}
+            aria-hidden
+          />
+          <div className="absolute inset-0 z-10" aria-hidden />
+        </>
+      }
+    />
   )
 }

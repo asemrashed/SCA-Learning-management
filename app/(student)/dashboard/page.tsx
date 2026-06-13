@@ -8,6 +8,7 @@ import { ProgressCard } from "@/components/progress-card"
 import { DEMO_STUDENT_NAME } from "@/lib/brand"
 import type { RootState } from "@/store/rootReducer"
 import { useListEnrollmentsQuery } from "@/features/enrollment/api"
+import { enrollmentPlayerPath } from "@/features/enrollment/utils"
 import { EnrollmentKind, EnrollmentStatus } from "@/types/api"
 
 const PLACEHOLDER_IMAGE =
@@ -70,11 +71,16 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-xl font-bold text-foreground">Continue learning</h2>
-        <Button variant="outline" size="sm" asChild>
-          <Link href="/dashboard/courses">View all</Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/dashboard/batches">My batches</Link>
+          </Button>
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/dashboard/courses">My courses</Link>
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -102,7 +108,7 @@ export default function DashboardPage() {
             return (
               <ProgressCard
                 key={item.id}
-                id={item.id}
+                href={enrollmentPlayerPath(item.kind, item.id)}
                 title={title}
                 image={image}
                 progress={item.progressPct}

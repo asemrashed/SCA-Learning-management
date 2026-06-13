@@ -73,10 +73,11 @@ export default function AdminBatchesPage() {
                       <Button variant="outline" size="sm" asChild>
                         <Link href={`/admin/batches/${batch.id}/edit`}>Edit</Link>
                       </Button>
-                      <Button variant="ghost" size="sm" asChild>
-                        <Link href={`/batches/${batch.slug}`} target="_blank">
-                          View
-                        </Link>
+                      <Button variant="outline" size="sm" asChild>
+                        <Link href={`/admin/batches/${batch.id}`}>View</Link>
+                      </Button>
+                      <Button variant="outline" size="sm" asChild>
+                        <Link href={`/admin/batches/${batch.id}/live`}>Live</Link>
                       </Button>
                       <Button
                         variant="ghost"

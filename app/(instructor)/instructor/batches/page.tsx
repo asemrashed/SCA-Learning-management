@@ -43,8 +43,11 @@ export default function InstructorBatchesPage() {
                   </td>
                   <td className="px-4 py-3">{formatBdtMinor(batch.priceMinor)}</td>
                   <td className="px-4 py-3 text-right">
-                    <Button variant="outline" size="sm" asChild>
-                      <Link href={`/batches/${batch.slug}`}>View</Link>
+                    <Button variant="outline" size="sm" asChild className="mr-2">
+                      <Link href={`/instructor/batches/${batch.id}`}>View</Link>
+                    </Button>
+                    <Button variant="outline" size="sm" asChild className="mr-2">
+                      <Link href={`/instructor/batches/${batch.id}/live`}>Live</Link>
                     </Button>
                   </td>
                 </tr>

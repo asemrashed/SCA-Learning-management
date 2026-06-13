@@ -126,6 +126,18 @@
   body {
     @apply bg-background text-foreground;
   }
+  a,
+  button,
+  [role='button'],
+  label[for],
+  select,
+  summary {
+    cursor: pointer;
+  }
+  button:disabled,
+  [aria-disabled='true'] {
+    cursor: not-allowed;
+  }
   .container {
     max-width: 72rem;
   }

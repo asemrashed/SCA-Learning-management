@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils"
 import { resolveVideoSource } from "@/lib/video-url"
+import { NativeFileVideoPlayer } from "@/components/native-file-video-player"
 import { VimeoEmbedPlayer } from "@/components/vimeo-embed-player"
 import { YoutubeEmbedPlayer } from "@/components/youtube-embed-player"
 
@@ -10,6 +11,9 @@ interface LessonVideoPlayerProps {
   title: string
   className?: string
   autoPlay?: boolean
+  /** Use inside height-constrained containers (e.g. VideoModal). */
+  flexible?: boolean
+  variant?: "default" | "modal"
 }
 
 export function LessonVideoPlayer({
@@ -17,6 +21,8 @@ export function LessonVideoPlayer({
   title,
   className,
   autoPlay = false,
+  flexible = false,
+  variant = "default",
 }: LessonVideoPlayerProps) {
   const source = resolveVideoSource(videoUrl)
 
@@ -39,6 +45,8 @@ export function LessonVideoPlayer({
         videoId={source.videoId}
         title={title}
         autoPlay={autoPlay}
+        flexible={flexible}
+        variant={variant}
         className={className}
       />
     )
@@ -50,22 +58,21 @@ export function LessonVideoPlayer({
         videoId={source.videoId}
         title={title}
         autoPlay={autoPlay}
+        flexible={flexible}
+        variant={variant}
         className={className}
       />
     )
   }
 
   return (
-    <video
+    <NativeFileVideoPlayer
       src={source.src}
       title={title}
-      className={cn("h-full w-full bg-black", className)}
-      controls
-      controlsList="nodownload noremoteplayback"
-      disablePictureInPicture
-      playsInline
       autoPlay={autoPlay}
-      onContextMenu={(e) => e.preventDefault()}
+      flexible={flexible}
+      variant={variant}
+      className={className}
     />
   )
 }

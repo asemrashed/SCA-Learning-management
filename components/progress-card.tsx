@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { motion } from "framer-motion"
 
 interface ProgressCardProps {
-  id: string
+  href: string
   title: string
   image: string
   progress: number
@@ -19,7 +19,7 @@ interface ProgressCardProps {
 }
 
 export function ProgressCard({
-  id,
+  href,
   title,
   image,
   progress,
@@ -87,7 +87,7 @@ export function ProgressCard({
 
           {/* CTA */}
           <div className="mt-4">
-            <Link href={`/dashboard/courses/${id}`}>
+            <Link href={href}>
               <Button className="w-full rounded-xl sm:w-auto">
                 {progress > 0 ? "Continue Learning" : "Start Learning"}
               </Button>

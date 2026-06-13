@@ -49,6 +49,9 @@ export default function InstructorCoursesPage() {
                   <td className="px-4 py-3">{course.isPublished ? "Yes" : "Draft"}</td>
                   <td className="px-4 py-3">{formatBdtMinor(course.priceMinor)}</td>
                   <td className="px-4 py-3 text-right">
+                    <Button variant="outline" size="sm" asChild className="mr-2">
+                      <Link href={`/instructor/courses/${course.id}`}>View</Link>
+                    </Button>
                     <Button variant="outline" size="sm" asChild>
                       <Link href={`/admin/courses/${course.id}/edit`}>Edit</Link>
                     </Button>

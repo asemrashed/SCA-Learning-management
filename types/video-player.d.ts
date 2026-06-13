@@ -39,6 +39,9 @@ declare global {
       seekTo(seconds: number, allowSeekAhead: boolean): void
       getCurrentTime(): number
       getDuration(): number
+      getVolume(): number
+      setVolume(volume: number): void
+      setPlaybackRate(rate: number): void
       destroy(): void
     }
   }
@@ -50,6 +53,9 @@ declare global {
     setMuted(muted: boolean): Promise<boolean>
     getCurrentTime(): Promise<number>
     getDuration(): Promise<number>
+    getVolume(): Promise<number>
+    setVolume(volume: number): Promise<number>
+    setPlaybackRate(rate: number): Promise<number>
     setCurrentTime(seconds: number): Promise<number>
     destroy(): Promise<void>
     on(event: "play" | "pause" | "ended", callback: () => void): void

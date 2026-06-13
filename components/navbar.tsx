@@ -13,8 +13,9 @@ import { motion, AnimatePresence } from "framer-motion"
 const navLinks = [
   { href: "/", label: "Home" },
   { href: "/courses", label: "Courses" },
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/profile", label: "Profile" },
+  { href: "/batches", label: "Batches" },
+  { href: "/about", label: "About Us" },
+  { href: "/contact", label: "Contact" },
 ]
 
 interface NavbarProps {
@@ -98,7 +99,7 @@ export function Navbar({ variant = "default" }: NavbarProps) {
             </Button>
           </>
         )}
-        <AuthNavActions floating={isFloating} />
+        <AuthNavActions floating={isFloating} layout="desktop" />
       </div>
 
       {/* Mobile Menu Toggle */}
@@ -129,27 +130,14 @@ export function Navbar({ variant = "default" }: NavbarProps) {
               : "bg-card border-b border-border px-4 py-6 absolute left-0 right-0 top-full shadow-lg max-h-[80vh] overflow-y-auto"
           )}
         >
-          <div className="relative mb-6">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search courses..."
-              className={cn(
-                "pl-9 w-full",
-                isFloating
-                  ? "bg-white/10 border-white/20 text-white placeholder:text-white/50 focus-visible:ring-white/30"
-                  : "bg-muted/50 border-none focus-visible:ring-primary"
-              )}
-            />
-          </div>
-
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col items-center gap-1 text-center">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 onClick={() => setIsOpen(false)}
                 className={cn(
-                  "flex items-center rounded-xl px-4 py-3 text-sm font-medium transition-colors",
+                  "flex w-full max-w-xs items-center justify-center rounded-xl px-4 py-3 text-sm font-medium transition-colors",
                   isFloating
                     ? "text-white/80 hover:bg-white/10 hover:text-white"
                     : "text-muted-foreground hover:bg-muted hover:text-primary"
@@ -160,18 +148,12 @@ export function Navbar({ variant = "default" }: NavbarProps) {
             ))}
           </div>
 
-          <div className="mt-6 flex flex-col gap-3">
-            <Button
-              variant="outline"
-              className={cn(
-                "w-full rounded-xl",
-                isFloating ? "border-white/20 bg-white/5 text-white hover:bg-white/10 hover:text-white" : ""
-              )}
-            >
-              All Courses
-              <ChevronDown className="ml-1 h-4 w-4" />
-            </Button>
-            <AuthNavActions floating={isFloating} className="w-full flex-col sm:flex-row" onNavigate={() => setIsOpen(false)} />
+          <div className="mt-6 flex flex-col items-center">
+            <AuthNavActions
+              floating={isFloating}
+              layout="mobile"
+              onNavigate={() => setIsOpen(false)}
+            />
           </div>
         </motion.div>
       )}
@@ -180,8 +162,8 @@ export function Navbar({ variant = "default" }: NavbarProps) {
 
   if (isFloating) {
     return (
-      <div className="container mx-auto w-full relative">
-        <div className="border border-white/20 bg-secondary shadow-lg rounded-full">
+      <div className="container relative z-[100] mx-auto w-full">
+        <div className="overflow-visible rounded-full border border-white/20 bg-secondary shadow-lg">
           {navContent}
         </div>
         {dropdownContent}
@@ -190,8 +172,8 @@ export function Navbar({ variant = "default" }: NavbarProps) {
   }
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border bg-card/80 backdrop-blur-md relative">
-      <div className="container mx-auto">
+    <header className="relative sticky top-0 z-50 w-full border-b border-border bg-card/80 backdrop-blur-md">
+      <div className="container relative z-50 mx-auto">
         {navContent}
       </div>
       {dropdownContent}

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { useListEnrollmentsQuery } from "@/features/enrollment/api"
+import { enrollmentPlayerPath } from "@/features/enrollment/utils"
 import { EnrollmentKind, EnrollmentStatus } from "@/types/api"
 
 function statusLabel(status: EnrollmentStatus, progressPct: number): string {
@@ -15,19 +16,37 @@ function statusLabel(status: EnrollmentStatus, progressPct: number): string {
   return "Not Started"
 }
 
-export function EnrollmentList() {
+interface EnrollmentListProps {
+  kind: EnrollmentKind
+}
+
+export function EnrollmentList({ kind }: EnrollmentListProps) {
   const { data, isLoading, error } = useListEnrollmentsQuery()
 
   if (isLoading) return <p className="text-muted-foreground">Loading enrollments…</p>
-  if (error) return <p className="text-destructive">Could not load your courses.</p>
+  if (error) {
+    return (
+      <p className="text-destructive">
+        Could not load your {kind === EnrollmentKind.BATCH ? "batches" : "courses"}.
+      </p>
+    )
+  }
 
-  const items = data?.data ?? []
+  const items = (data?.data ?? []).filter((item) => item.kind === kind)
+
   if (items.length === 0) {
+    const isBatch = kind === EnrollmentKind.BATCH
     return (
       <div className="py-16 text-center">
-        <p className="mb-4 text-muted-foreground">You are not enrolled in any courses yet.</p>
+        <p className="mb-4 text-muted-foreground">
+          {isBatch
+            ? "You are not enrolled in any batches yet."
+            : "You are not enrolled in any courses yet."}
+        </p>
         <Button asChild variant="outline">
-          <Link href="/courses">Browse courses</Link>
+          <Link href={isBatch ? "/batches" : "/courses"}>
+            {isBatch ? "Browse batches" : "Browse courses"}
+          </Link>
         </Button>
       </div>
     )
@@ -82,7 +101,7 @@ export function EnrollmentList() {
               ) : null}
               {canPlay ? (
                 <Button className="w-full rounded-xl" asChild>
-                  <Link href={`/dashboard/courses/${item.id}`}>
+                  <Link href={enrollmentPlayerPath(item.kind, item.id)}>
                     <Play className="mr-2 h-4 w-4" />
                     Continue
                     <ArrowRight className="ml-2 h-4 w-4" />

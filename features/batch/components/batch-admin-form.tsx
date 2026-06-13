@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { CompactMediaSourceField, MediaSourceField } from "@/components/media-source-field"
 import {
   useCreateBatchMutation,
   useGetBatchQuery,
@@ -176,6 +177,8 @@ export function BatchAdminForm({ batchId }: BatchAdminFormProps) {
   const [endDate, setEndDate] = useState("")
   const [instructorIds, setInstructorIds] = useState("")
   const [subjects, setSubjects] = useState<SubjectForm[]>([])
+  const [activeSubjectIndex, setActiveSubjectIndex] = useState(0)
+  const [activeModuleIndex, setActiveModuleIndex] = useState(0)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -225,6 +228,19 @@ export function BatchAdminForm({ batchId }: BatchAdminFormProps) {
       setSlug(slugify(title))
     }
   }, [title, slugTouched])
+
+  useEffect(() => {
+    if (activeSubjectIndex >= subjects.length && subjects.length > 0) {
+      setActiveSubjectIndex(subjects.length - 1)
+    }
+  }, [subjects.length, activeSubjectIndex])
+
+  useEffect(() => {
+    const modCount = subjects[activeSubjectIndex]?.modules.length ?? 0
+    if (activeModuleIndex >= modCount && modCount > 0) {
+      setActiveModuleIndex(modCount - 1)
+    }
+  }, [subjects, activeSubjectIndex, activeModuleIndex])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -327,10 +343,14 @@ export function BatchAdminForm({ batchId }: BatchAdminFormProps) {
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="thumbnail">Thumbnail URL</Label>
-            <Input id="thumbnail" value={thumbnail} onChange={(e) => setThumbnail(e.target.value)} />
-          </div>
+          <MediaSourceField
+            label="Thumbnail"
+            value={thumbnail}
+            onChange={setThumbnail}
+            folder="images"
+            accept="image/*"
+            placeholder="https://…"
+          />
           <div className="space-y-2">
             <Label htmlFor="price">Price (৳)</Label>
             <Input
@@ -395,197 +415,119 @@ export function BatchAdminForm({ batchId }: BatchAdminFormProps) {
         </div>
       </div>
 
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
+      <div className="space-y-4 rounded-xl border bg-card p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold">Subjects, modules & lessons</h2>
             <p className="text-sm text-muted-foreground">
-              Batch curriculum: Subject → Module → Lesson
+              Select a subject and module from the dropdowns — no long scrolling.
             </p>
           </div>
           <Button
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => setSubjects((s) => [...s, newSubject()])}
+            onClick={() => {
+              setSubjects((s) => [...s, newSubject()])
+              setActiveSubjectIndex(subjects.length)
+              setActiveModuleIndex(0)
+            }}
           >
             <Plus className="mr-1 h-4 w-4" />
             Add subject
           </Button>
         </div>
 
-        {subjects.map((subject, si) => (
-          <div key={subject.key} className="space-y-3 rounded-xl border-2 border-primary/20 bg-card p-4">
-            <div className="flex items-start gap-2">
-              <div className="flex-1 space-y-2">
-                <Label>Subject {si + 1}</Label>
-                <Input
-                  value={subject.title}
-                  onChange={(e) =>
-                    setSubjects((subs) =>
-                      subs.map((s, i) => (i === si ? { ...s, title: e.target.value } : s)),
-                    )
-                  }
-                  placeholder="e.g. Programming"
-                  required
-                />
+        {subjects.length > 0 ? (
+          <>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Subject</Label>
+                <Select
+                  value={String(activeSubjectIndex)}
+                  onValueChange={(v) => {
+                    setActiveSubjectIndex(Number(v))
+                    setActiveModuleIndex(0)
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {subjects.map((subject, si) => (
+                      <SelectItem key={subject.key} value={String(si)}>
+                        {subject.title.trim() || `Subject ${si + 1}`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="mt-8 shrink-0"
-                disabled={subjects.length === 1}
-                onClick={() => setSubjects((subs) => subs.filter((_, i) => i !== si))}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              <div className="space-y-2">
+                <Label>Module</Label>
+                <Select
+                  value={String(activeModuleIndex)}
+                  onValueChange={(v) => setActiveModuleIndex(Number(v))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(subjects[activeSubjectIndex]?.modules ?? []).map((mod, mi) => (
+                      <SelectItem key={mod.key} value={String(mi)}>
+                        {mod.title.trim() || `Module ${mi + 1}`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
-            {subject.modules.map((mod, mi) => (
-              <div key={mod.key} className="ml-2 space-y-2 rounded-lg border bg-muted/30 p-3">
-                <div className="flex items-start gap-2">
-                  <div className="flex-1 space-y-2">
-                    <Label className="text-sm">Module {mi + 1}</Label>
-                    <Input
-                      value={mod.title}
-                      onChange={(e) =>
-                        setSubjects((subs) =>
-                          subs.map((s, i) =>
-                            i === si
-                              ? {
-                                  ...s,
-                                  modules: s.modules.map((m, j) =>
-                                    j === mi ? { ...m, title: e.target.value } : m,
-                                  ),
-                                }
-                              : s,
-                          ),
-                        )
-                      }
-                      required
-                    />
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="mt-7 shrink-0"
-                    disabled={subject.modules.length === 1}
-                    onClick={() =>
-                      setSubjects((subs) =>
-                        subs.map((s, i) =>
-                          i === si
-                            ? { ...s, modules: s.modules.filter((_, j) => j !== mi) }
-                            : s,
-                        ),
-                      )
-                    }
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
+            {(() => {
+              const si = activeSubjectIndex
+              const mi = activeModuleIndex
+              const subject = subjects[si]
+              const mod = subject?.modules[mi]
+              if (!subject || !mod) return null
 
-                {mod.lessons.map((lesson, li) => (
-                  <div
-                    key={lesson.key}
-                    className="ml-2 space-y-2 rounded-lg border border-dashed bg-background p-3"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-medium text-muted-foreground">
-                        Lesson {li + 1}
-                      </span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        disabled={mod.lessons.length === 1}
-                        onClick={() =>
-                          setSubjects((subs) =>
-                            subs.map((s, i) =>
-                              i === si
-                                ? {
-                                    ...s,
-                                    modules: s.modules.map((m, j) =>
-                                      j === mi
-                                        ? { ...m, lessons: m.lessons.filter((_, k) => k !== li) }
-                                        : m,
-                                    ),
-                                  }
-                                : s,
-                            ),
-                          )
-                        }
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                    <Input
-                      placeholder="Lesson title"
-                      value={lesson.title}
-                      onChange={(e) =>
-                        setSubjects((subs) =>
-                          subs.map((s, i) =>
-                            i === si
-                              ? {
-                                  ...s,
-                                  modules: s.modules.map((m, j) =>
-                                    j === mi
-                                      ? {
-                                          ...m,
-                                          lessons: m.lessons.map((l, k) =>
-                                            k === li ? { ...l, title: e.target.value } : l,
-                                          ),
-                                        }
-                                      : m,
-                                  ),
-                                }
-                              : s,
-                          ),
-                        )
-                      }
-                      required
-                    />
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      <Select
-                        value={lesson.type}
-                        onValueChange={(v) =>
-                          setSubjects((subs) =>
-                            subs.map((s, i) =>
-                              i === si
-                                ? {
-                                    ...s,
-                                    modules: s.modules.map((m, j) =>
-                                      j === mi
-                                        ? {
-                                            ...m,
-                                            lessons: m.lessons.map((l, k) =>
-                                              k === li ? { ...l, type: v as LessonType } : l,
-                                            ),
-                                          }
-                                        : m,
-                                    ),
-                                  }
-                                : s,
-                            ),
-                          )
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {LESSON_TYPES.map((t) => (
-                            <SelectItem key={t} value={t}>
-                              {t}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+              return (
+                <div className="space-y-4 rounded-lg border-2 border-primary/20 p-4">
+                  <div className="flex flex-wrap items-start gap-2">
+                    <div className="min-w-[200px] flex-1 space-y-2">
+                      <Label>Subject title</Label>
                       <Input
-                        type="number"
-                        placeholder="Duration (seconds)"
-                        value={lesson.durationS ?? ""}
+                        value={subject.title}
+                        onChange={(e) =>
+                          setSubjects((subs) =>
+                            subs.map((s, i) =>
+                              i === si ? { ...s, title: e.target.value } : s,
+                            ),
+                          )
+                        }
+                        placeholder="e.g. Programming"
+                        required
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="mt-8"
+                      disabled={subjects.length === 1}
+                      onClick={() => {
+                        setSubjects((subs) => subs.filter((_, i) => i !== si))
+                        setActiveSubjectIndex(Math.max(0, si - 1))
+                        setActiveModuleIndex(0)
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  <div className="flex flex-wrap items-start gap-2">
+                    <div className="min-w-[200px] flex-1 space-y-2">
+                      <Label>Module title</Label>
+                      <Input
+                        value={mod.title}
                         onChange={(e) =>
                           setSubjects((subs) =>
                             subs.map((s, i) =>
@@ -593,129 +535,277 @@ export function BatchAdminForm({ batchId }: BatchAdminFormProps) {
                                 ? {
                                     ...s,
                                     modules: s.modules.map((m, j) =>
-                                      j === mi
-                                        ? {
-                                            ...m,
-                                            lessons: m.lessons.map((l, k) =>
-                                              k === li
-                                                ? {
-                                                    ...l,
-                                                    durationS: e.target.value
-                                                      ? Number(e.target.value)
-                                                      : null,
-                                                  }
-                                                : l,
-                                            ),
-                                          }
-                                        : m,
+                                      j === mi ? { ...m, title: e.target.value } : m,
                                     ),
                                   }
                                 : s,
                             ),
                           )
                         }
+                        required
                       />
                     </div>
-                    <Input
-                      placeholder="Video URL"
-                      value={lesson.videoUrl}
-                      onChange={(e) =>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="mt-8"
+                      onClick={() =>
+                        setSubjects((subs) =>
+                          subs.map((s, i) =>
+                            i === si ? { ...s, modules: [...s.modules, newModule()] } : s,
+                          ),
+                        )
+                      }
+                    >
+                      <Plus className="mr-1 h-4 w-4" />
+                      Add module
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="mt-8"
+                      disabled={subject.modules.length === 1}
+                      onClick={() => {
+                        setSubjects((subs) =>
+                          subs.map((s, i) =>
+                            i === si
+                              ? { ...s, modules: s.modules.filter((_, j) => j !== mi) }
+                              : s,
+                          ),
+                        )
+                        setActiveModuleIndex(Math.max(0, mi - 1))
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label>Lessons in this module</Label>
+                    {mod.lessons.map((lesson, li) => (
+                      <div
+                        key={lesson.key}
+                        className="space-y-2 rounded-lg border border-dashed bg-background p-3"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-muted-foreground">
+                            Lesson {li + 1}
+                          </span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            disabled={mod.lessons.length === 1}
+                            onClick={() =>
+                              setSubjects((subs) =>
+                                subs.map((s, i) =>
+                                  i === si
+                                    ? {
+                                        ...s,
+                                        modules: s.modules.map((m, j) =>
+                                          j === mi
+                                            ? {
+                                                ...m,
+                                                lessons: m.lessons.filter((_, k) => k !== li),
+                                              }
+                                            : m,
+                                        ),
+                                      }
+                                    : s,
+                                ),
+                              )
+                            }
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                        <Input
+                          placeholder="Lesson title"
+                          value={lesson.title}
+                          onChange={(e) =>
+                            setSubjects((subs) =>
+                              subs.map((s, i) =>
+                                i === si
+                                  ? {
+                                      ...s,
+                                      modules: s.modules.map((m, j) =>
+                                        j === mi
+                                          ? {
+                                              ...m,
+                                              lessons: m.lessons.map((l, k) =>
+                                                k === li ? { ...l, title: e.target.value } : l,
+                                              ),
+                                            }
+                                          : m,
+                                      ),
+                                    }
+                                  : s,
+                              ),
+                            )
+                          }
+                          required
+                        />
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          <Select
+                            value={lesson.type}
+                            onValueChange={(v) =>
+                              setSubjects((subs) =>
+                                subs.map((s, i) =>
+                                  i === si
+                                    ? {
+                                        ...s,
+                                        modules: s.modules.map((m, j) =>
+                                          j === mi
+                                            ? {
+                                                ...m,
+                                                lessons: m.lessons.map((l, k) =>
+                                                  k === li ? { ...l, type: v as LessonType } : l,
+                                                ),
+                                              }
+                                            : m,
+                                        ),
+                                      }
+                                    : s,
+                                ),
+                              )
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {LESSON_TYPES.map((t) => (
+                                <SelectItem key={t} value={t}>
+                                  {t}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Input
+                            type="number"
+                            placeholder="Duration (seconds)"
+                            value={lesson.durationS ?? ""}
+                            onChange={(e) =>
+                              setSubjects((subs) =>
+                                subs.map((s, i) =>
+                                  i === si
+                                    ? {
+                                        ...s,
+                                        modules: s.modules.map((m, j) =>
+                                          j === mi
+                                            ? {
+                                                ...m,
+                                                lessons: m.lessons.map((l, k) =>
+                                                  k === li
+                                                    ? {
+                                                        ...l,
+                                                        durationS: e.target.value
+                                                          ? Number(e.target.value)
+                                                          : null,
+                                                      }
+                                                    : l,
+                                                ),
+                                              }
+                                            : m,
+                                        ),
+                                      }
+                                    : s,
+                                ),
+                              )
+                            }
+                          />
+                        </div>
+                        <CompactMediaSourceField
+                          label="Video"
+                          value={lesson.videoUrl}
+                          onChange={(url) =>
+                            setSubjects((subs) =>
+                              subs.map((s, i) =>
+                                i === si
+                                  ? {
+                                      ...s,
+                                      modules: s.modules.map((m, j) =>
+                                        j === mi
+                                          ? {
+                                              ...m,
+                                              lessons: m.lessons.map((l, k) =>
+                                                k === li ? { ...l, videoUrl: url } : l,
+                                              ),
+                                            }
+                                          : m,
+                                      ),
+                                    }
+                                  : s,
+                              ),
+                            )
+                          }
+                          folder="videos"
+                          accept="video/*"
+                          placeholder="Video URL or YouTube link"
+                        />
+                        <div className="flex items-center gap-2">
+                          <Checkbox
+                            id={`preview-${subject.key}-${mod.key}-${lesson.key}`}
+                            checked={lesson.isPreview}
+                            onCheckedChange={(v) =>
+                              setSubjects((subs) =>
+                                subs.map((s, i) =>
+                                  i === si
+                                    ? {
+                                        ...s,
+                                        modules: s.modules.map((m, j) =>
+                                          j === mi
+                                            ? {
+                                                ...m,
+                                                lessons: m.lessons.map((l, k) =>
+                                                  k === li ? { ...l, isPreview: v === true } : l,
+                                                ),
+                                              }
+                                            : m,
+                                        ),
+                                      }
+                                    : s,
+                                ),
+                              )
+                            }
+                          />
+                          <Label htmlFor={`preview-${subject.key}-${mod.key}-${lesson.key}`}>
+                            Preview lesson (guests can play)
+                          </Label>
+                        </div>
+                      </div>
+                    ))}
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
                         setSubjects((subs) =>
                           subs.map((s, i) =>
                             i === si
                               ? {
                                   ...s,
                                   modules: s.modules.map((m, j) =>
-                                    j === mi
-                                      ? {
-                                          ...m,
-                                          lessons: m.lessons.map((l, k) =>
-                                            k === li ? { ...l, videoUrl: e.target.value } : l,
-                                          ),
-                                        }
-                                      : m,
+                                    j === mi ? { ...m, lessons: [...m.lessons, newLesson()] } : m,
                                   ),
                                 }
                               : s,
                           ),
                         )
                       }
-                    />
-                    <div className="flex items-center gap-2">
-                      <Checkbox
-                        id={`preview-${subject.key}-${mod.key}-${lesson.key}`}
-                        checked={lesson.isPreview}
-                        onCheckedChange={(v) =>
-                          setSubjects((subs) =>
-                            subs.map((s, i) =>
-                              i === si
-                                ? {
-                                    ...s,
-                                    modules: s.modules.map((m, j) =>
-                                      j === mi
-                                        ? {
-                                            ...m,
-                                            lessons: m.lessons.map((l, k) =>
-                                              k === li ? { ...l, isPreview: v === true } : l,
-                                            ),
-                                          }
-                                        : m,
-                                    ),
-                                  }
-                                : s,
-                            ),
-                          )
-                        }
-                      />
-                      <Label htmlFor={`preview-${subject.key}-${mod.key}-${lesson.key}`}>
-                        Preview lesson (guests can play)
-                      </Label>
-                    </div>
+                    >
+                      <Plus className="mr-1 h-4 w-4" />
+                      Add lesson
+                    </Button>
                   </div>
-                ))}
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() =>
-                    setSubjects((subs) =>
-                      subs.map((s, i) =>
-                        i === si
-                          ? {
-                              ...s,
-                              modules: s.modules.map((m, j) =>
-                                j === mi ? { ...m, lessons: [...m.lessons, newLesson()] } : m,
-                              ),
-                            }
-                          : s,
-                      ),
-                    )
-                  }
-                >
-                  <Plus className="mr-1 h-4 w-4" />
-                  Add lesson
-                </Button>
-              </div>
-            ))}
-
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                setSubjects((subs) =>
-                  subs.map((s, i) =>
-                    i === si ? { ...s, modules: [...s.modules, newModule()] } : s,
-                  ),
-                )
-              }
-            >
-              <Plus className="mr-1 h-4 w-4" />
-              Add module
-            </Button>
-          </div>
-        ))}
+                </div>
+              )
+            })()}
+          </>
+        ) : null}
       </div>
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}

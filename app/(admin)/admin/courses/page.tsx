@@ -67,6 +67,9 @@ export default function AdminCoursesPage() {
                       <Button variant="outline" size="sm" asChild>
                         <Link href={`/admin/courses/${course.id}/edit`}>Edit</Link>
                       </Button>
+                      <Button variant="outline" size="sm" asChild>
+                        <Link href={`/admin/courses/${course.id}`}>View</Link>
+                      </Button>
                       <Button
                         variant="ghost"
                         size="sm"

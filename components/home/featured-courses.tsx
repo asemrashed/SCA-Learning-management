@@ -2,12 +2,14 @@
 
 import { useMemo, useState } from "react"
 import Link from "next/link"
-import { ArrowRight, BookOpen, Radio } from "lucide-react"
+import { ArrowRight, BookOpen, GraduationCap, Grid3X3 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { CourseCard } from "@/components/course-card"
 import { CategoryNav } from "@/components/home/category-nav"
 import { useListCoursesQuery } from "@/features/course/api"
 import { motion } from "framer-motion"
+
+const MAX_CARDS = 4
 
 export function FeaturedCourses() {
   const { data, isLoading } = useListCoursesQuery({
@@ -24,26 +26,34 @@ export function FeaturedCourses() {
       if (!course.category) continue
       counts.set(course.category, (counts.get(course.category) ?? 0) + 1)
     }
-    return Array.from(counts.entries()).map(([label, count]) => ({
+
+    const categoryItems = Array.from(counts.entries()).map(([label, count]) => ({
       id: label.toLowerCase().replace(/\s+/g, "-"),
       label,
       icon: BookOpen,
       subtitle: `${count} Course${count === 1 ? "" : "s"}`,
     }))
+
+    return [
+      {
+        id: "all",
+        label: "All",
+        icon: Grid3X3,
+        subtitle: `${courses.length} Course${courses.length === 1 ? "" : "s"}`,
+      },
+      ...categoryItems,
+    ]
   }, [courses])
 
-  const [activeCategory, setActiveCategory] = useState<string | null>(null)
-
-  const activeId = activeCategory ?? categories[0]?.id ?? "all"
+  const [activeCategory, setActiveCategory] = useState("all")
 
   const filteredCourses = useMemo(() => {
-    if (activeId === "all" || categories.length === 0) return courses
-    const label = categories.find((c) => c.id === activeId)?.label
+    if (activeCategory === "all") return courses
+    const label = categories.find((c) => c.id === activeCategory)?.label
     return courses.filter((c) => c.category === label)
-  }, [courses, activeId, categories])
+  }, [courses, activeCategory, categories])
 
-  const displayCourses =
-    filteredCourses.length > 0 ? filteredCourses.slice(0, 4) : courses.slice(0, 4)
+  const displayCourses = filteredCourses.slice(0, MAX_CARDS)
 
   return (
     <section className="bg-background py-20">
@@ -56,17 +66,22 @@ export function FeaturedCourses() {
           className="mb-10 text-center"
         >
           <div className="mb-4 flex items-center justify-center gap-2">
-            <Radio className="h-5 w-5 text-destructive" />
-            <span className="text-lg font-bold text-foreground md:text-xl">
-              Explore Our Courses
-            </span>
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+              <GraduationCap className="h-5 w-5 text-primary" />
+            </div>
           </div>
+          <h2 className="mb-2 text-3xl font-bold text-foreground md:text-4xl">
+            Explore Our Courses
+          </h2>
+          <p className="mx-auto max-w-2xl text-muted-foreground">
+            Browse curated courses across categories and start learning at your own pace
+          </p>
         </motion.div>
 
         {categories.length > 0 ? (
           <CategoryNav
             items={categories}
-            activeId={activeId}
+            activeId={activeCategory}
             onChange={setActiveCategory}
             className="mb-10"
           />
