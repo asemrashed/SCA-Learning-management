@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select"
 import { useGetBatchQuery, useListBatchesQuery } from "@/features/batch/api"
 import { useGetCourseQuery, useListCoursesQuery } from "@/features/course/api"
+import { SHOW_RECORDED_COURSES, learningSystemLabel, LIVE_COURSE, CHAPTER } from "@/lib/product-vocabulary"
 
 const NONE = "__none__"
 
@@ -43,7 +44,7 @@ export function CurriculumPlacementPicker({
   fixedBatchId,
   fixedCourseId,
   showScopeToggle = true,
-  moduleLabel = "Module (optional)",
+  moduleLabel = `${CHAPTER} (optional)`,
   lessonLabel = "Lesson (optional)",
   className = "grid gap-4 sm:grid-cols-2",
   beforeLesson,
@@ -60,12 +61,10 @@ export function CurriculumPlacementPicker({
       const subjects = value.subjectId
         ? batchData.data.subjects.filter((s) => s.id === value.subjectId)
         : batchData.data.subjects
-      return subjects.flatMap((s) =>
-        s.modules.map((m) => ({ ...m, subjectTitle: s.title })),
-      )
+      return subjects.flatMap((s) => s.modules)
     }
     if (scope === "course" && courseData?.data) {
-      return courseData.data.modules.map((m) => ({ ...m, subjectTitle: null as string | null }))
+      return courseData.data.modules
     }
     return []
   }, [scope, batchData, courseData, value.subjectId])
@@ -96,9 +95,13 @@ export function CurriculumPlacementPicker({
     })
   }
 
+  const effectiveShowScopeToggle = showScopeToggle && SHOW_RECORDED_COURSES
+
+  const showProductPicker = !fixedBatchId && !fixedCourseId
+
   return (
     <div className={className}>
-      {showScopeToggle && !fixedBatchId && !fixedCourseId ? (
+      {showProductPicker && effectiveShowScopeToggle ? (
         <>
           <div className="space-y-2">
             <Label>Learning system</Label>
@@ -107,13 +110,13 @@ export function CurriculumPlacementPicker({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="batch">Batch</SelectItem>
-                <SelectItem value="course">Course</SelectItem>
+                <SelectItem value="batch">{learningSystemLabel("batch")}</SelectItem>
+                <SelectItem value="course">{learningSystemLabel("course")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>{scope === "batch" ? "Batch" : "Course"}</Label>
+            <Label>{learningSystemLabel(scope)}</Label>
             {scope === "batch" ? (
               <BatchSelect
                 value={batchId}
@@ -144,6 +147,26 @@ export function CurriculumPlacementPicker({
             )}
           </div>
         </>
+      ) : null}
+
+      {showProductPicker && !effectiveShowScopeToggle ? (
+        <div className="space-y-2">
+          <Label>{LIVE_COURSE}</Label>
+          <BatchSelect
+            value={batchId}
+            onChange={(id) =>
+              onChange({
+                ...value,
+                scope: "batch",
+                batchId: id,
+                courseId: undefined,
+                subjectId: null,
+                moduleId: null,
+                lessonId: null,
+              })
+            }
+          />
+        </div>
       ) : null}
 
       {scope === "batch" && batchId ? (
@@ -197,7 +220,6 @@ export function CurriculumPlacementPicker({
             <SelectItem value={NONE}>None</SelectItem>
             {modules.map((m) => (
               <SelectItem key={m.id} value={m.id}>
-                {m.subjectTitle ? `${m.subjectTitle} → ` : ""}
                 {m.title}
               </SelectItem>
             ))}
@@ -239,7 +261,7 @@ function BatchSelect({ value, onChange }: { value: string; onChange: (id: string
   return (
     <Select value={value || undefined} onValueChange={onChange}>
       <SelectTrigger>
-        <SelectValue placeholder="Select batch" />
+        <SelectValue placeholder={`Select ${LIVE_COURSE.toLowerCase()}`} />
       </SelectTrigger>
       <SelectContent>
         {batches.map((b) => (

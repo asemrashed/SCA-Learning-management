@@ -1,9 +1,15 @@
-import { AppShell } from "@/components/app-shell"
+import { StaffShell } from "@/components/staff-shell"
+import { RoleGuard } from "@/components/role-guard"
+import { Role } from "@/types/api"
 
 export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  return <AppShell variant="admin">{children}</AppShell>
+  return (
+    <RoleGuard allow={[Role.ADMIN, Role.SUPER_ADMIN]}>
+      <StaffShell>{children}</StaffShell>
+    </RoleGuard>
+  )
 }

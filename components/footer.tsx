@@ -1,5 +1,3 @@
-"use client"
-
 import Link from "next/link"
 import {
   Mail,
@@ -12,20 +10,18 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { BRAND_EMAIL, BRAND_NAME, BRAND_PHONE } from "@/lib/brand"
+import { LIVE_COURSE_CATALOG_HREF, LIVE_COURSES } from "@/lib/product-vocabulary"
 
 const usefulLinks = [
-  { href: "/courses", label: "Courses" },
+  { href: LIVE_COURSE_CATALOG_HREF, label: LIVE_COURSES },
   { href: "/about", label: "About Us" },
   { href: "/blog", label: "Blog" },
-  { href: "/courses?category=web", label: "Web Development" },
-  { href: "/courses?category=creative", label: "Design" },
 ]
 
 const supportLinks = [
   { href: "/help", label: "Documentation" },
-  { href: "/courses", label: "Available Courses" },
+  { href: LIVE_COURSE_CATALOG_HREF, label: `Available ${LIVE_COURSES.toLowerCase()}` },
   { href: "/community", label: "Forum" },
-  { href: "/instructors", label: "Instructors" },
 ]
 
 export function Footer() {
@@ -44,11 +40,11 @@ export function Footer() {
           <div className="relative flex flex-col items-start justify-between gap-8 lg:flex-row lg:items-center">
             <div className="max-w-xl">
               <h2 className="mb-3 text-2xl font-bold md:text-3xl">
-                Admission is open for the next year batch.
+                Admission is open for the next live course intake.
               </h2>
               <p className="text-primary-foreground/80">
-                Enrollment is now open for the upcoming year&apos;s batch. Join us to
-                secure your spot and start your journey toward growth and success.
+                Enrollment is now open. Join us to secure your spot and start your journey
+                toward growth and success.
               </p>
             </div>
             <div className="flex w-full flex-col gap-3 sm:w-auto sm:min-w-[220px]">
@@ -57,7 +53,7 @@ export function Footer() {
                 className="w-full rounded-full bg-secondary px-8 text-base font-bold text-secondary-foreground hover:bg-secondary/90"
                 asChild
               >
-                <Link href="/courses">Get started now</Link>
+                <Link href={LIVE_COURSE_CATALOG_HREF}>Get started now</Link>
               </Button>
               <Button
                 size="lg"

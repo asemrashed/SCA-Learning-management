@@ -4,6 +4,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { ArrowRight, Play, BookOpen, Pencil, GraduationCap, Rocket } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { LIVE_COURSE_CATALOG_HREF } from "@/lib/product-vocabulary"
 import { motion } from "framer-motion"
 
 const floatingIcons = [
@@ -68,7 +69,7 @@ export function HeroSection() {
                 className="rounded-full bg-primary px-8 text-base text-primary-foreground hover:bg-primary/90"
                 asChild
               >
-                <Link href="/courses">
+                <Link href={LIVE_COURSE_CATALOG_HREF}>
                   Get Started Now
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>

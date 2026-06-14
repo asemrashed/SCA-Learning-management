@@ -1,16 +1,22 @@
 import type { LucideIcon } from 'lucide-react'
 import {
-  BookOpen,
   ClipboardList,
   FileText,
   GraduationCap,
   Layers,
   LayoutDashboard,
+  Package,
   PenLine,
-  Settings,
+  ShoppingBag,
   User,
+  UserPlus,
+  Users,
 } from 'lucide-react'
 import { Role } from '@/types/api'
+import {
+  LIVE_COURSES,
+  MY_LIVE_COURSES,
+} from '@/lib/product-vocabulary'
 
 export interface ShellNavItem {
   href: string
@@ -28,19 +34,31 @@ export const studentShellNav: ShellNavGroup[] = [
     group: 'Learning',
     items: [
       { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-      { href: '/dashboard/batches', label: 'My Batches', icon: Layers },
-      { href: '/dashboard/courses', label: 'My Courses', icon: BookOpen },
+      { href: '/dashboard/batches', label: MY_LIVE_COURSES, icon: Layers },
       { href: '/dashboard/resources', label: 'Resources', icon: FileText },
+      { href: '/shop', label: 'Shop', icon: ShoppingBag },
     ],
   },
   {
     group: 'Account',
     items: [
       { href: '/profile', label: 'Profile', icon: User },
+      { href: '/dashboard/orders', label: 'My orders', icon: Package },
       { href: '/dashboard/certificates', label: 'Certificates', icon: GraduationCap },
-      { href: '/dashboard/settings', label: 'Settings', icon: Settings },
     ],
   },
+]
+
+const adminOperationsNav: ShellNavItem[] = [
+  { href: '/admin/batches', label: LIVE_COURSES, icon: Layers },
+  { href: '/admin/products', label: 'Shop products', icon: ShoppingBag },
+  { href: '/admin/orders', label: 'Shop orders', icon: Package },
+  { href: '/admin/enrollments', label: 'Enrollments', icon: UserPlus },
+  { href: '/admin/resources', label: 'Resources', icon: FileText },
+  { href: '/admin/exams', label: 'Exams', icon: ClipboardList },
+  { href: '/admin/assignments', label: 'Assignments', icon: PenLine },
+  { href: '/admin/questions', label: 'Question bank', icon: ClipboardList },
+  { href: '/admin/certificates', label: 'Certificates', icon: GraduationCap },
 ]
 
 export const adminShellNav: ShellNavGroup[] = [
@@ -48,13 +66,7 @@ export const adminShellNav: ShellNavGroup[] = [
     group: 'Admin',
     items: [
       { href: '/admin', label: 'Overview', icon: LayoutDashboard },
-      { href: '/admin/courses', label: 'Courses', icon: BookOpen },
-      { href: '/admin/batches', label: 'Batches', icon: Layers },
-      { href: '/admin/resources', label: 'Resources', icon: FileText },
-      { href: '/admin/exams', label: 'Exams', icon: ClipboardList },
-      { href: '/admin/assignments', label: 'Assignments', icon: PenLine },
-      { href: '/admin/questions', label: 'Question bank', icon: ClipboardList },
-      { href: '/admin/certificates', label: 'Certificates', icon: GraduationCap },
+      ...adminOperationsNav,
     ],
   },
   {
@@ -66,18 +78,17 @@ export const adminShellNav: ShellNavGroup[] = [
   },
 ]
 
-export const instructorShellNav: ShellNavGroup[] = [
+export const superAdminShellNav: ShellNavGroup[] = [
   {
-    group: 'Teaching',
+    group: 'Platform',
     items: [
-      { href: '/instructor', label: 'Overview', icon: LayoutDashboard },
-      { href: '/instructor/batches', label: 'My Batches', icon: Layers },
-      { href: '/instructor/courses', label: 'My Courses', icon: BookOpen },
-      { href: '/instructor/resources', label: 'Resources', icon: FileText },
-      { href: '/instructor/exams', label: 'Exams', icon: ClipboardList },
-      { href: '/instructor/assignments', label: 'Assignments', icon: PenLine },
-      { href: '/instructor/certificates', label: 'Certificates', icon: GraduationCap },
+      { href: '/super-admin', label: 'Overview', icon: LayoutDashboard },
+      { href: '/super-admin/users', label: 'Admins', icon: Users },
     ],
+  },
+  {
+    group: 'Admin',
+    items: adminOperationsNav,
   },
   {
     group: 'Account',
@@ -90,10 +101,10 @@ export const instructorShellNav: ShellNavGroup[] = [
 
 export function homePathForRole(role: Role): string {
   switch (role) {
+    case Role.SUPER_ADMIN:
+      return '/super-admin'
     case Role.ADMIN:
       return '/admin'
-    case Role.INSTRUCTOR:
-      return '/instructor'
     default:
       return '/dashboard'
   }

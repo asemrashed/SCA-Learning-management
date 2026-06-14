@@ -2,14 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import { CheckCircle2, ChevronDown, ChevronUp, Lock, Play } from "lucide-react"
+import { ChevronDown, ChevronUp, Lock, Play } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
 import { LessonVideoPlayer } from "@/components/lesson-video-player"
-import {
-  useGetEnrollmentQuery,
-  useMarkLessonCompleteMutation,
-} from "@/features/enrollment/api"
+import { useGetEnrollmentQuery } from "@/features/enrollment/api"
 import { LiveSessionsPanel } from "@/features/liveclass/components/live-sessions-panel"
 import { EnrollmentRecordingsPanel } from "@/features/liveclass/components/enrollment-recordings-panel"
 import { enrollmentListPath } from "@/features/enrollment/utils"
@@ -18,6 +14,7 @@ import { ExamListPanel } from "@/features/assessment/components/exam-list"
 import { EnrollmentResourcesPanel } from "@/features/resource/components/enrollment-resources-panel"
 import type { EnrollmentDetail, EnrollmentLesson } from "@/types/api"
 import { EnrollmentKind } from "@/types/api"
+import { LIVE_COURSE, MY_LIVE_COURSES } from "@/lib/product-vocabulary"
 
 function formatDuration(seconds: number | null): string {
   if (!seconds) return ""
@@ -36,12 +33,10 @@ function LessonRow({
   lesson,
   isActive,
   onSelect,
-  onComplete,
 }: {
   lesson: EnrollmentLesson
   isActive: boolean
   onSelect: (lesson: EnrollmentLesson) => void
-  onComplete: (id: string) => void
 }) {
   const hasVideo = !!lesson.videoUrl
 
@@ -52,30 +47,21 @@ function LessonRow({
       }`}
     >
       <div className="flex items-center justify-between gap-2">
-        <span className={lesson.completed ? "text-muted-foreground line-through" : ""}>
-          {lesson.title}
-        </span>
+        <span>{lesson.title}</span>
         <div className="flex shrink-0 items-center gap-2">
           {lesson.durationS ? (
             <span className="text-xs text-muted-foreground">
               {formatDuration(lesson.durationS)}
             </span>
           ) : null}
-          {lesson.completed ? (
-            <CheckCircle2 className="h-4 w-4 text-green-600" />
-          ) : hasVideo ? (
-            <>
-              <Button
-                variant={isActive ? "default" : "ghost"}
-                size="sm"
-                onClick={() => onSelect(lesson)}
-              >
-                <Play className="h-4 w-4" />
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => onComplete(lesson.id)}>
-                Done
-              </Button>
-            </>
+          {hasVideo ? (
+            <Button
+              variant={isActive ? "default" : "ghost"}
+              size="sm"
+              onClick={() => onSelect(lesson)}
+            >
+              <Play className="h-4 w-4" />
+            </Button>
           ) : (
             <Lock className="h-4 w-4 text-muted-foreground" />
           )}
@@ -89,12 +75,10 @@ function ModulesBlock({
   detail,
   activeLessonId,
   onSelectLesson,
-  onComplete,
 }: {
   detail: EnrollmentDetail
   activeLessonId: string | null
   onSelectLesson: (lesson: EnrollmentLesson) => void
-  onComplete: (id: string) => void
 }) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
 
@@ -125,7 +109,6 @@ function ModulesBlock({
                     lesson={lesson}
                     isActive={activeLessonId === lesson.id}
                     onSelect={onSelectLesson}
-                    onComplete={onComplete}
                   />
                 ))}
               </div>
@@ -138,8 +121,7 @@ function ModulesBlock({
 }
 
 export function EnrollmentPlayer({ enrollmentId }: { enrollmentId: string }) {
-  const { data, isLoading, error, refetch } = useGetEnrollmentQuery(enrollmentId)
-  const [markComplete] = useMarkLessonCompleteMutation()
+  const { data, isLoading, error } = useGetEnrollmentQuery(enrollmentId)
   const [activeLesson, setActiveLesson] = useState<EnrollmentLesson | null>(null)
   const [tab, setTab] = useState<
     "lessons" | "resources" | "recordings" | "exams" | "assignments"
@@ -153,16 +135,9 @@ export function EnrollmentPlayer({ enrollmentId }: { enrollmentId: string }) {
 
   useEffect(() => {
     if (!detail || activeLesson) return
-    const firstPlayable =
-      allLessons.find((l) => l.videoUrl && !l.completed) ??
-      allLessons.find((l) => l.videoUrl)
+    const firstPlayable = allLessons.find((l) => l.videoUrl)
     if (firstPlayable) setActiveLesson(firstPlayable)
   }, [detail, allLessons, activeLesson])
-
-  async function handleComplete(lessonId: string) {
-    await markComplete(lessonId)
-    refetch()
-  }
 
   if (isLoading) return <p className="text-muted-foreground">Loading…</p>
   if (error || !detail) {
@@ -182,7 +157,7 @@ export function EnrollmentPlayer({ enrollmentId }: { enrollmentId: string }) {
     detail.kind === EnrollmentKind.BATCH ? detail.batch!.id : detail.course!.id
 
   const listPath = enrollmentListPath(detail.kind)
-  const listLabel = detail.kind === EnrollmentKind.BATCH ? "My Batches" : "My Courses"
+  const listLabel = MY_LIVE_COURSES
 
   return (
     <div className="space-y-6">
@@ -191,13 +166,9 @@ export function EnrollmentPlayer({ enrollmentId }: { enrollmentId: string }) {
           <Link href={listPath}>← {listLabel}</Link>
         </Button>
         <h1 className="text-2xl font-bold">{title}</h1>
-        <div className="mt-4 max-w-md">
-          <div className="mb-1 flex justify-between text-sm">
-            <span>Progress</span>
-            <span>{detail.progressPct}%</span>
-          </div>
-          <Progress value={detail.progressPct} />
-        </div>
+        {detail.rollNumber ? (
+          <p className="mt-2 text-sm text-muted-foreground">Roll: {detail.rollNumber}</p>
+        ) : null}
       </div>
 
       <div className="flex flex-wrap gap-2 border-b pb-2">
@@ -248,7 +219,6 @@ export function EnrollmentPlayer({ enrollmentId }: { enrollmentId: string }) {
                 detail={detail}
                 activeLessonId={activeLesson?.id ?? null}
                 onSelectLesson={setActiveLesson}
-                onComplete={(id) => void handleComplete(id)}
               />
             </div>
           </div>

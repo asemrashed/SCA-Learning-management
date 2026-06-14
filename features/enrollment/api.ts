@@ -3,6 +3,8 @@ import type {
   EnrollmentDetail,
   EnrollmentListItem,
   CreateEnrollmentInput,
+  AdminEnrollmentRequest,
+  ReviewEnrollmentInput,
 } from '@/types/api'
 import { baseQueryWithReauth } from '@/lib/apiClient'
 
@@ -29,6 +31,30 @@ export const enrollmentApi = createApi({
       query: (body) => ({ url: '/enrollments', method: 'POST', body }),
       invalidatesTags: [{ type: 'EnrollmentList', id: 'LIST' }],
     }),
+    listAdminEnrollmentRequests: builder.query<
+      { data: AdminEnrollmentRequest[] },
+      { status?: string } | void
+    >({
+      query: (params) => ({
+        url: '/admin/enrollments',
+        params: params ?? {},
+      }),
+      providesTags: [{ type: 'EnrollmentList', id: 'ADMIN' }],
+    }),
+    reviewEnrollmentRequest: builder.mutation<
+      { data: AdminEnrollmentRequest },
+      { id: string; body: ReviewEnrollmentInput }
+    >({
+      query: ({ id, body }) => ({
+        url: `/admin/enrollments/${id}`,
+        method: 'PATCH',
+        body,
+      }),
+      invalidatesTags: [
+        { type: 'EnrollmentList', id: 'ADMIN' },
+        { type: 'EnrollmentList', id: 'LIST' },
+      ],
+    }),
     markLessonComplete: builder.mutation<{ data: { progressPct: number } }, string>({
       query: (lessonId) => ({
         url: `/me/lessons/${lessonId}/progress`,
@@ -44,5 +70,7 @@ export const {
   useListEnrollmentsQuery,
   useGetEnrollmentQuery,
   useCreateEnrollmentMutation,
+  useListAdminEnrollmentRequestsQuery,
+  useReviewEnrollmentRequestMutation,
   useMarkLessonCompleteMutation,
 } = enrollmentApi

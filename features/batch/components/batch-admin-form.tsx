@@ -28,6 +28,14 @@ import type {
   LessonType,
 } from "@/features/batch/types"
 import { BATCH_STATUS_LABEL } from "@/features/batch/utils"
+import {
+  EDIT_LIVE_COURSE,
+  LIVE_COURSE,
+  NEW_LIVE_COURSE,
+  SAVE_LIVE_COURSE,
+  CHAPTER,
+  CHAPTERS,
+} from "@/lib/product-vocabulary"
 
 const BATCH_STATUSES: BatchStatus[] = [
   "DRAFT",
@@ -156,9 +164,12 @@ function toSubjectsPayload(subjects: SubjectForm[]): BatchInputSubject[] {
 
 interface BatchAdminFormProps {
   batchId?: string
+  basePath?: string
 }
 
-export function BatchAdminForm({ batchId }: BatchAdminFormProps) {
+const DEFAULT_BATCH_BASE = "/admin/batches"
+
+export function BatchAdminForm({ batchId, basePath = DEFAULT_BATCH_BASE }: BatchAdminFormProps) {
   const router = useRouter()
   const isEdit = Boolean(batchId)
   const { data, isLoading } = useGetBatchQuery(batchId!, { skip: !batchId })
@@ -175,7 +186,6 @@ export function BatchAdminForm({ batchId }: BatchAdminFormProps) {
   const [registrationDeadline, setRegistrationDeadline] = useState("")
   const [startDate, setStartDate] = useState("")
   const [endDate, setEndDate] = useState("")
-  const [instructorIds, setInstructorIds] = useState("")
   const [subjects, setSubjects] = useState<SubjectForm[]>([])
   const [activeSubjectIndex, setActiveSubjectIndex] = useState(0)
   const [activeModuleIndex, setActiveModuleIndex] = useState(0)
@@ -200,7 +210,6 @@ export function BatchAdminForm({ batchId }: BatchAdminFormProps) {
     setRegistrationDeadline(toDatetimeLocal(b.registrationDeadline))
     setStartDate(toDatetimeLocal(b.startDate))
     setEndDate(toDatetimeLocal(b.endDate))
-    setInstructorIds(b.instructors.map((i) => i.id).join(", "))
     setSubjects(
       subjectsFromBatch(
         b.subjects.map((s) => ({
@@ -246,11 +255,6 @@ export function BatchAdminForm({ batchId }: BatchAdminFormProps) {
     e.preventDefault()
     setError(null)
 
-    const parsedInstructors = instructorIds
-      .split(",")
-      .map((id) => id.trim())
-      .filter(Boolean)
-
     const body: CreateBatchInput = {
       title: title.trim(),
       slug: slug.trim(),
@@ -261,7 +265,6 @@ export function BatchAdminForm({ batchId }: BatchAdminFormProps) {
       registrationDeadline: fromDatetimeLocal(registrationDeadline),
       startDate: fromDatetimeLocal(startDate),
       endDate: fromDatetimeLocal(endDate),
-      instructorIds: parsedInstructors.length ? parsedInstructors : undefined,
       subjects: toSubjectsPayload(subjects),
     }
 
@@ -271,7 +274,7 @@ export function BatchAdminForm({ batchId }: BatchAdminFormProps) {
         router.refresh()
       } else {
         const result = await createBatch(body).unwrap()
-        router.push(`/admin/batches/${result.data.id}/edit`)
+        router.push(`${basePath}/${result.data.id}/edit`)
       }
     } catch (err: unknown) {
       const apiErr = err as {
@@ -290,7 +293,7 @@ export function BatchAdminForm({ batchId }: BatchAdminFormProps) {
   }
 
   if (isEdit && isLoading) {
-    return <p className="text-muted-foreground">Loading batch…</p>
+    return <p className="text-muted-foreground">Loading {LIVE_COURSE.toLowerCase()}…</p>
   }
 
   const saving = creating || updating
@@ -300,7 +303,7 @@ export function BatchAdminForm({ batchId }: BatchAdminFormProps) {
     <form onSubmit={handleSubmit} className="mx-auto max-w-4xl space-y-8">
       <div className="space-y-4 rounded-xl border bg-card p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <h2 className="text-lg font-semibold">{isEdit ? "Edit batch" : "New batch"}</h2>
+          <h2 className="text-lg font-semibold">{isEdit ? EDIT_LIVE_COURSE : NEW_LIVE_COURSE}</h2>
           {isEdit && publicSlug ? (
             <Button type="button" variant="outline" size="sm" asChild>
               <Link href={`/batches/${publicSlug}`} target="_blank">
@@ -392,25 +395,14 @@ export function BatchAdminForm({ batchId }: BatchAdminFormProps) {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="endDate">End date</Label>
+            <Label htmlFor="endDate">End date (optional)</Label>
             <Input
               id="endDate"
               type="datetime-local"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
+              placeholder="Optional"
             />
-          </div>
-          <div className="space-y-2 sm:col-span-2">
-            <Label htmlFor="instructors">Instructor user IDs</Label>
-            <Input
-              id="instructors"
-              placeholder="cuid1, cuid2 (comma-separated)"
-              value={instructorIds}
-              onChange={(e) => setInstructorIds(e.target.value)}
-            />
-            <p className="text-xs text-muted-foreground">
-              Must be existing INSTRUCTOR or ADMIN user IDs from the database.
-            </p>
           </div>
         </div>
       </div>
@@ -418,9 +410,9 @@ export function BatchAdminForm({ batchId }: BatchAdminFormProps) {
       <div className="space-y-4 rounded-xl border bg-card p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg font-semibold">Subjects, modules & lessons</h2>
+            <h2 className="text-lg font-semibold">Subjects, {CHAPTERS.toLowerCase()} & lessons</h2>
             <p className="text-sm text-muted-foreground">
-              Select a subject and module from the dropdowns — no long scrolling.
+              Select a subject and {CHAPTER.toLowerCase()} from the dropdowns — no long scrolling.
             </p>
           </div>
           <Button
@@ -463,7 +455,7 @@ export function BatchAdminForm({ batchId }: BatchAdminFormProps) {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Module</Label>
+                <Label>{CHAPTER}</Label>
                 <Select
                   value={String(activeModuleIndex)}
                   onValueChange={(v) => setActiveModuleIndex(Number(v))}
@@ -474,7 +466,7 @@ export function BatchAdminForm({ batchId }: BatchAdminFormProps) {
                   <SelectContent>
                     {(subjects[activeSubjectIndex]?.modules ?? []).map((mod, mi) => (
                       <SelectItem key={mod.key} value={String(mi)}>
-                        {mod.title.trim() || `Module ${mi + 1}`}
+                        {mod.title.trim() || `${CHAPTER} ${mi + 1}`}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -525,7 +517,7 @@ export function BatchAdminForm({ batchId }: BatchAdminFormProps) {
 
                   <div className="flex flex-wrap items-start gap-2">
                     <div className="min-w-[200px] flex-1 space-y-2">
-                      <Label>Module title</Label>
+                      <Label>{CHAPTER} title</Label>
                       <Input
                         value={mod.title}
                         onChange={(e) =>
@@ -559,7 +551,7 @@ export function BatchAdminForm({ batchId }: BatchAdminFormProps) {
                       }
                     >
                       <Plus className="mr-1 h-4 w-4" />
-                      Add module
+                      Add {CHAPTER.toLowerCase()}
                     </Button>
                     <Button
                       type="button"
@@ -583,7 +575,7 @@ export function BatchAdminForm({ batchId }: BatchAdminFormProps) {
                   </div>
 
                   <div className="space-y-3">
-                    <Label>Lessons in this module</Label>
+                    <Label>Lessons in this {CHAPTER.toLowerCase()}</Label>
                     {mod.lessons.map((lesson, li) => (
                       <div
                         key={lesson.key}
@@ -812,9 +804,9 @@ export function BatchAdminForm({ batchId }: BatchAdminFormProps) {
 
       <div className="flex gap-3">
         <Button type="submit" disabled={saving}>
-          {saving ? "Saving…" : "Save batch"}
+          {saving ? "Saving…" : SAVE_LIVE_COURSE}
         </Button>
-        <Button type="button" variant="outline" onClick={() => router.push("/admin/batches")}>
+        <Button type="button" variant="outline" onClick={() => router.push(basePath)}>
           Back to list
         </Button>
       </div>

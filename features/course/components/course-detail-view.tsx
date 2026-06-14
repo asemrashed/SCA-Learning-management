@@ -112,7 +112,7 @@ export function CourseDetailView({ course }: CourseDetailViewProps) {
 
             <EnrollButton
               courseId={course.id}
-              priceMinor={course.priceMinor}
+              productTitle={course.title}
               className="mb-3 w-full rounded-xl text-lg"
             />
           </div>

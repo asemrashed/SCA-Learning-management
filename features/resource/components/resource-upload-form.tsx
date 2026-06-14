@@ -18,6 +18,7 @@ import {
 } from "@/components/curriculum-placement-picker"
 import { getApiErrorMessage } from "@/lib/get-api-error-message"
 import { resolvePlacementIds } from "@/lib/placement-ids"
+import { CHAPTER } from "@/lib/product-vocabulary"
 import { useCreateResourceMutation } from "@/features/resource/api"
 
 const initialPlacement: CurriculumPlacement = {
@@ -66,7 +67,7 @@ export function ResourceUploadForm({
     }
 
     if (courseId && !placement.moduleId && !placement.lessonId) {
-      setError("Course resources need a module or lesson.")
+      setError(`Recorded course resources need a ${CHAPTER.toLowerCase()} or lesson.`)
       return
     }
 
@@ -163,7 +164,9 @@ export function ResourceUploadForm({
           fixedCourseId={fixedCourseId}
           showScopeToggle={!fixedBatchId && !fixedCourseId}
           moduleLabel={
-            placement.scope === "course" ? "Module (required if no lesson)" : "Module (optional)"
+            placement.scope === "course"
+              ? `${CHAPTER} (required if no lesson)`
+              : `${CHAPTER} (optional)`
           }
         />
       </div>

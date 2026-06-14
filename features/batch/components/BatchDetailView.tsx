@@ -11,8 +11,13 @@ import { formatBdtMinor } from "@/lib/format-currency"
 import { useGetBatchQuery } from "@/features/batch/api"
 import { BatchCurriculum } from "@/features/batch/components/BatchCurriculum"
 import { BATCH_STATUS_LABEL, daysUntil, formatBatchDate, formatDuration } from "@/features/batch/utils"
+import {
+  BROWSE_LIVE_COURSES,
+  LIVE_COURSE,
+  LIVE_COURSE_CATALOG_HREF,
+} from "@/lib/product-vocabulary"
 import { EnrollButton } from "@/features/enrollment/components/enroll-button"
-import { Calendar, Clock, Play, Users } from "lucide-react"
+import { Calendar, Clock, Play } from "lucide-react"
 import { motion } from "framer-motion"
 
 const FALLBACK_IMAGE =
@@ -31,7 +36,7 @@ export function BatchDetailView({ idOrSlug }: BatchDetailViewProps) {
     return (
       <main className="py-8">
         <div className="container mx-auto px-4">
-          <AppLoading message="Loading batch…" />
+          <AppLoading message={`Loading ${LIVE_COURSE.toLowerCase()}…`} />
         </div>
       </main>
     )
@@ -42,10 +47,10 @@ export function BatchDetailView({ idOrSlug }: BatchDetailViewProps) {
       <main className="py-8">
         <div className="container mx-auto px-4">
           <AppNotFound
-            title="Batch not found"
-            description="This batch may have been removed or is not yet published."
-            backHref="/batches"
-            backLabel="Back to Batches"
+            title={`${LIVE_COURSE} not found`}
+            description={`This ${LIVE_COURSE.toLowerCase()} may have been removed or is not yet published.`}
+            backHref={LIVE_COURSE_CATALOG_HREF}
+            backLabel={BROWSE_LIVE_COURSES}
           />
         </div>
       </main>
@@ -71,19 +76,13 @@ export function BatchDetailView({ idOrSlug }: BatchDetailViewProps) {
                 animate={{ opacity: 1, y: 0 }}
                 className="rounded-[24px] bg-gradient-to-br from-primary/10 via-accent/5 to-background p-6 md:p-8"
               >
-                {isLive && <Badge className="mb-4 bg-destructive">Live Batch</Badge>}
+                {isLive && <Badge className="mb-4 bg-destructive">Live now</Badge>}
                 <h1 className="mb-4 text-2xl font-bold text-foreground md:text-3xl lg:text-4xl">
                   {batch.title}
                 </h1>
 
                 <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                   <Badge variant="outline">{BATCH_STATUS_LABEL[batch.status]}</Badge>
-                  {batch.instructors.length > 0 && (
-                    <span className="flex items-center gap-1">
-                      <Users className="h-4 w-4" />
-                      {batch.instructors.map((i) => i.name).join(", ")}
-                    </span>
-                  )}
                   <span className="flex items-center gap-1">
                     <Calendar className="h-4 w-4" />
                     {formatBatchDate(batch.startDate)} – {formatBatchDate(batch.endDate)}
@@ -158,7 +157,7 @@ export function BatchDetailView({ idOrSlug }: BatchDetailViewProps) {
 
                 <EnrollButton
                   batchId={batch.id}
-                  priceMinor={batch.priceMinor}
+                  productTitle={batch.title}
                   className="mb-3 w-full rounded-xl text-lg"
                 />
 

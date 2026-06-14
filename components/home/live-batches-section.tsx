@@ -10,6 +10,12 @@ import { BatchCard } from "@/features/batch/components/BatchCard"
 import { useListBatchesQuery } from "@/features/batch/api"
 import type { BatchStatus } from "@/features/batch/types"
 import { BATCH_STATUS_LABEL } from "@/features/batch/utils"
+import {
+  BROWSE_LIVE_COURSES,
+  LIVE_COURSE_CATALOG_HREF,
+  LIVE_COURSES,
+  liveCourseCount,
+} from "@/lib/product-vocabulary"
 import { motion } from "framer-motion"
 
 const MAX_CARDS = 4
@@ -41,7 +47,7 @@ export function LiveBatchesSection() {
         id: status.toLowerCase(),
         label: BATCH_STATUS_LABEL[status] ?? status,
         icon: STATUS_ICONS[status] ?? Layers,
-        subtitle: `${counts.get(status)} Batch${counts.get(status) === 1 ? "" : "es"}`,
+        subtitle: liveCourseCount(counts.get(status) ?? 0),
       }))
 
     return [
@@ -49,7 +55,7 @@ export function LiveBatchesSection() {
         id: "all",
         label: "All",
         icon: Grid3X3,
-        subtitle: `${batches.length} Batch${batches.length === 1 ? "" : "es"}`,
+        subtitle: liveCourseCount(batches.length),
       },
       ...statusItems,
     ]
@@ -82,10 +88,10 @@ export function LiveBatchesSection() {
             </Badge>
           </div>
           <h2 className="mb-2 text-3xl font-bold text-white md:text-4xl">
-            Our Live Batches
+            Our {LIVE_COURSES}
           </h2>
           <p className="mx-auto max-w-2xl text-white/70">
-            Join cohort-based programs with live sessions, structured curriculum, and expert instructors
+            Join structured programs with live sessions, expert instructors, and a full curriculum
           </p>
         </motion.div>
 
@@ -100,9 +106,9 @@ export function LiveBatchesSection() {
         ) : null}
 
         {isLoading ? (
-          <p className="py-12 text-center text-white/70">Loading batches…</p>
+          <p className="py-12 text-center text-white/70">Loading {LIVE_COURSES.toLowerCase()}…</p>
         ) : displayBatches.length === 0 ? (
-          <p className="py-12 text-center text-white/70">Live batches coming soon.</p>
+          <p className="py-12 text-center text-white/70">{LIVE_COURSES} coming soon.</p>
         ) : (
           <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-4">
             {displayBatches.map((batch, index) => (
@@ -132,8 +138,8 @@ export function LiveBatchesSection() {
             className="rounded-xl border-white/30 bg-transparent text-white hover:bg-white hover:text-foreground"
             asChild
           >
-            <Link href="/batches">
-              View All Batches
+            <Link href={LIVE_COURSE_CATALOG_HREF}>
+              {BROWSE_LIVE_COURSES}
               <ArrowRight className="ml-2 h-5 w-5" />
             </Link>
           </Button>

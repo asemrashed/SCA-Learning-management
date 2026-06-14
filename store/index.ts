@@ -9,6 +9,8 @@ import { liveclassApi } from '@/features/liveclass/api'
 import { paymentApi } from '@/features/payment/api'
 import { uploadApi } from '@/features/upload/api'
 import { certificateApi } from '@/features/certificate/api'
+import { adminUserApi } from '@/features/admin-user/api'
+import { shopApi } from '@/features/shop/api'
 import { rootReducer } from './rootReducer'
 
 export const makeStore = () =>
@@ -26,6 +28,8 @@ export const makeStore = () =>
         paymentApi.middleware,
         uploadApi.middleware,
         certificateApi.middleware,
+        adminUserApi.middleware,
+        shopApi.middleware,
       ),
   })
 

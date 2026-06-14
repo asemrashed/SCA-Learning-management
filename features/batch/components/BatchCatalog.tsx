@@ -10,6 +10,10 @@ import { useListBatchesQuery } from "@/features/batch/api"
 import { BatchCard } from "@/features/batch/components/BatchCard"
 import type { BatchStatus } from "@/features/batch/types"
 import { BATCH_STATUS_LABEL } from "@/features/batch/utils"
+import {
+  LIVE_COURSES,
+  liveCourseCount,
+} from "@/lib/product-vocabulary"
 
 const STATUS_ICONS: Record<string, typeof Radio> = {
   UPCOMING: Calendar,
@@ -55,7 +59,7 @@ export function BatchCatalog() {
         id: status.toLowerCase(),
         label: BATCH_STATUS_LABEL[status] ?? status,
         icon: STATUS_ICONS[status] ?? Layers,
-        subtitle: `${counts.get(status)} Batch${counts.get(status) === 1 ? "" : "es"}`,
+        subtitle: liveCourseCount(counts.get(status) ?? 0),
       }))
 
     return [
@@ -63,7 +67,7 @@ export function BatchCatalog() {
         id: "all",
         label: "All",
         icon: Grid3X3,
-        subtitle: `${batches.length} Batch${batches.length === 1 ? "" : "es"}`,
+        subtitle: liveCourseCount(batches.length),
       },
       ...statusItems,
     ]
@@ -93,17 +97,17 @@ export function BatchCatalog() {
             </div>
           </div>
           <h1 className="mb-2 text-3xl font-bold text-foreground md:text-4xl">
-            Our Live Batches
+            Our {LIVE_COURSES}
           </h1>
           <p className="mx-auto max-w-2xl text-muted-foreground">
-            Join cohort-based programs with live sessions, structured curriculum, and expert instructors
+            Join structured programs with live sessions, expert instructors, and a full curriculum
           </p>
         </motion.div>
 
         <div className="relative mb-8 flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search batches..."
+            placeholder="Search live courses..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="rounded-xl pl-9"
@@ -120,19 +124,19 @@ export function BatchCatalog() {
         ) : null}
 
         {isLoading && (
-          <p className="py-20 text-center text-muted-foreground">Loading batches…</p>
+          <p className="py-20 text-center text-muted-foreground">Loading {LIVE_COURSES.toLowerCase()}…</p>
         )}
 
         {isError && (
           <p className="py-20 text-center text-destructive">
-            Could not load batches. Check that the API is running.
+            Could not load {LIVE_COURSES.toLowerCase()}. Check that the API is running.
           </p>
         )}
 
         {!isLoading && !isError && (
           <>
             <p className="mb-6 text-sm text-muted-foreground">
-              Showing {visibleBatches.length} of {filteredBatches.length} batches
+              Showing {visibleBatches.length} of {filteredBatches.length} {LIVE_COURSES.toLowerCase()}
             </p>
 
             {visibleBatches.length > 0 ? (
@@ -150,7 +154,7 @@ export function BatchCatalog() {
               </div>
             ) : (
               <div className="py-20 text-center">
-                <p className="text-muted-foreground">No batches found matching your criteria.</p>
+                <p className="text-muted-foreground">No {LIVE_COURSES.toLowerCase()} found matching your criteria.</p>
               </div>
             )}
 
@@ -163,7 +167,7 @@ export function BatchCatalog() {
                   disabled={isFetching}
                   onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}
                 >
-                  {isFetching ? "Loading…" : "Load More Batches"}
+                  {isFetching ? "Loading…" : `Load more ${LIVE_COURSES.toLowerCase()}`}
                 </Button>
               </div>
             ) : null}

@@ -7,13 +7,19 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { BRAND_NAME, BRAND_SHORT } from "@/lib/brand"
+import {
+  BROWSE_LIVE_COURSES,
+  LIVE_COURSE_CATALOG_HREF,
+  LIVE_COURSES,
+} from "@/lib/product-vocabulary"
 import { AuthNavActions } from "@/components/auth/auth-nav-actions"
+import { CartNavButton } from "@/features/shop/components/cart-nav-button"
 import { motion, AnimatePresence } from "framer-motion"
 
 const navLinks = [
   { href: "/", label: "Home" },
-  { href: "/courses", label: "Courses" },
-  { href: "/batches", label: "Batches" },
+  { href: LIVE_COURSE_CATALOG_HREF, label: LIVE_COURSES },
+  { href: "/shop", label: "Shop" },
   { href: "/about", label: "About Us" },
   { href: "/contact", label: "Contact" },
 ]
@@ -59,7 +65,7 @@ export function Navbar({ variant = "default" }: NavbarProps) {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Search courses..."
+              placeholder="Search live courses..."
               className="w-56 pl-9 bg-muted/50 border-none focus-visible:ring-primary"
             />
           </div>
@@ -93,12 +99,15 @@ export function Navbar({ variant = "default" }: NavbarProps) {
             <Button variant="ghost" size="icon" className="text-muted-foreground">
               <Bell className="h-5 w-5" />
             </Button>
-            <Button variant="outline" className="rounded-xl">
-              All Courses
-              <ChevronDown className="ml-1 h-4 w-4" />
+            <Button variant="outline" className="rounded-xl" asChild>
+              <Link href={LIVE_COURSE_CATALOG_HREF}>
+                {BROWSE_LIVE_COURSES}
+                <ChevronDown className="ml-1 h-4 w-4" />
+              </Link>
             </Button>
           </>
         )}
+        <CartNavButton floating={isFloating} />
         <AuthNavActions floating={isFloating} layout="desktop" />
       </div>
 

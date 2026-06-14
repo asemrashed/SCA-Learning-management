@@ -5,24 +5,29 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { formatBdtMinor } from "@/lib/format-currency"
 import { useListBatchesQuery } from "@/features/batch/api"
+import { LIVE_COURSE, LIVE_COURSES, MY_LIVE_COURSES } from "@/lib/product-vocabulary"
 
-export default function InstructorBatchesPage() {
+export default function InstructorLiveCoursesPage() {
   const { data, isLoading, error } = useListBatchesQuery({ pageSize: 50, sort: "startDate:desc" })
   const batches = data?.data ?? []
 
   return (
     <div className="p-6 md:p-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-foreground md:text-3xl">My batches</h1>
-        <p className="text-muted-foreground">Batches you are assigned to as an instructor.</p>
+        <h1 className="text-2xl font-bold text-foreground md:text-3xl">{MY_LIVE_COURSES}</h1>
+        <p className="text-muted-foreground">
+          {LIVE_COURSES} you are assigned to as an instructor.
+        </p>
       </div>
 
       {isLoading ? (
-        <p className="text-muted-foreground">Loading batches…</p>
+        <p className="text-muted-foreground">Loading {LIVE_COURSES.toLowerCase()}…</p>
       ) : error ? (
-        <p className="text-destructive">Could not load batches.</p>
+        <p className="text-destructive">Could not load {LIVE_COURSES.toLowerCase()}.</p>
       ) : batches.length === 0 ? (
-        <p className="text-muted-foreground">No assigned batches yet. Ask an admin to add you.</p>
+        <p className="text-muted-foreground">
+          No assigned {LIVE_COURSES.toLowerCase()} yet. Ask an admin to add you.
+        </p>
       ) : (
         <div className="overflow-x-auto rounded-xl border">
           <table className="w-full text-sm">

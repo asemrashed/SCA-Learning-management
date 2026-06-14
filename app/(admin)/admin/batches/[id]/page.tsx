@@ -2,6 +2,7 @@
 
 import { use } from "react"
 import { BatchDashboardPreview } from "@/features/batch/components/batch-dashboard-preview"
+import { LIVE_COURSES } from "@/lib/product-vocabulary"
 
 export default function AdminBatchDetailPage({
   params,
@@ -15,7 +16,7 @@ export default function AdminBatchDetailPage({
       <BatchDashboardPreview
         batchId={id}
         backHref="/admin/batches"
-        backLabel="Manage batches"
+        backLabel={LIVE_COURSES}
         liveManageHref={`/admin/batches/${id}/live`}
       />
     </div>

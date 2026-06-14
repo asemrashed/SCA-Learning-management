@@ -10,6 +10,8 @@ import { liveclassApi } from '@/features/liveclass/api'
 import { paymentApi } from '@/features/payment/api'
 import { uploadApi } from '@/features/upload/api'
 import { certificateApi } from '@/features/certificate/api'
+import { adminUserApi } from '@/features/admin-user/api'
+import { shopApi } from '@/features/shop/api'
 
 export const rootReducer = combineReducers({
   auth: authReducer,
@@ -23,6 +25,8 @@ export const rootReducer = combineReducers({
   [paymentApi.reducerPath]: paymentApi.reducer,
   [uploadApi.reducerPath]: uploadApi.reducer,
   [certificateApi.reducerPath]: certificateApi.reducer,
+  [adminUserApi.reducerPath]: adminUserApi.reducer,
+  [shopApi.reducerPath]: shopApi.reducer,
 })
 
 export type RootState = ReturnType<typeof rootReducer>

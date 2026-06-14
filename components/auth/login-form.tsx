@@ -51,8 +51,14 @@ export function LoginForm() {
       const next = searchParams.get('next') || homePathForRole(result.data.user.role)
       router.push(next)
       router.refresh()
-    } catch {
-      setErrorMessage('Invalid phone or password. Please try again.')
+    } catch (err: unknown) {
+      const apiErr = err as { data?: { error?: { message?: string } }; status?: number }
+      setErrorMessage(
+        apiErr.data?.error?.message ??
+          (apiErr.status === 403
+            ? 'This account cannot sign in.'
+            : 'Invalid phone or password. Please try again.'),
+      )
     }
   }
 

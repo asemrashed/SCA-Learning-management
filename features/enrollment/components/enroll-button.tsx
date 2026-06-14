@@ -5,21 +5,26 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { ArrowRight, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { useSelector } from "react-redux"
 import type { RootState } from "@/store/rootReducer"
 import { useCreateEnrollmentMutation, useListEnrollmentsQuery } from "@/features/enrollment/api"
 import { enrollmentPlayerPath } from "@/features/enrollment/utils"
-import { useInitiatePaymentMutation } from "@/features/payment/api"
-import {
-  EnrollmentKind,
-  EnrollmentStatus,
-  PaymentPurpose,
-} from "@/types/api"
+import { enrollmentWhatsAppMessage, whatsappUrl } from "@/lib/whatsapp"
+import { EnrollmentKind, EnrollmentStatus } from "@/types/api"
 
 interface EnrollButtonProps {
   batchId?: string
   courseId?: string
-  priceMinor: number
+  productTitle: string
   className?: string
 }
 
@@ -37,23 +42,24 @@ function matchesProduct(
   return false
 }
 
-export function EnrollButton({ batchId, courseId, priceMinor, className }: EnrollButtonProps) {
+export function EnrollButton({ batchId, courseId, productTitle, className }: EnrollButtonProps) {
   const router = useRouter()
   const accessToken = useSelector((s: RootState) => s.auth.accessToken)
+  const userName = useSelector((s: RootState) => s.auth.user?.name)
   const [createEnrollment, { isLoading: enrolling }] = useCreateEnrollmentMutation()
-  const [initiatePayment, { isLoading: paying }] = useInitiatePaymentMutation()
   const { data: enrollmentsData, isLoading: loadingEnrollments } = useListEnrollmentsQuery(
     undefined,
     { skip: !accessToken },
   )
   const [error, setError] = useState<string | null>(null)
+  const [confirmOpen, setConfirmOpen] = useState(false)
 
   const existing = useMemo(() => {
     const items = enrollmentsData?.data ?? []
     return items.find((item) => matchesProduct(item, batchId, courseId)) ?? null
   }, [enrollmentsData, batchId, courseId])
 
-  const isLoading = enrolling || paying || loadingEnrollments
+  const isLoading = enrolling || loadingEnrollments
 
   if (!accessToken) {
     return (
@@ -66,15 +72,7 @@ export function EnrollButton({ batchId, courseId, priceMinor, className }: Enrol
     )
   }
 
-  async function startCheckout(enrollmentId: string) {
-    const checkout = await initiatePayment({
-      purpose: PaymentPurpose.ENROLLMENT,
-      refId: enrollmentId,
-    }).unwrap()
-    window.location.href = checkout.data.redirectUrl
-  }
-
-  async function handleEnroll() {
+  async function handleConfirmEnroll() {
     setError(null)
     try {
       if (
@@ -86,21 +84,19 @@ export function EnrollButton({ batchId, courseId, priceMinor, className }: Enrol
         return
       }
 
-      if (existing?.status === EnrollmentStatus.PENDING && priceMinor > 0) {
-        await startCheckout(existing.id)
+      if (existing?.status === EnrollmentStatus.PENDING) {
+        setConfirmOpen(false)
         return
       }
 
-      const result = await createEnrollment({ batchId, courseId }).unwrap()
-
-      if (result.data.status === EnrollmentStatus.PENDING && priceMinor > 0) {
-        await startCheckout(result.data.id)
-        return
-      }
-
-      router.push(enrollmentPlayerPath(result.data.kind, result.data.id))
+      await createEnrollment({ batchId, courseId }).unwrap()
+      setConfirmOpen(false)
+      window.location.href = whatsappUrl(
+        enrollmentWhatsAppMessage(productTitle, userName ?? undefined),
+      )
     } catch {
-      setError("Could not enroll. You may already be enrolled or checkout failed.")
+      setError("Could not submit enrollment request. You may already be enrolled.")
+      setConfirmOpen(false)
     }
   }
 
@@ -115,6 +111,9 @@ export function EnrollButton({ batchId, courseId, priceMinor, className }: Enrol
           <Check className="mr-2 h-5 w-5" />
           Enrolled
         </Button>
+        {existing.rollNumber ? (
+          <p className="mt-2 text-sm text-muted-foreground">Roll: {existing.rollNumber}</p>
+        ) : null}
         <p className="mt-2">
           <Link
             href={enrollmentPlayerPath(existing.kind, existing.id)}
@@ -127,35 +126,53 @@ export function EnrollButton({ batchId, courseId, priceMinor, className }: Enrol
     )
   }
 
-  if (existing?.status === EnrollmentStatus.PENDING && priceMinor > 0) {
+  if (existing?.status === EnrollmentStatus.PENDING) {
     return (
       <div>
-        <Button
-          className={className}
-          size="lg"
-          disabled={isLoading}
-          onClick={() => void handleEnroll()}
-        >
-          {paying ? "Redirecting to payment…" : "Complete Payment"}
-          <ArrowRight className="ml-2 h-5 w-5" />
+        <Button className={className} size="lg" variant="secondary" disabled>
+          <Check className="mr-2 h-5 w-5" />
+          Request submitted
         </Button>
+        <p className="mt-2 text-sm text-muted-foreground">
+          An admin will review your request and assign your roll number.
+        </p>
         {error ? <p className="mt-2 text-sm text-destructive">{error}</p> : null}
       </div>
     )
   }
 
   return (
-    <div>
-      <Button
-        className={className}
-        size="lg"
-        disabled={isLoading}
-        onClick={() => void handleEnroll()}
-      >
-        {isLoading ? "Enrolling…" : priceMinor > 0 ? "Enroll & Pay" : "Enroll Now"}
-        <ArrowRight className="ml-2 h-5 w-5" />
-      </Button>
-      {error ? <p className="mt-2 text-sm text-destructive">{error}</p> : null}
-    </div>
+    <>
+      <div>
+        <Button
+          className={className}
+          size="lg"
+          disabled={isLoading}
+          onClick={() => setConfirmOpen(true)}
+        >
+          Enroll Now
+          <ArrowRight className="ml-2 h-5 w-5" />
+        </Button>
+        {error ? <p className="mt-2 text-sm text-destructive">{error}</p> : null}
+      </div>
+
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm payment by WhatsApp!</AlertDialogTitle>
+            <AlertDialogDescription>
+              After you confirm, your enrollment request will be submitted and you will be
+              redirected to WhatsApp to complete payment with the admin.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={enrolling}>Cancel</AlertDialogCancel>
+            <Button disabled={enrolling} onClick={() => void handleConfirmEnroll()}>
+              {enrolling ? "Submitting…" : "Confirm"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   )
 }

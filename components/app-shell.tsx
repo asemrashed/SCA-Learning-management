@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils"
 import { BRAND_NAME, BRAND_SHORT } from "@/lib/brand"
 import {
   adminShellNav,
-  instructorShellNav,
+  superAdminShellNav,
   studentShellNav,
   type ShellNavGroup,
 } from "@/lib/dashboard-nav"
@@ -18,12 +18,12 @@ import { useLogoutMutation } from "@/features/auth/api"
 import { clearCredentials } from "@/features/auth/authSlice"
 import { clearSessionCookie } from "@/lib/auth-session"
 
-export type AppShellVariant = "student" | "admin" | "instructor"
+export type AppShellVariant = "student" | "admin" | "super-admin"
 
 const navByVariant: Record<AppShellVariant, ShellNavGroup[]> = {
   student: studentShellNav,
   admin: adminShellNav,
-  instructor: instructorShellNav,
+  "super-admin": superAdminShellNav,
 }
 
 interface AppShellProps {

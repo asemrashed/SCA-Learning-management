@@ -1,9 +1,9 @@
-import { AppShell } from "@/components/app-shell"
+import { redirect } from "next/navigation"
 
 export default function InstructorLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  return <AppShell variant="instructor">{children}</AppShell>
+  redirect("/login")
 }

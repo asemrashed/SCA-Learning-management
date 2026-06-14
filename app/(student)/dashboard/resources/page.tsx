@@ -2,13 +2,13 @@
 
 import { useSelector } from "react-redux"
 import type { RootState } from "@/store"
-import { Role } from "@/types/api"
+import { isStaff } from "@/lib/roles"
 import { ResourceList } from "@/features/resource/components/resource-list"
 import { ResourceManagePanel } from "@/features/resource/components/resource-manage-panel"
 
 export default function ResourcesPage() {
   const user = useSelector((state: RootState) => state.auth.user)
-  const canUpload = user?.role === Role.INSTRUCTOR || user?.role === Role.ADMIN
+  const canUpload = user?.role !== undefined && isStaff(user.role)
 
   return (
     <div className="p-6 md:p-8">

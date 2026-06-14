@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { BatchCurriculum } from "@/features/batch/components/BatchCurriculum"
 import { useGetBatchQuery } from "@/features/batch/api"
 import { BATCH_STATUS_LABEL } from "@/features/batch/utils"
+import { LIVE_COURSE } from "@/lib/product-vocabulary"
 import { LiveSessionsPanel } from "@/features/liveclass/components/live-sessions-panel"
 import { formatBdtMinor } from "@/lib/format-currency"
 import { EnrollmentKind } from "@/types/api"
@@ -25,8 +26,8 @@ export function BatchDashboardPreview({
   const { data, isLoading, error } = useGetBatchQuery(batchId)
   const batch = data?.data
 
-  if (isLoading) return <p className="text-muted-foreground">Loading batch…</p>
-  if (error || !batch) return <p className="text-destructive">Batch not found.</p>
+  if (isLoading) return <p className="text-muted-foreground">Loading {LIVE_COURSE.toLowerCase()}…</p>
+  if (error || !batch) return <p className="text-destructive">{LIVE_COURSE} not found.</p>
 
   return (
     <div className="space-y-8">

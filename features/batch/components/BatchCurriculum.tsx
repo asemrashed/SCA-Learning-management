@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { VideoModal } from "@/components/video-modal"
 import type { BatchSubject } from "@/features/batch/types"
 import { formatDuration } from "@/features/batch/utils"
+import { CHAPTERS } from "@/lib/product-vocabulary"
 
 interface BatchCurriculumProps {
   subjects: BatchSubject[]
@@ -52,7 +53,7 @@ export function BatchCurriculum({ subjects }: BatchCurriculumProps) {
                 <div>
                   <h3 className="font-semibold text-foreground">{subject.title}</h3>
                   <p className="text-sm text-muted-foreground">
-                    {subject.modules.length} modules · {lessonCount} lessons
+                    {subject.modules.length} {CHAPTERS.toLowerCase()} · {lessonCount} lessons
                   </p>
                 </div>
                 {isOpen ? (

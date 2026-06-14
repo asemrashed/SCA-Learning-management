@@ -2,6 +2,7 @@ export enum Role {
   STUDENT = 'STUDENT',
   INSTRUCTOR = 'INSTRUCTOR',
   ADMIN = 'ADMIN',
+  SUPER_ADMIN = 'SUPER_ADMIN',
 }
 
 export interface User {
@@ -138,6 +139,7 @@ export interface EnrollmentListItem {
     thumbnail: string | null
   } | null
   status: EnrollmentStatus
+  rollNumber: string | null
   progressPct: number
   totalLessons: number
   completedLessons: number
@@ -172,6 +174,7 @@ export interface EnrollmentDetail {
   id: string
   kind: EnrollmentKind
   status: EnrollmentStatus
+  rollNumber: string | null
   progressPct: number
   batch: { id: string; title: string } | null
   course: { id: string; title: string } | null
@@ -182,7 +185,24 @@ export interface EnrollmentDetail {
 export interface CreateEnrollmentInput {
   batchId?: string
   courseId?: string
-  couponCode?: string
+}
+
+export interface AdminEnrollmentRequest {
+  id: string
+  kind: EnrollmentKind
+  status: EnrollmentStatus
+  rollNumber: string | null
+  enrolledAt: string
+  student: { id: string; name: string; phone: string }
+  batch: { id: string; title: string } | null
+  course: { id: string; title: string } | null
+  totalSeats: number | null
+  totalEnrollments: number
+}
+
+export interface ReviewEnrollmentInput {
+  action: 'approve' | 'reject'
+  rollNumber?: string
 }
 
 export enum QuestionType {
@@ -517,4 +537,91 @@ export interface CertificateVerifyResult {
 
 export interface IssueCertificateInput {
   enrollmentId: string
+}
+
+export enum ProductType {
+  BOOK = 'BOOK',
+  NOTES = 'NOTES',
+  QUESTION_BANK = 'QUESTION_BANK',
+  OTHER = 'OTHER',
+}
+
+export enum OrderStatus {
+  PENDING = 'PENDING',
+  CONFIRMED = 'CONFIRMED',
+  CANCELLED = 'CANCELLED',
+}
+
+export interface ProductListItem {
+  id: string
+  title: string
+  slug: string
+  thumbnail: string | null
+  type: ProductType
+  priceMinor: number
+  isPublished: boolean
+}
+
+export interface ProductListResponse {
+  data: ProductListItem[]
+  meta: { page: number; pageSize: number; total: number }
+}
+
+export interface ProductDetail {
+  id: string
+  title: string
+  slug: string
+  description: string | null
+  thumbnail: string | null
+  type: ProductType
+  priceMinor: number
+  stock: number | null
+  isPublished: boolean
+  digitalUrl?: string | null
+}
+
+export interface CreateProductInput {
+  title: string
+  slug: string
+  description?: string | null
+  thumbnail?: string | null
+  type?: ProductType
+  priceMinor?: number
+  stock?: number | null
+  isPublished?: boolean
+  digitalUrl?: string | null
+}
+
+export interface OrderItem {
+  id: string
+  productId: string
+  title: string
+  quantity: number
+  unitPriceMinor: number
+  lineTotalMinor: number
+}
+
+export interface OrderListItem {
+  id: string
+  status: OrderStatus
+  totalMinor: number
+  createdAt: string
+  itemCount: number
+  items: OrderItem[]
+}
+
+export interface CreateOrderInput {
+  items: { productId: string; quantity: number }[]
+}
+
+export interface AdminOrderRequest extends OrderListItem {
+  student: {
+    id: string
+    name: string
+    phone: string
+  }
+}
+
+export interface ReviewOrderInput {
+  action: 'confirm' | 'cancel'
 }

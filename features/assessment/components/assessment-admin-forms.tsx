@@ -12,6 +12,7 @@ import {
 } from "@/components/curriculum-placement-picker"
 import { getApiErrorMessage } from "@/lib/get-api-error-message"
 import { resolvePlacementIds } from "@/lib/placement-ids"
+import { CHAPTER, LIVE_COURSE } from "@/lib/product-vocabulary"
 import {
   useCreateExamMutation,
   useCreateAssignmentMutation,
@@ -87,7 +88,7 @@ export function ExamCreateForm({
     }
 
     if (courseId && !placement.moduleId) {
-      setMessage("Course exams require a module (pick module or lesson).")
+      setMessage(`Recorded course exams require a ${CHAPTER.toLowerCase()} (pick chapter or lesson).`)
       setIsError(true)
       return
     }
@@ -188,7 +189,11 @@ export function ExamCreateForm({
           fixedBatchId={fixedBatchId}
           fixedCourseId={fixedCourseId}
           showScopeToggle={!fixedBatchId && !fixedCourseId}
-          moduleLabel={placement.scope === "course" ? "Module (required)" : "Module (optional)"}
+          moduleLabel={
+            placement.scope === "course"
+              ? `${CHAPTER} (required)`
+              : `${CHAPTER} (optional)`
+          }
         />
       </div>
 
@@ -303,7 +308,7 @@ export function AssignmentCreateForm({
         <div>
           <h3 className="text-lg font-semibold">Create assignment</h3>
           <p className="text-sm text-muted-foreground">
-            Attach to a batch or course; module and lesson are optional.
+            Attach to a {LIVE_COURSE.toLowerCase()}; {CHAPTER.toLowerCase()} and lesson are optional.
           </p>
         </div>
       ) : null}
