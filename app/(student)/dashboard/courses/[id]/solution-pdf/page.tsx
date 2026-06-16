@@ -1,7 +1,8 @@
 "use client"
 
 import { use } from "react"
-import { CoursePlaceholderPage } from "@/features/enrollment/components/course-placeholder-page"
+import { CourseResourcePage } from "@/features/resource/components/course-resource-page"
+import { ResourceCategory } from "@/types/api"
 
 export default function SolutionPdfPage({
   params,
@@ -9,5 +10,11 @@ export default function SolutionPdfPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = use(params)
-  return <CoursePlaceholderPage title="Solution PDF" />
+  return (
+    <CourseResourcePage
+      enrollmentId={id}
+      category={ResourceCategory.SOLUTION_PDF}
+      pageTitle="Solution PDF"
+    />
+  )
 }

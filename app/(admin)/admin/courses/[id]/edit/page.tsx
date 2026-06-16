@@ -1,5 +1,17 @@
-import { redirect } from 'next/navigation'
+"use client"
 
-export default async function AdminCourseEditRedirect() {
-  redirect('/admin/batches')
+import { use } from "react"
+import { CourseAdminForm } from "@/features/course/components/course-admin-form"
+
+export default function AdminEditCoursePage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const { id } = use(params)
+  return (
+    <div className="px-4 py-10">
+      <CourseAdminForm courseId={id} />
+    </div>
+  )
 }

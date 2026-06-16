@@ -4,6 +4,7 @@ import type {
   ResourceItem,
   ResourceListQuery,
   ResourceListResponse,
+  UpdateResourceInput,
 } from '@/types/api'
 import { baseQueryWithReauth } from '@/lib/apiClient'
 
@@ -29,6 +30,20 @@ export const resourceApi = createApi({
       query: (body) => ({ url: '/resources', method: 'POST', body }),
       invalidatesTags: [{ type: 'Resource', id: 'LIST' }],
     }),
+    updateResource: builder.mutation<
+      { data: ResourceItem },
+      { id: string; body: UpdateResourceInput }
+    >({
+      query: ({ id, body }) => ({ url: `/resources/${id}`, method: 'PATCH', body }),
+      invalidatesTags: (_r, _e, { id }) => [
+        { type: 'Resource', id },
+        { type: 'Resource', id: 'LIST' },
+      ],
+    }),
+    deleteResource: builder.mutation<void, string>({
+      query: (id) => ({ url: `/resources/${id}`, method: 'DELETE' }),
+      invalidatesTags: [{ type: 'Resource', id: 'LIST' }],
+    }),
   }),
 })
 
@@ -36,4 +51,6 @@ export const {
   useListResourcesQuery,
   useLazyListResourcesQuery,
   useCreateResourceMutation,
+  useUpdateResourceMutation,
+  useDeleteResourceMutation,
 } = resourceApi

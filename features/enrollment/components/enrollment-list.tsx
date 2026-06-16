@@ -8,10 +8,11 @@ import { Badge } from "@/components/ui/badge"
 import { useListEnrollmentsQuery } from "@/features/enrollment/api"
 import { enrollmentPlayerPath } from "@/features/enrollment/utils"
 import {
-  BROWSE_LIVE_COURSES,
-  LIVE_COURSE,
-  LIVE_COURSE_CATALOG_HREF,
-  SHOW_RECORDED_COURSES,
+  BROWSE_COURSES,
+  COURSE,
+  COURSE_CATALOG_HREF,
+  LIVE_BATCH_CATALOG_HREF,
+  deliveryModeLabel,
 } from "@/lib/product-vocabulary"
 import { EnrollmentKind, EnrollmentStatus } from "@/types/api"
 
@@ -31,29 +32,23 @@ export function EnrollmentList({ kind }: EnrollmentListProps) {
 
   if (isLoading) return <p className="text-muted-foreground">Loading enrollments…</p>
   if (error) {
-    return (
-      <p className="text-destructive">
-        Could not load your {kind === EnrollmentKind.BATCH ? LIVE_COURSE.toLowerCase() + "s" : "enrollments"}.
-      </p>
-    )
+    return <p className="text-destructive">Could not load your enrollments.</p>
   }
 
-  const items = (data?.data ?? [])
-    .filter((item) => item.kind === kind)
-    .filter((item) => SHOW_RECORDED_COURSES || item.kind === EnrollmentKind.BATCH)
+  const items = (data?.data ?? []).filter((item) => item.kind === kind)
 
   if (items.length === 0) {
-    const isLiveCourse = kind === EnrollmentKind.BATCH
+    const isBatch = kind === EnrollmentKind.BATCH
     return (
       <div className="py-16 text-center">
         <p className="mb-4 text-muted-foreground">
-          {isLiveCourse
-            ? `You are not enrolled in any ${LIVE_COURSE.toLowerCase()}s yet.`
-            : "You are not enrolled yet."}
+          {isBatch
+            ? "You are not enrolled in any live batches yet."
+            : `You are not enrolled in any recorded ${COURSE.toLowerCase()}s yet.`}
         </p>
         <Button asChild variant="outline">
-          <Link href={isLiveCourse ? LIVE_COURSE_CATALOG_HREF : "/"}>
-            {isLiveCourse ? BROWSE_LIVE_COURSES : "Go home"}
+          <Link href={isBatch ? LIVE_BATCH_CATALOG_HREF : COURSE_CATALOG_HREF}>
+            {isBatch ? "Browse live batches" : BROWSE_COURSES}
           </Link>
         </Button>
       </div>
@@ -63,10 +58,11 @@ export function EnrollmentList({ kind }: EnrollmentListProps) {
   return (
     <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
       {items.map((item) => {
-        const isLiveCourse = item.kind === EnrollmentKind.BATCH
-        const title = isLiveCourse ? item.batch!.title : item.course!.title
+        const isBatch = item.kind === EnrollmentKind.BATCH
+        const title = isBatch ? item.batch!.course.title : item.course!.title
+        const subtitle = isBatch ? item.batch!.title : deliveryModeLabel(item.deliveryMode)
         const image =
-          (isLiveCourse ? item.batch!.thumbnail : item.course!.thumbnail) ??
+          (isBatch ? item.batch!.thumbnail : item.course!.thumbnail) ??
           "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400&h=250&fit=crop"
         const label = statusLabel(item.status)
         const canPlay =
@@ -83,7 +79,7 @@ export function EnrollmentList({ kind }: EnrollmentListProps) {
               <Badge className="absolute left-3 top-3">{label}</Badge>
             </div>
             <div className="p-5">
-              <p className="mb-1 text-xs text-muted-foreground">{LIVE_COURSE}</p>
+              <p className="mb-1 text-xs text-muted-foreground">{subtitle}</p>
               <h3 className="mb-3 line-clamp-2 font-semibold">{title}</h3>
               {item.rollNumber ? (
                 <p className="mb-4 text-sm text-muted-foreground">Roll: {item.rollNumber}</p>

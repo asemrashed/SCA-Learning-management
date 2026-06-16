@@ -58,8 +58,7 @@ export const assessmentApi = createApi({
       query: (body) => ({ url: '/exams', method: 'POST', body }),
       invalidatesTags: (_r, _e, arg) => [
         { type: 'Exam', id: 'LIST' },
-        ...(arg.batchId ? [{ type: 'Exam' as const, id: `batch-${arg.batchId}` }] : []),
-        ...(arg.courseId ? [{ type: 'Exam' as const, id: `course-${arg.courseId}` }] : []),
+        { type: 'Exam', id: `course-${arg.courseId}` },
       ],
     }),
     startExamAttempt: builder.mutation<{ data: ExamAttempt }, string>({
@@ -85,8 +84,7 @@ export const assessmentApi = createApi({
       query: (body) => ({ url: '/assignments', method: 'POST', body }),
       invalidatesTags: (_r, _e, arg) => [
         { type: 'Assignment', id: 'LIST' },
-        ...(arg.batchId ? [{ type: 'Assignment' as const, id: `batch-${arg.batchId}` }] : []),
-        ...(arg.courseId ? [{ type: 'Assignment' as const, id: `course-${arg.courseId}` }] : []),
+        { type: 'Assignment', id: `course-${arg.courseId}` },
       ],
     }),
     submitAssignment: builder.mutation<

@@ -7,6 +7,11 @@ import {
   Radio,
   Video,
   PlayCircle,
+  CreditCard,
+  ClipboardList,
+  PenLine,
+  Bell,
+  Award,
 } from "lucide-react"
 import { useGetEnrollmentQuery } from "@/features/enrollment/api"
 import { SectionLinkCard } from "@/components/student/section-link-card"
@@ -21,9 +26,14 @@ const sections = [
   { slug: "details", title: "Course Details", icon: BookOpen },
   { slug: "lecture-sheet", title: "Lecture Sheet", icon: FileText },
   { slug: "solution-pdf", title: "Solution PDF", icon: FileCheck },
+  { slug: "notice", title: "Notice", icon: Bell },
+  { slug: "result-sheet", title: "Result Sheet", icon: Award },
   { slug: "live-class", title: "Live Class Link", icon: Radio },
   { slug: "pre-recorded", title: "Pre-Recorded Class", icon: Video },
   { slug: "recorded", title: "Recorded Class", icon: PlayCircle },
+  { slug: "payment-history", title: "Payment History", icon: CreditCard },
+  { slug: "exam", title: "Exam", icon: ClipboardList },
+  { slug: "assignment", title: "Assignment", icon: PenLine },
 ] as const
 
 export function CourseHub({ enrollmentId }: CourseHubProps) {

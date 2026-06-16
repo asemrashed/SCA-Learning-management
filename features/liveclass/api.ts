@@ -26,9 +26,7 @@ export const liveclassApi = createApi({
     createSession: builder.mutation<{ data: LiveSession }, CreateSessionInput>({
       query: (body) => ({ url: '/sessions', method: 'POST', body }),
       invalidatesTags: (_r, _e, arg) => [
-        arg.batchId
-          ? { type: 'LiveSession', id: `batch-${arg.batchId}` }
-          : { type: 'LiveSession', id: `course-${arg.courseId}` },
+        { type: 'LiveSession', id: `batch-${arg.batchId}` },
       ],
     }),
     updateSession: builder.mutation<
@@ -49,9 +47,9 @@ export const liveclassApi = createApi({
     createRecording: builder.mutation<{ data: Recording }, CreateRecordingInput>({
       query: (body) => ({ url: '/recordings', method: 'POST', body }),
       invalidatesTags: (_r, _e, arg) => {
-        const tags: { type: 'Recording' | 'LiveSession'; id: string }[] = []
-        if (arg.batchId) tags.push({ type: 'Recording', id: `batch-${arg.batchId}` })
-        if (arg.courseId) tags.push({ type: 'Recording', id: `course-${arg.courseId}` })
+        const tags: { type: 'Recording' | 'LiveSession'; id: string }[] = [
+          { type: 'Recording', id: `batch-${arg.batchId}` },
+        ]
         if (arg.sessionId) tags.push({ type: 'LiveSession', id: arg.sessionId })
         return tags
       },

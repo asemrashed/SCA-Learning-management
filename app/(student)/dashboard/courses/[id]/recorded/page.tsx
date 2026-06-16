@@ -1,7 +1,7 @@
 "use client"
 
 import { use } from "react"
-import { CoursePlaceholderPage } from "@/features/enrollment/components/course-placeholder-page"
+import { SubjectChapterPage } from "@/features/enrollment/components/subject-chapter-page"
 
 export default function RecordedClassPage({
   params,
@@ -9,5 +9,11 @@ export default function RecordedClassPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = use(params)
-  return <CoursePlaceholderPage title="Recorded Class" />
+  return (
+    <SubjectChapterPage
+      enrollmentId={id}
+      pageTitle="Recorded Class Video"
+      lessonBasePath="recorded"
+    />
+  )
 }

@@ -16,6 +16,7 @@ import { CategoryNav } from "@/components/home/category-nav"
 import { formatBdtMinor } from "@/lib/format-currency"
 import { useListCoursesQuery } from "@/features/course/api"
 import type { CourseListItem } from "@/types/api"
+import { DeliveryMode } from "@/types/api"
 import { motion } from "framer-motion"
 
 interface CourseCatalogProps {
@@ -57,6 +58,7 @@ export function CourseCatalog({ pageSize = 12, showHeader = true }: CourseCatalo
     pageSize: 100,
     search: debouncedSearch || undefined,
     sort,
+    deliveryMode: DeliveryMode.RECORDED,
   })
 
   const courses = data?.data ?? []

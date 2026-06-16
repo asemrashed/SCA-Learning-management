@@ -8,9 +8,8 @@ import { LessonVideoPlayer } from "@/components/lesson-video-player"
 import { useGetEnrollmentQuery } from "@/features/enrollment/api"
 import { LiveSessionsPanel } from "@/features/liveclass/components/live-sessions-panel"
 import { EnrollmentRecordingsPanel } from "@/features/liveclass/components/enrollment-recordings-panel"
-import { AssignmentListPanel } from "@/features/assessment/components/assignment-list"
-import { ExamListPanel } from "@/features/assessment/components/exam-list"
 import { EnrollmentResourcesPanel } from "@/features/resource/components/enrollment-resources-panel"
+import { enrollmentCourseId } from "@/features/enrollment/curriculum"
 import type { EnrollmentDetail, EnrollmentLesson } from "@/types/api"
 import { EnrollmentKind } from "@/types/api"
 
@@ -121,9 +120,7 @@ function ModulesBlock({
 export function EnrollmentPlayer({ enrollmentId }: { enrollmentId: string }) {
   const { data, isLoading, error } = useGetEnrollmentQuery(enrollmentId)
   const [activeLesson, setActiveLesson] = useState<EnrollmentLesson | null>(null)
-  const [tab, setTab] = useState<
-    "lessons" | "resources" | "recordings" | "exams" | "assignments"
-  >("lessons")
+  const [tab, setTab] = useState<"lessons" | "resources" | "recordings">("lessons")
 
   const detail = data?.data
   const allLessons = useMemo(
@@ -164,15 +161,7 @@ export function EnrollmentPlayer({ enrollmentId }: { enrollmentId: string }) {
       </div>
 
       <div className="flex flex-wrap gap-2 border-b pb-2">
-        {(
-          [
-            "lessons",
-            "resources",
-            "recordings",
-            "exams",
-            "assignments",
-          ] as const
-        ).map((key) => (
+        {(["lessons", "resources", "recordings"] as const).map((key) => (
           <Button
             key={key}
             variant={tab === key ? "default" : "ghost"}
@@ -220,20 +209,11 @@ export function EnrollmentPlayer({ enrollmentId }: { enrollmentId: string }) {
       ) : null}
 
       {tab === "resources" ? (
-        <EnrollmentResourcesPanel
-          batchId={detail.kind === EnrollmentKind.BATCH ? productId : undefined}
-          courseId={detail.kind === EnrollmentKind.COURSE ? productId : undefined}
-        />
+        <EnrollmentResourcesPanel courseId={enrollmentCourseId(detail)} />
       ) : null}
 
       {tab === "recordings" ? (
         <EnrollmentRecordingsPanel kind={detail.kind} productId={productId} />
-      ) : null}
-
-      {tab === "exams" ? <ExamListPanel kind={detail.kind} scopeId={productId} /> : null}
-
-      {tab === "assignments" ? (
-        <AssignmentListPanel kind={detail.kind} scopeId={productId} />
       ) : null}
     </div>
   )

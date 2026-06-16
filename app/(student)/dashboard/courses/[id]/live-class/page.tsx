@@ -1,13 +1,13 @@
 "use client"
 
 import { use } from "react"
-import { CoursePlaceholderPage } from "@/features/enrollment/components/course-placeholder-page"
+import { LiveClassPage } from "@/features/enrollment/components/live-class-page"
 
-export default function LiveClassPage({
+export default function LiveClassLinkPage({
   params,
 }: {
   params: Promise<{ id: string }>
 }) {
   const { id } = use(params)
-  return <CoursePlaceholderPage title="Live Class Link" />
+  return <LiveClassPage enrollmentId={id} />
 }

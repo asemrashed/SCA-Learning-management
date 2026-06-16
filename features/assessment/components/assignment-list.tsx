@@ -7,6 +7,7 @@ import { MediaSourceField } from "@/components/media-source-field"
 import { Textarea } from "@/components/ui/textarea"
 import {
   useListBatchAssignmentsQuery,
+  useListCourseAssignmentsQuery,
   useSubmitAssignmentMutation,
 } from "@/features/assessment/api"
 import { EnrollmentKind } from "@/types/api"
@@ -18,19 +19,17 @@ export function AssignmentListPanel({
   kind: EnrollmentKind
   scopeId: string
 }) {
-  const { data, isLoading, error, refetch } = useListBatchAssignmentsQuery(scopeId, {
+  const batchQuery = useListBatchAssignmentsQuery(scopeId, {
     skip: kind !== EnrollmentKind.BATCH,
+  })
+  const courseQuery = useListCourseAssignmentsQuery(scopeId, {
+    skip: kind !== EnrollmentKind.COURSE,
   })
   const [submitAssignment, { isLoading: submitting }] = useSubmitAssignmentMutation()
   const [drafts, setDrafts] = useState<Record<string, { text: string; fileUrl: string }>>({})
 
-  if (kind !== EnrollmentKind.BATCH) {
-    return (
-      <p className="text-sm text-muted-foreground">
-        Course assignments appear in your enrollment when assigned by your instructor.
-      </p>
-    )
-  }
+  const { data, isLoading, error, refetch } =
+    kind === EnrollmentKind.BATCH ? batchQuery : courseQuery
 
   const assignments = data?.data ?? []
 

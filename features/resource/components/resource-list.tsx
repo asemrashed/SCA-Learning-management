@@ -2,27 +2,23 @@
 
 import { useMemo, useState } from "react"
 import Link from "next/link"
-import { Download, Eye, FileText, Link2, Search } from "lucide-react"
+import { FileText, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
 import { useListEnrollmentsQuery } from "@/features/enrollment/api"
 import { useListResourcesQuery } from "@/features/resource/api"
-import { EnrollmentKind, EnrollmentStatus } from "@/types/api"
+import { ResourceViewButton } from "@/features/resource/components/resource-view-button"
+import { EnrollmentKind, EnrollmentStatus, ResourceCategory } from "@/types/api"
 
 function ResourceIcon({ fileType }: { fileType: string | null }) {
   const isLink = fileType === "link"
   return (
     <div
-      className={`flex h-10 w-10 items-center justify-center rounded-lg ${
+      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${
         isLink ? "bg-blue-100" : "bg-red-100"
       }`}
     >
-      {isLink ? (
-        <Link2 className="h-5 w-5 text-blue-600" />
-      ) : (
-        <FileText className="h-5 w-5 text-red-600" />
-      )}
+      <FileText className={`h-5 w-5 ${isLink ? "text-blue-600" : "text-red-600"}`} />
     </div>
   )
 }
@@ -36,19 +32,17 @@ function formatDate(iso: string): string {
 }
 
 function ScopeResources({
-  batchId,
   courseId,
   productTitle,
   search,
 }: {
-  batchId?: string
-  courseId?: string
+  courseId: string
   productTitle: string
   search: string
 }) {
   const { data, isLoading, error } = useListResourcesQuery({
-    batchId,
     courseId,
+    category: ResourceCategory.GENERAL,
     search: search || undefined,
     pageSize: 100,
     sort: "createdAt:desc",
@@ -99,14 +93,12 @@ function ResourceRow({
   resource: {
     id: string
     title: string
-    fileUrl: string
+    fileUrl: string | null
     fileType: string | null
     createdAt: string
   }
   productTitle: string
 }) {
-  const isLink = resource.fileType === "link"
-
   return (
     <div className="flex items-center justify-between px-5 py-4 hover:bg-muted/30 transition-colors">
       <div className="flex items-center gap-3">
@@ -118,21 +110,7 @@ function ResourceRow({
           </p>
         </div>
       </div>
-      <div className="flex gap-2">
-        <Button variant="outline" size="sm" className="rounded-xl" asChild>
-          <Link href={resource.fileUrl} target="_blank" rel="noopener noreferrer">
-            <Eye className="mr-2 h-4 w-4" />
-            View
-          </Link>
-        </Button>
-        {!isLink ? (
-          <Button variant="outline" size="icon" className="rounded-xl" asChild>
-            <a href={resource.fileUrl} download target="_blank" rel="noopener noreferrer">
-              <Download className="h-4 w-4" />
-            </a>
-          </Button>
-        ) : null}
-      </div>
+      <ResourceViewButton resource={resource} className="rounded-xl" />
     </div>
   )
 }
@@ -185,7 +163,12 @@ export function ResourceList() {
       <div className="space-y-6">
         {activeEnrollments.map((enrollment) => {
           const isBatch = enrollment.kind === EnrollmentKind.BATCH
-          const title = isBatch ? enrollment.batch!.title : enrollment.course!.title
+          const courseId = isBatch
+            ? enrollment.batch!.course.id
+            : enrollment.course!.id
+          const title = isBatch
+            ? `${enrollment.batch!.course.title} · ${enrollment.batch!.title}`
+            : enrollment.course!.title
 
           return (
             <div
@@ -195,15 +178,10 @@ export function ResourceList() {
               <div className="flex items-center justify-between border-b border-border bg-muted/50 px-5 py-3">
                 <div>
                   <h2 className="font-semibold text-foreground">{title}</h2>
-                  <p className="text-xs text-muted-foreground">
-                    {isBatch ? "Batch" : "Course"}
-                  </p>
                 </div>
-                <Badge variant="outline">{isBatch ? "Batch" : "Course"}</Badge>
               </div>
               <ScopeResources
-                batchId={isBatch ? enrollment.batch!.id : undefined}
-                courseId={!isBatch ? enrollment.course!.id : undefined}
+                courseId={courseId}
                 productTitle={title}
                 search={searchQuery}
               />

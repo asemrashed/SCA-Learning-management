@@ -5,12 +5,12 @@ import { ChevronDown, ChevronUp, Lock, Play } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { VideoModal } from "@/components/video-modal"
-import type { BatchSubject } from "@/features/batch/types"
 import { formatDuration } from "@/features/batch/utils"
+import type { CourseSubject } from "@/types/api"
 import { CHAPTERS } from "@/lib/product-vocabulary"
 
 interface BatchCurriculumProps {
-  subjects: BatchSubject[]
+  subjects: CourseSubject[]
 }
 
 export function BatchCurriculum({ subjects }: BatchCurriculumProps) {

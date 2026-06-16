@@ -8,14 +8,17 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { VideoModal } from "@/components/video-modal"
 import { formatBdtMinor } from "@/lib/format-currency"
-import type { CourseDetail } from "@/types/api"
+import { CHAPTERS, deliveryModeLabel } from "@/lib/product-vocabulary"
+import type { CourseDetail, CourseModule } from "@/types/api"
+import { BatchCurriculum } from "@/features/batch/components/BatchCurriculum"
 import { CurriculumTree } from "./curriculum-tree"
+import { DeliveryMode } from "@/types/api"
 
 interface CourseDetailViewProps {
   course: CourseDetail
 }
 
-function totalDurationS(modules: CourseDetail["modules"]): number {
+function totalDurationS(modules: CourseModule[]): number {
   return modules.reduce(
     (sum, mod) => sum + mod.lessons.reduce((s, l) => s + (l.durationS ?? 0), 0),
     0,
@@ -35,22 +38,28 @@ function formatLessonDuration(seconds: number | null): string {
 }
 
 export function CourseDetailView({ course }: CourseDetailViewProps) {
-  const previewLesson = course.modules
-    .flatMap((m) => m.lessons)
-    .find((l) => l.isPreview && l.videoUrl)
+  const modules = course.modules ?? []
+  const subjects = course.subjects ?? []
+  const isRecorded = course.deliveryMode === DeliveryMode.RECORDED
+  const previewLesson = isRecorded
+    ? modules.flatMap((m) => m.lessons).find((l) => l.isPreview && l.videoUrl)
+    : subjects
+        .flatMap((s) => s.modules.flatMap((m) => m.lessons))
+        .find((l) => l.isPreview && l.videoUrl)
   const [previewOpen, setPreviewOpen] = useState(false)
-  const lessonCount = course.modules.reduce((n, m) => n + m.lessons.length, 0)
+  const lessonCount = isRecorded
+    ? modules.reduce((n, m) => n + m.lessons.length, 0)
+    : subjects.reduce((n, s) => n + s.modules.reduce((m, mod) => m + mod.lessons.length, 0), 0)
 
   return (
     <>
       <div className="grid gap-8 lg:grid-cols-3">
         <div className="space-y-8 lg:col-span-2">
           <div className="rounded-[24px] bg-gradient-to-br from-primary/10 via-accent/5 to-background p-6 md:p-8">
-            {course.category ? (
-              <Badge variant="secondary" className="mb-4">
-                {course.category}
-              </Badge>
-            ) : null}
+            <div className="mb-4 flex flex-wrap gap-2">
+              <Badge variant="outline">{deliveryModeLabel(course.deliveryMode)}</Badge>
+              {course.category ? <Badge variant="secondary">{course.category}</Badge> : null}
+            </div>
             <h1 className="mb-4 text-2xl font-bold text-foreground md:text-3xl lg:text-4xl">
               {course.title}
             </h1>
@@ -60,18 +69,26 @@ export function CourseDetailView({ course }: CourseDetailViewProps) {
             <div className="flex flex-wrap items-center gap-6 text-sm text-muted-foreground">
               <span className="inline-flex items-center gap-1">
                 <BookOpen className="h-5 w-5" />
-                {course.modules.length} modules · {lessonCount} lessons
+                {isRecorded
+                  ? `${modules.length} ${CHAPTERS.toLowerCase()} · ${lessonCount} lessons`
+                  : `${subjects.length} subjects · ${lessonCount} lessons`}
               </span>
-              <span className="inline-flex items-center gap-1">
-                <Clock className="h-5 w-5" />
-                {formatTotalDuration(totalDurationS(course.modules))}
-              </span>
+              {isRecorded ? (
+                <span className="inline-flex items-center gap-1">
+                  <Clock className="h-5 w-5" />
+                  {formatTotalDuration(totalDurationS(modules))}
+                </span>
+              ) : null}
             </div>
           </div>
 
           <div className="rounded-[20px] bg-card p-6 shadow-sm">
-            <h2 className="mb-4 text-xl font-bold text-foreground">Course Curriculum</h2>
-            <CurriculumTree modules={course.modules} />
+            <h2 className="mb-4 text-xl font-bold text-foreground">Curriculum</h2>
+            {isRecorded ? (
+              <CurriculumTree modules={modules} />
+            ) : (
+              <BatchCurriculum subjects={subjects} />
+            )}
           </div>
         </div>
 
@@ -110,11 +127,17 @@ export function CourseDetailView({ course }: CourseDetailViewProps) {
               </span>
             </div>
 
-            <EnrollButton
-              courseId={course.id}
-              productTitle={course.title}
-              className="mb-3 w-full rounded-xl text-lg"
-            />
+            {isRecorded ? (
+              <EnrollButton
+                courseId={course.id}
+                productTitle={course.title}
+                className="mb-3 w-full rounded-xl text-lg"
+              />
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Live courses enroll by batch cohort — browse available batches from the home page.
+              </p>
+            )}
           </div>
         </div>
       </div>

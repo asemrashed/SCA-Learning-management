@@ -12,7 +12,7 @@ import {
 } from "@/components/curriculum-placement-picker"
 import { getApiErrorMessage } from "@/lib/get-api-error-message"
 import { resolvePlacementIds } from "@/lib/placement-ids"
-import { CHAPTER, LIVE_COURSE } from "@/lib/product-vocabulary"
+import { CHAPTER, COURSE } from "@/lib/product-vocabulary"
 import {
   useCreateExamMutation,
   useCreateAssignmentMutation,
@@ -28,7 +28,6 @@ import {
 } from "./exam-inline-questions"
 
 const initialPlacement: CurriculumPlacement = {
-  scope: "batch",
   subjectId: null,
   moduleId: null,
   lessonId: null,
@@ -60,8 +59,6 @@ export function ExamCreateForm({
   const [selectedBank, setSelectedBank] = useState<string[]>([])
   const [placement, setPlacement] = useState<CurriculumPlacement>({
     ...initialPlacement,
-    scope: fixedCourseId ? "course" : "batch",
-    batchId: fixedBatchId,
     courseId: fixedCourseId,
   })
   const [message, setMessage] = useState<string | null>(null)
@@ -80,15 +77,15 @@ export function ExamCreateForm({
     setMessage(null)
     setIsError(false)
 
-    const { batchId, courseId, error: placementError } = resolvePlacementIds(placement)
+    const { courseId, error: placementError } = resolvePlacementIds(placement)
     if (placementError) {
       setMessage(placementError)
       setIsError(true)
       return
     }
 
-    if (courseId && !placement.moduleId) {
-      setMessage(`Recorded course exams require a ${CHAPTER.toLowerCase()} (pick chapter or lesson).`)
+    if (!placement.moduleId) {
+      setMessage(`Exams require a ${CHAPTER.toLowerCase()} (pick chapter or lesson).`)
       setIsError(true)
       return
     }
@@ -123,8 +120,7 @@ export function ExamCreateForm({
       }
 
       await createExam({
-        batchId,
-        courseId,
+        courseId: courseId!,
         moduleId: placement.moduleId ?? undefined,
         title,
         durationMin: durationMin === "" ? null : Number(durationMin),
@@ -153,7 +149,7 @@ export function ExamCreateForm({
         <div>
           <h3 className="text-lg font-semibold">Create exam</h3>
           <p className="text-sm text-muted-foreground">
-            Add questions directly or pick from the bank, then attach to batch or course.
+            Add questions directly or pick from the bank, then attach to a course.
           </p>
         </div>
       ) : null}
@@ -188,12 +184,7 @@ export function ExamCreateForm({
           onChange={setPlacement}
           fixedBatchId={fixedBatchId}
           fixedCourseId={fixedCourseId}
-          showScopeToggle={!fixedBatchId && !fixedCourseId}
-          moduleLabel={
-            placement.scope === "course"
-              ? `${CHAPTER} (required)`
-              : `${CHAPTER} (optional)`
-          }
+          moduleLabel={`${CHAPTER} (required)`}
         />
       </div>
 
@@ -260,8 +251,6 @@ export function AssignmentCreateForm({
   const [totalMarks, setTotalMarks] = useState(100)
   const [placement, setPlacement] = useState<CurriculumPlacement>({
     ...initialPlacement,
-    scope: fixedCourseId ? "course" : "batch",
-    batchId: fixedBatchId,
     courseId: fixedCourseId,
   })
   const [message, setMessage] = useState<string | null>(null)
@@ -272,7 +261,7 @@ export function AssignmentCreateForm({
     setMessage(null)
     setIsError(false)
 
-    const { batchId, courseId, error: placementError } = resolvePlacementIds(placement)
+    const { courseId, error: placementError } = resolvePlacementIds(placement)
     if (placementError) {
       setMessage(placementError)
       setIsError(true)
@@ -281,8 +270,7 @@ export function AssignmentCreateForm({
 
     try {
       await createAssignment({
-        batchId,
-        courseId,
+        courseId: courseId!,
         moduleId: placement.moduleId ?? undefined,
         title: title.trim(),
         description: description.trim() || null,
@@ -308,7 +296,7 @@ export function AssignmentCreateForm({
         <div>
           <h3 className="text-lg font-semibold">Create assignment</h3>
           <p className="text-sm text-muted-foreground">
-            Attach to a {LIVE_COURSE.toLowerCase()}; {CHAPTER.toLowerCase()} and lesson are optional.
+            Attach to a {COURSE.toLowerCase()}; {CHAPTER.toLowerCase()} and lesson are optional.
           </p>
         </div>
       ) : null}
@@ -341,7 +329,6 @@ export function AssignmentCreateForm({
           onChange={setPlacement}
           fixedBatchId={fixedBatchId}
           fixedCourseId={fixedCourseId}
-          showScopeToggle={!fixedBatchId && !fixedCourseId}
           beforeLesson={
             <div className="space-y-2">
               <Label htmlFor="assign-marks">Total marks</Label>

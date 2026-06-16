@@ -1,6 +1,9 @@
-import { redirect } from 'next/navigation'
-import { LIVE_COURSE_CATALOG_HREF } from '@/lib/product-vocabulary'
+import { CourseCatalog } from '@/features/course/components/course-catalog'
 
 export default function CoursesPage() {
-  redirect(LIVE_COURSE_CATALOG_HREF)
+  return (
+    <main className="container mx-auto px-4 py-10">
+      <CourseCatalog />
+    </main>
+  )
 }

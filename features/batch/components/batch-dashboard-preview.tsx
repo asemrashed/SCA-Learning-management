@@ -4,8 +4,9 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { BatchCurriculum } from "@/features/batch/components/BatchCurriculum"
 import { useGetBatchQuery } from "@/features/batch/api"
+import { useGetCourseQuery } from "@/features/course/api"
 import { BATCH_STATUS_LABEL } from "@/features/batch/utils"
-import { LIVE_COURSE } from "@/lib/product-vocabulary"
+import { BATCH } from "@/lib/product-vocabulary"
 import { LiveSessionsPanel } from "@/features/liveclass/components/live-sessions-panel"
 import { formatBdtMinor } from "@/lib/format-currency"
 import { EnrollmentKind } from "@/types/api"
@@ -25,9 +26,13 @@ export function BatchDashboardPreview({
 }: BatchDashboardPreviewProps) {
   const { data, isLoading, error } = useGetBatchQuery(batchId)
   const batch = data?.data
+  const { data: courseData } = useGetCourseQuery(batch?.courseId ?? "", {
+    skip: !batch?.courseId,
+  })
+  const course = courseData?.data
 
-  if (isLoading) return <p className="text-muted-foreground">Loading {LIVE_COURSE.toLowerCase()}…</p>
-  if (error || !batch) return <p className="text-destructive">{LIVE_COURSE} not found.</p>
+  if (isLoading) return <p className="text-muted-foreground">Loading {BATCH.toLowerCase()}…</p>
+  if (error || !batch) return <p className="text-destructive">{BATCH} not found.</p>
 
   return (
     <div className="space-y-8">
@@ -42,6 +47,12 @@ export function BatchDashboardPreview({
               {BATCH_STATUS_LABEL[batch.status] ?? batch.status} ·{" "}
               {batch.priceMinor === 0 ? "Free" : formatBdtMinor(batch.priceMinor)}
             </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Course:{" "}
+              <Link href={`/admin/courses/${batch.course.id}`} className="text-primary hover:underline">
+                {batch.course.title}
+              </Link>
+            </p>
           </div>
           <Button asChild variant="outline" className="rounded-xl">
             <Link href={liveManageHref}>Manage live classes</Link>
@@ -51,10 +62,12 @@ export function BatchDashboardPreview({
 
       <LiveSessionsPanel kind={EnrollmentKind.BATCH} productId={batch.id} />
 
-      <section>
-        <h2 className="mb-4 text-lg font-semibold">Curriculum</h2>
-        <BatchCurriculum subjects={batch.subjects} />
-      </section>
+      {course?.subjects?.length ? (
+        <section>
+          <h2 className="mb-4 text-lg font-semibold">Curriculum (from parent course)</h2>
+          <BatchCurriculum subjects={course.subjects} />
+        </section>
+      ) : null}
     </div>
   )
 }

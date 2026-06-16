@@ -7,8 +7,7 @@ import type { RootState } from "@/store/rootReducer"
 import { useListEnrollmentsQuery } from "@/features/enrollment/api"
 import { useListOrdersQuery } from "@/features/shop/api"
 import { useAuthQuerySkip } from "@/features/auth/hooks"
-import { EnrollmentKind, EnrollmentStatus } from "@/types/api"
-import { SHOW_RECORDED_COURSES } from "@/lib/product-vocabulary"
+import { EnrollmentStatus } from "@/types/api"
 import { DashboardLinkCard } from "@/components/student/dashboard-link-card"
 import { StudentPageShell } from "@/components/student/student-page-shell"
 
@@ -27,10 +26,9 @@ export default function DashboardPage() {
 
   const courseCount = (enrollmentsData?.data ?? []).filter(
     (e) =>
-      (SHOW_RECORDED_COURSES || e.kind === EnrollmentKind.BATCH) &&
-      (e.status === EnrollmentStatus.ACTIVE ||
-        e.status === EnrollmentStatus.COMPLETED ||
-        e.status === EnrollmentStatus.PENDING),
+      e.status === EnrollmentStatus.ACTIVE ||
+      e.status === EnrollmentStatus.COMPLETED ||
+      e.status === EnrollmentStatus.PENDING,
   ).length
 
   const orderCount = ordersData?.data?.length ?? 0

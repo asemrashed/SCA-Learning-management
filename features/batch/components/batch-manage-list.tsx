@@ -9,11 +9,7 @@ import { isSuperAdmin } from "@/lib/roles"
 import type { RootState } from "@/store"
 import { useListBatchesQuery, useDeleteBatchMutation } from "@/features/batch/api"
 import { BATCH_STATUS_LABEL } from "@/features/batch/utils"
-import {
-  LIVE_COURSE,
-  LIVE_COURSES,
-  CHAPTER,
-} from "@/lib/product-vocabulary"
+import { BATCH, BATCHES } from "@/lib/product-vocabulary"
 
 const BATCH_BASE = "/admin/batches"
 
@@ -33,18 +29,16 @@ export function BatchManageList() {
     <div className="mx-auto max-w-5xl px-4 py-10">
       <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">{LIVE_COURSES}</h1>
+          <h1 className="text-2xl font-bold">{BATCHES}</h1>
           <p className="text-sm text-muted-foreground">
-            {canCreateDelete
-              ? `Create and manage ${LIVE_COURSES.toLowerCase()} (Subject → ${CHAPTER} → Lesson)`
-              : `Edit ${LIVE_COURSE.toLowerCase()} content, schedule, and live sessions`}
+            Yearly cohorts under live courses — schedule, price, and live sessions
           </p>
         </div>
         {canCreateDelete ? (
-          <Button asChild>
-            <Link href={`${BATCH_BASE}/new`}>
+          <Button asChild variant="outline">
+            <Link href="/admin/courses">
               <Plus className="mr-2 h-4 w-4" />
-              New {LIVE_COURSE.toLowerCase()}
+              Add via course
             </Link>
           </Button>
         ) : null}
@@ -53,15 +47,16 @@ export function BatchManageList() {
       {isLoading ? (
         <p className="text-muted-foreground">Loading…</p>
       ) : error ? (
-        <p className="text-destructive">Could not load {LIVE_COURSES.toLowerCase()}.</p>
+        <p className="text-destructive">Could not load {BATCHES.toLowerCase()}.</p>
       ) : batches.length === 0 ? (
-        <p className="text-muted-foreground">No {LIVE_COURSES.toLowerCase()} yet.</p>
+        <p className="text-muted-foreground">No {BATCHES.toLowerCase()} yet.</p>
       ) : (
         <div className="overflow-hidden rounded-xl border">
           <table className="w-full text-sm">
             <thead className="bg-muted/50 text-left">
               <tr>
-                <th className="px-4 py-3 font-medium">Title</th>
+                <th className="px-4 py-3 font-medium">Cohort</th>
+                <th className="px-4 py-3 font-medium">Course ID</th>
                 <th className="px-4 py-3 font-medium">Price</th>
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium">Actions</th>
@@ -73,6 +68,14 @@ export function BatchManageList() {
                   <td className="px-4 py-3">
                     <div className="font-medium">{batch.title}</div>
                     <div className="text-xs text-muted-foreground">{batch.slug}</div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <Link
+                      href={`/admin/courses/${batch.courseId}`}
+                      className="text-primary hover:underline"
+                    >
+                      View course
+                    </Link>
                   </td>
                   <td className="px-4 py-3">
                     {batch.priceMinor === 0 ? "Free" : formatBdtMinor(batch.priceMinor)}
@@ -97,7 +100,7 @@ export function BatchManageList() {
                           size="sm"
                           className="text-destructive"
                           onClick={() => {
-                            if (confirm(`Delete this ${LIVE_COURSE.toLowerCase()}?`)) {
+                            if (confirm(`Delete this ${BATCH.toLowerCase()}?`)) {
                               void deleteBatch(batch.id)
                             }
                           }}

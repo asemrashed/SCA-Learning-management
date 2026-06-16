@@ -6,7 +6,8 @@ export default function AdminResourcesPage() {
       <div className="mb-8">
         <h1 className="text-2xl font-bold md:text-3xl">Resources</h1>
         <p className="text-muted-foreground">
-          Add PDF notes, past papers, and question files to batches or courses.
+          Upload lecture sheets, solution PDFs, notices, and result sheets. Use the separate
+          Exams and Assignments pages for those PDFs.
         </p>
       </div>
       <ResourceManagePanel />

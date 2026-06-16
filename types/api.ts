@@ -28,10 +28,15 @@ export interface ApiErrorBody {
 }
 
 export enum LessonType {
-  VIDEO = 'VIDEO',
+  RECORDED = 'RECORDED',
   LIVE = 'LIVE',
   TEXT = 'TEXT',
   DOCUMENT = 'DOCUMENT',
+}
+
+export enum DeliveryMode {
+  LIVE = 'LIVE',
+  RECORDED = 'RECORDED',
 }
 
 export interface PaginationMeta {
@@ -44,10 +49,12 @@ export interface CourseListItem {
   id: string
   title: string
   slug: string
+  deliveryMode: DeliveryMode
   thumbnail: string | null
   category: string | null
   priceMinor: number
   isPublished: boolean
+  batchCount?: number
 }
 
 export interface CourseLesson {
@@ -68,16 +75,35 @@ export interface CourseModule {
   lessons: CourseLesson[]
 }
 
+export interface CourseSubject {
+  id: string
+  title: string
+  order: number
+  modules: CourseModule[]
+}
+
+export interface CourseBatchSummary {
+  id: string
+  title: string
+  slug: string
+  status: string
+  priceMinor: number
+  startDate: string | null
+}
+
 export interface CourseDetail {
   id: string
   title: string
   slug: string
+  deliveryMode: DeliveryMode
   description: string | null
   thumbnail: string | null
   category: string | null
   priceMinor: number
   isPublished: boolean
-  modules: CourseModule[]
+  modules?: CourseModule[]
+  subjects?: CourseSubject[]
+  batches?: CourseBatchSummary[]
 }
 
 export interface CourseListResponse {
@@ -99,7 +125,14 @@ export interface CourseInputModule {
   }[]
 }
 
-export interface CreateCourseInput {
+export interface CourseInputSubject {
+  title: string
+  order: number
+  modules?: CourseInputModule[]
+}
+
+export interface CreateRecordedCourseInput {
+  deliveryMode: DeliveryMode.RECORDED
   title: string
   slug: string
   description?: string | null
@@ -110,7 +143,26 @@ export interface CreateCourseInput {
   modules?: CourseInputModule[]
 }
 
-export type UpdateCourseInput = Partial<CreateCourseInput>
+export interface CreateLiveCourseInput {
+  deliveryMode: DeliveryMode.LIVE
+  title: string
+  slug: string
+  description?: string | null
+  thumbnail?: string | null
+  category?: string | null
+  priceMinor?: number
+  isPublished?: boolean
+  subjects?: CourseInputSubject[]
+}
+
+export type CreateCourseInput = CreateRecordedCourseInput | CreateLiveCourseInput
+
+export type UpdateCourseInput = Partial<
+  Omit<CreateRecordedCourseInput, 'deliveryMode'> & {
+    modules?: CourseInputModule[]
+    subjects?: CourseInputSubject[]
+  }
+>
 
 export enum EnrollmentStatus {
   PENDING = 'PENDING',
@@ -127,10 +179,12 @@ export enum EnrollmentKind {
 export interface EnrollmentListItem {
   id: string
   kind: EnrollmentKind
+  deliveryMode: DeliveryMode
   batch: {
     id: string
     title: string
     thumbnail: string | null
+    course: { id: string; title: string }
     instructors: { name: string }[]
   } | null
   course: {
@@ -173,13 +227,15 @@ export interface EnrollmentSubject {
 export interface EnrollmentDetail {
   id: string
   kind: EnrollmentKind
+  deliveryMode: DeliveryMode
   status: EnrollmentStatus
   rollNumber: string | null
   progressPct: number
-  batch: { id: string; title: string } | null
+  batch: { id: string; title: string; courseId?: string } | null
   course: { id: string; title: string } | null
   subjects?: EnrollmentSubject[]
   modules?: EnrollmentModule[]
+  grantedBatchIds?: string[]
 }
 
 export interface CreateEnrollmentInput {
@@ -301,8 +357,7 @@ export interface ExamAttempt {
 }
 
 export interface CreateExamInput {
-  batchId?: string
-  courseId?: string
+  courseId: string
   moduleId?: string | null
   title: string
   durationMin?: number | null
@@ -327,8 +382,7 @@ export interface AssignmentListItem {
 }
 
 export interface CreateAssignmentInput {
-  batchId?: string
-  courseId?: string
+  courseId: string
   moduleId?: string | null
   title: string
   description?: string | null
@@ -367,10 +421,11 @@ export interface UpdateAttemptInput {
 export interface ResourceItem {
   id: string
   title: string
-  fileUrl: string
+  fileUrl: string | null
   fileType: string | null
-  batchId: string | null
+  category: ResourceCategory
   courseId: string | null
+  subjectId: string | null
   moduleId: string | null
   lessonId: string | null
   createdAt: string
@@ -385,8 +440,19 @@ export interface CreateResourceInput {
   title: string
   fileUrl: string
   fileType?: 'pdf' | 'slide' | 'link' | null
-  batchId?: string
-  courseId?: string
+  category?: ResourceCategory
+  courseId: string
+  subjectId?: string | null
+  moduleId?: string | null
+  lessonId?: string | null
+}
+
+export interface UpdateResourceInput {
+  title?: string
+  fileUrl?: string
+  fileType?: 'pdf' | 'slide' | 'link' | null
+  category?: ResourceCategory
+  subjectId?: string | null
   moduleId?: string | null
   lessonId?: string | null
 }
@@ -396,10 +462,11 @@ export interface ResourceListQuery {
   pageSize?: number
   search?: string
   sort?: string
-  batchId?: string
   courseId?: string
+  subjectId?: string
   moduleId?: string
   lessonId?: string
+  category?: ResourceCategory
 }
 
 export enum SessionStatus {
@@ -418,8 +485,7 @@ export enum AttendanceStatus {
 
 export interface LiveSession {
   id: string
-  batchId: string | null
-  courseId: string | null
+  batchId: string
   title: string
   status: SessionStatus
   joinUrl: string | null
@@ -436,8 +502,7 @@ export interface LiveSession {
 
 export interface Recording {
   id: string
-  batchId: string | null
-  courseId: string | null
+  batchId: string
   lessonId: string | null
   sessionId: string | null
   title: string
@@ -457,8 +522,7 @@ export interface AttendanceSummary {
 }
 
 export interface CreateSessionInput {
-  batchId?: string
-  courseId?: string
+  batchId: string
   title: string
   scheduledAt: string
   joinUrl?: string
@@ -474,8 +538,7 @@ export interface UpdateSessionInput {
 }
 
 export interface CreateRecordingInput {
-  batchId?: string
-  courseId?: string
+  batchId: string
   lessonId?: string
   sessionId?: string
   title: string
@@ -550,6 +613,16 @@ export enum OrderStatus {
   PENDING = 'PENDING',
   CONFIRMED = 'CONFIRMED',
   CANCELLED = 'CANCELLED',
+}
+
+export enum ResourceCategory {
+  GENERAL = 'GENERAL',
+  LECTURE_SHEET = 'LECTURE_SHEET',
+  SOLUTION_PDF = 'SOLUTION_PDF',
+  NOTICE = 'NOTICE',
+  RESULT_SHEET = 'RESULT_SHEET',
+  EXAM = 'EXAM',
+  ASSIGNMENT = 'ASSIGNMENT',
 }
 
 export interface ProductListItem {

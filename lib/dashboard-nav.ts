@@ -1,5 +1,6 @@
 import type { LucideIcon } from 'lucide-react'
 import {
+  Calendar,
   ClipboardList,
   FileText,
   GraduationCap,
@@ -14,8 +15,9 @@ import {
 } from 'lucide-react'
 import { Role } from '@/types/api'
 import {
-  LIVE_COURSES,
-  MY_LIVE_COURSES,
+  BATCHES,
+  COURSES,
+  MY_COURSES,
 } from '@/lib/product-vocabulary'
 
 export interface ShellNavItem {
@@ -34,7 +36,7 @@ export const studentShellNav: ShellNavGroup[] = [
     group: 'Learning',
     items: [
       { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-      { href: '/dashboard/courses', label: MY_LIVE_COURSES, icon: Layers },
+      { href: '/dashboard/courses', label: MY_COURSES, icon: Layers },
       { href: '/dashboard/resources', label: 'Resources', icon: FileText },
     ],
   },
@@ -49,7 +51,8 @@ export const studentShellNav: ShellNavGroup[] = [
 ]
 
 const adminOperationsNav: ShellNavItem[] = [
-  { href: '/admin/batches', label: LIVE_COURSES, icon: Layers },
+  { href: '/admin/courses', label: COURSES, icon: Layers },
+  { href: '/admin/batches', label: BATCHES, icon: Calendar },
   { href: '/admin/products', label: 'Shop products', icon: ShoppingBag },
   { href: '/admin/orders', label: 'Shop orders', icon: Package },
   { href: '/admin/enrollments', label: 'Enrollments', icon: UserPlus },

@@ -3,23 +3,23 @@
 import Link from "next/link"
 import { Layers } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { useListBatchesQuery } from "@/features/batch/api"
+import { useListCoursesQuery } from "@/features/course/api"
 import { ShopOverview } from "@/features/shop/components/shop-overview"
-import { LIVE_COURSES, MANAGE_LIVE_COURSES } from "@/lib/product-vocabulary"
+import { COURSES, MANAGE_COURSES } from "@/lib/product-vocabulary"
 
 export default function AdminDashboardPage() {
-  const { data: batchesData, isLoading: batchesLoading } = useListBatchesQuery({
+  const { data: coursesData, isLoading: coursesLoading } = useListCoursesQuery({
     pageSize: 1,
   })
 
-  const batchTotal = batchesData?.meta.total ?? 0
+  const courseTotal = coursesData?.meta.total ?? 0
 
   return (
     <div className="p-6 md:p-8">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-foreground md:text-3xl">Admin</h1>
         <p className="text-muted-foreground">
-          Day-to-day — {LIVE_COURSES.toLowerCase()}, shop, content, and enrollments.
+          Day-to-day — courses, batches, shop, content, and enrollments.
         </p>
       </div>
 
@@ -27,9 +27,9 @@ export default function AdminDashboardPage() {
         <div className="rounded-xl border bg-card p-6">
           <div className="mb-2 flex items-center gap-2 text-muted-foreground">
             <Layers className="h-5 w-5" />
-            <span className="text-sm font-medium">{LIVE_COURSES}</span>
+            <span className="text-sm font-medium">{COURSES}</span>
           </div>
-          <p className="text-3xl font-bold">{batchesLoading ? "…" : batchTotal}</p>
+          <p className="text-3xl font-bold">{coursesLoading ? "…" : courseTotal}</p>
         </div>
       </div>
 
@@ -39,7 +39,7 @@ export default function AdminDashboardPage() {
 
       <div className="flex flex-wrap gap-3">
         <Button asChild variant="outline">
-          <Link href="/admin/batches">{MANAGE_LIVE_COURSES}</Link>
+          <Link href="/admin/courses">{MANAGE_COURSES}</Link>
         </Button>
         <Button asChild variant="outline">
           <Link href="/admin/enrollments">Review enrollments</Link>

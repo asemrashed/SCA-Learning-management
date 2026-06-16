@@ -1,11 +1,10 @@
 export type BatchStatus = 'DRAFT' | 'UPCOMING' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED'
 
-export type LessonType = 'VIDEO' | 'LIVE' | 'TEXT' | 'DOCUMENT'
-
 export interface BatchListItem {
   id: string
   title: string
   slug: string
+  courseId: string
   status: BatchStatus
   priceMinor: number
   capacity: number | null
@@ -21,34 +20,19 @@ export interface BatchInstructor {
   avatarUrl: string | null
 }
 
-export interface BatchLesson {
+export interface BatchCourseSummary {
   id: string
   title: string
-  type: LessonType
-  durationS: number | null
-  order: number
-  isPreview: boolean
-  videoUrl?: string | null
-}
-
-export interface BatchModule {
-  id: string
-  title: string
-  order: number
-  lessons: BatchLesson[]
-}
-
-export interface BatchSubject {
-  id: string
-  title: string
-  order: number
-  modules: BatchModule[]
+  slug: string
+  deliveryMode: string
 }
 
 export interface BatchDetail {
   id: string
   title: string
   slug: string
+  courseId: string
+  course: BatchCourseSummary
   status: BatchStatus
   priceMinor: number
   capacity: number | null
@@ -57,7 +41,6 @@ export interface BatchDetail {
   endDate: string | null
   thumbnail: string | null
   instructors: BatchInstructor[]
-  subjects: BatchSubject[]
 }
 
 export interface PaginationMeta {
@@ -71,32 +54,11 @@ export interface BatchListParams {
   pageSize?: number
   search?: string
   status?: BatchStatus
+  courseId?: string
   sort?: string
 }
 
-export interface BatchInputLesson {
-  title: string
-  type?: LessonType
-  videoUrl?: string | null
-  content?: string | null
-  durationS?: number | null
-  order: number
-  isPreview?: boolean
-}
-
-export interface BatchInputModule {
-  title: string
-  order: number
-  lessons?: BatchInputLesson[]
-}
-
-export interface BatchInputSubject {
-  title: string
-  order: number
-  modules?: BatchInputModule[]
-}
-
-export interface CreateBatchInput {
+export interface CreateBatchBodyInput {
   title: string
   slug: string
   status?: BatchStatus
@@ -107,7 +69,14 @@ export interface CreateBatchInput {
   endDate?: string | null
   thumbnail?: string | null
   instructorIds?: string[]
-  subjects?: BatchInputSubject[]
 }
 
-export type UpdateBatchInput = Partial<CreateBatchInput>
+export type UpdateBatchInput = Partial<CreateBatchBodyInput>
+
+export interface BatchContentGrant {
+  id: string
+  grantingBatchId: string
+  grantingBatch: { id: string; title: string }
+  receivingBatchId: string
+  createdAt: string
+}

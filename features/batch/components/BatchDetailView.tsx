@@ -9,13 +9,10 @@ import { Button } from "@/components/ui/button"
 import { VideoModal } from "@/components/video-modal"
 import { formatBdtMinor } from "@/lib/format-currency"
 import { useGetBatchQuery } from "@/features/batch/api"
+import { useGetCourseQuery } from "@/features/course/api"
 import { BatchCurriculum } from "@/features/batch/components/BatchCurriculum"
 import { BATCH_STATUS_LABEL, daysUntil, formatBatchDate, formatDuration } from "@/features/batch/utils"
-import {
-  BROWSE_LIVE_COURSES,
-  LIVE_COURSE,
-  LIVE_COURSE_CATALOG_HREF,
-} from "@/lib/product-vocabulary"
+import { BATCH, BROWSE_COURSES, LIVE_BATCH_CATALOG_HREF } from "@/lib/product-vocabulary"
 import { EnrollButton } from "@/features/enrollment/components/enroll-button"
 import { Calendar, Clock, Play } from "lucide-react"
 import { motion } from "framer-motion"
@@ -30,13 +27,15 @@ interface BatchDetailViewProps {
 export function BatchDetailView({ idOrSlug }: BatchDetailViewProps) {
   const { data, isLoading, isError } = useGetBatchQuery(idOrSlug)
   const batch = data?.data
+  const { data: courseData } = useGetCourseQuery(batch?.courseId ?? "", { skip: !batch?.courseId })
+  const subjects = courseData?.data?.subjects ?? []
   const [previewOpen, setPreviewOpen] = useState(false)
 
   if (isLoading) {
     return (
       <main className="py-8">
         <div className="container mx-auto px-4">
-          <AppLoading message={`Loading ${LIVE_COURSE.toLowerCase()}…`} />
+          <AppLoading message={`Loading ${BATCH.toLowerCase()}…`} />
         </div>
       </main>
     )
@@ -47,10 +46,10 @@ export function BatchDetailView({ idOrSlug }: BatchDetailViewProps) {
       <main className="py-8">
         <div className="container mx-auto px-4">
           <AppNotFound
-            title={`${LIVE_COURSE} not found`}
-            description={`This ${LIVE_COURSE.toLowerCase()} may have been removed or is not yet published.`}
-            backHref={LIVE_COURSE_CATALOG_HREF}
-            backLabel={BROWSE_LIVE_COURSES}
+            title={`${BATCH} not found`}
+            description={`This cohort may have been removed or is not yet published.`}
+            backHref={LIVE_BATCH_CATALOG_HREF}
+            backLabel={BROWSE_COURSES}
           />
         </div>
       </main>
@@ -59,10 +58,9 @@ export function BatchDetailView({ idOrSlug }: BatchDetailViewProps) {
 
   const daysLeft = daysUntil(batch.registrationDeadline)
   const isLive = batch.status === "ACTIVE"
-  const previewLessons = batch.subjects.flatMap((s) =>
+  const previewLessons = subjects.flatMap((s) =>
     s.modules.flatMap((m) => m.lessons.filter((l) => l.isPreview && l.videoUrl)),
   )
-
   const previewLesson = previewLessons[0]
 
   return (
@@ -77,9 +75,12 @@ export function BatchDetailView({ idOrSlug }: BatchDetailViewProps) {
                 className="rounded-[24px] bg-gradient-to-br from-primary/10 via-accent/5 to-background p-6 md:p-8"
               >
                 {isLive && <Badge className="mb-4 bg-destructive">Live now</Badge>}
-                <h1 className="mb-4 text-2xl font-bold text-foreground md:text-3xl lg:text-4xl">
+                <h1 className="mb-2 text-2xl font-bold text-foreground md:text-3xl lg:text-4xl">
                   {batch.title}
                 </h1>
+                {batch.course ? (
+                  <p className="mb-4 text-sm text-muted-foreground">{batch.course.title}</p>
+                ) : null}
 
                 <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                   <Badge variant="outline">{BATCH_STATUS_LABEL[batch.status]}</Badge>
@@ -97,7 +98,7 @@ export function BatchDetailView({ idOrSlug }: BatchDetailViewProps) {
                 className="rounded-[20px] bg-card p-6 shadow-sm"
               >
                 <h2 className="mb-4 text-xl font-bold text-foreground">Curriculum</h2>
-                <BatchCurriculum subjects={batch.subjects} />
+                <BatchCurriculum subjects={subjects} />
               </motion.div>
             </div>
 

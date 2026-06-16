@@ -30,6 +30,20 @@ export function getStudentBackLabel(pathname: string): string {
       return "Resources"
     case "certificates":
       return "Certificates"
+    case "details":
+      return "Course"
+    case "payment-history":
+      return "Course"
+    case "exam":
+      return "Course"
+    case "assignment":
+      return "Course"
+    case "live-class":
+      return "Course"
+    case "pre-recorded":
+      return "Course"
+    case "recorded":
+      return "Course"
     default:
       if (segments.includes("courses") && segments.length >= 3) return "Course"
       return "Back"

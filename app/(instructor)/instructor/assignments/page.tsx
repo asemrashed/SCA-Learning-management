@@ -1,15 +1,14 @@
-import { AssignmentManagePanel } from "@/features/assessment/components/assignment-manage-panel"
+import { ResourceManagePanel } from "@/features/resource/components/resource-manage-panel"
+import { ResourceCategory } from "@/types/api"
 
 export default function InstructorAssignmentsPage() {
   return (
     <div className="p-6 md:p-8">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold md:text-3xl">Assignments</h1>
-        <p className="text-muted-foreground">
-          Create assignments for your batches and courses.
-        </p>
-      </div>
-      <AssignmentManagePanel />
+      <ResourceManagePanel
+        title="Assignments"
+        description="Upload assignment PDFs for your courses."
+        defaultCategory={ResourceCategory.ASSIGNMENT}
+      />
     </div>
   )
 }

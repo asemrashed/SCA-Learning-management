@@ -3,6 +3,7 @@ import type {
   CourseDetail,
   CourseListResponse,
   CreateCourseInput,
+  DeliveryMode,
   UpdateCourseInput,
 } from '@/types/api'
 import { baseQueryWithReauth } from '@/lib/apiClient'
@@ -12,6 +13,7 @@ export interface CourseListParams {
   pageSize?: number
   search?: string
   category?: string
+  deliveryMode?: DeliveryMode
   sort?: string
 }
 

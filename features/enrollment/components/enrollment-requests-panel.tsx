@@ -10,15 +10,15 @@ import {
   useReviewEnrollmentRequestMutation,
 } from "@/features/enrollment/api"
 import { EnrollmentKind, EnrollmentStatus } from "@/types/api"
-import { LIVE_COURSE, SHOW_RECORDED_COURSES } from "@/lib/product-vocabulary"
+import { deliveryModeLabel } from "@/lib/product-vocabulary"
 
 function productTitle(item: {
   kind: EnrollmentKind
-  batch: { title: string } | null
+  batch: { title: string; course?: { title: string } } | null
   course: { title: string } | null
 }): string {
   return item.kind === EnrollmentKind.BATCH
-    ? item.batch!.title
+    ? `${item.batch!.course?.title ?? item.batch!.title} · ${item.batch!.title}`
     : item.course!.title
 }
 
@@ -30,9 +30,7 @@ export function EnrollmentRequestsPanel() {
   const [rollNumbers, setRollNumbers] = useState<Record<string, string>>({})
   const [actionError, setActionError] = useState<string | null>(null)
 
-  const requests = (data?.data ?? []).filter(
-    (item) => SHOW_RECORDED_COURSES || item.kind === EnrollmentKind.BATCH,
-  )
+  const requests = data?.data ?? []
 
   async function handleApprove(id: string) {
     const rollNumber = rollNumbers[id]?.trim()
@@ -86,7 +84,7 @@ export function EnrollmentRequestsPanel() {
           <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
             <div>
               <div className="mb-1 flex flex-wrap items-center gap-2">
-                <Badge variant="secondary">{LIVE_COURSE}</Badge>
+                <Badge variant="secondary">{deliveryModeLabel(item.kind === EnrollmentKind.BATCH ? 'LIVE' : 'RECORDED')}</Badge>
                 <Badge>{item.status}</Badge>
               </div>
               <h3 className="text-lg font-semibold">{productTitle(item)}</h3>

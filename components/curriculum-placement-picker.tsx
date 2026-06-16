@@ -9,15 +9,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { useGetBatchQuery, useListBatchesQuery } from "@/features/batch/api"
+import { useGetBatchQuery } from "@/features/batch/api"
 import { useGetCourseQuery, useListCoursesQuery } from "@/features/course/api"
-import { SHOW_RECORDED_COURSES, learningSystemLabel, LIVE_COURSE, CHAPTER } from "@/lib/product-vocabulary"
+import { CHAPTER, COURSE } from "@/lib/product-vocabulary"
+import { DeliveryMode } from "@/types/api"
 
 const NONE = "__none__"
 
 export interface CurriculumPlacement {
-  scope: "batch" | "course"
-  batchId?: string
   courseId?: string
   subjectId?: string | null
   moduleId?: string | null
@@ -27,47 +26,53 @@ export interface CurriculumPlacement {
 interface CurriculumPlacementPickerProps {
   value: CurriculumPlacement
   onChange: (next: CurriculumPlacement) => void
-  fixedBatchId?: string
   fixedCourseId?: string
-  showScopeToggle?: boolean
+  fixedBatchId?: string
   moduleLabel?: string
   lessonLabel?: string
-  /** Pass `contents` to participate in a parent CSS grid */
+  hideModuleLesson?: boolean
+  subjectLabel?: string
   className?: string
-  /** Extra field rendered beside lesson (e.g. total marks) */
   beforeLesson?: React.ReactNode
 }
 
 export function CurriculumPlacementPicker({
   value,
   onChange,
-  fixedBatchId,
   fixedCourseId,
-  showScopeToggle = true,
+  fixedBatchId,
   moduleLabel = `${CHAPTER} (optional)`,
   lessonLabel = "Lesson (optional)",
+  hideModuleLesson = false,
+  subjectLabel = "Subject (optional)",
   className = "grid gap-4 sm:grid-cols-2",
   beforeLesson,
 }: CurriculumPlacementPickerProps) {
-  const scope = fixedBatchId ? "batch" : fixedCourseId ? "course" : value.scope
-  const batchId = fixedBatchId ?? value.batchId ?? ""
-  const courseId = fixedCourseId ?? value.courseId ?? ""
+  const { data: batchData } = useGetBatchQuery(fixedBatchId ?? "", {
+    skip: !fixedBatchId,
+  })
+  const resolvedCourseId = fixedCourseId ?? batchData?.data?.courseId ?? value.courseId ?? ""
+  const courseId = resolvedCourseId
 
-  const { data: batchData } = useGetBatchQuery(batchId, { skip: scope !== "batch" || !batchId })
-  const { data: courseData } = useGetCourseQuery(courseId, { skip: scope !== "course" || !courseId })
+  const { data: courseData } = useGetCourseQuery(courseId, { skip: !courseId })
+  const { data: coursesList } = useListCoursesQuery(
+    { pageSize: 100 },
+    { skip: Boolean(fixedCourseId || fixedBatchId) },
+  )
 
+  const course = courseData?.data
+  const isLive = course?.deliveryMode === DeliveryMode.LIVE
+
+  const subjects = course?.subjects ?? []
   const modules = useMemo(() => {
-    if (scope === "batch" && batchData?.data) {
-      const subjects = value.subjectId
-        ? batchData.data.subjects.filter((s) => s.id === value.subjectId)
-        : batchData.data.subjects
-      return subjects.flatMap((s) => s.modules)
+    if (isLive) {
+      const filtered = value.subjectId
+        ? subjects.filter((s) => s.id === value.subjectId)
+        : subjects
+      return filtered.flatMap((s) => s.modules)
     }
-    if (scope === "course" && courseData?.data) {
-      return courseData.data.modules
-    }
-    return []
-  }, [scope, batchData, courseData, value.subjectId])
+    return course?.modules ?? []
+  }, [isLive, subjects, course?.modules, value.subjectId])
 
   const lessons = useMemo(() => {
     if (!value.moduleId) return []
@@ -76,119 +81,66 @@ export function CurriculumPlacementPicker({
   }, [modules, value.moduleId])
 
   useEffect(() => {
-    if (fixedBatchId && value.batchId !== fixedBatchId) {
-      onChange({ ...value, scope: "batch", batchId: fixedBatchId, courseId: undefined })
+    const nextCourseId = fixedCourseId ?? batchData?.data?.courseId
+    if (nextCourseId && value.courseId !== nextCourseId) {
+      onChange({ ...value, courseId: nextCourseId, subjectId: null, moduleId: null, lessonId: null })
     }
-    if (fixedCourseId && value.courseId !== fixedCourseId) {
-      onChange({ ...value, scope: "course", courseId: fixedCourseId, batchId: undefined })
-    }
-  }, [fixedBatchId, fixedCourseId, value, onChange])
+  }, [fixedCourseId, batchData?.data?.courseId, value, onChange])
 
-  function setScope(nextScope: "batch" | "course") {
-    onChange({
-      scope: nextScope,
-      batchId: nextScope === "batch" ? value.batchId : undefined,
-      courseId: nextScope === "course" ? value.courseId : undefined,
-      subjectId: null,
-      moduleId: null,
-      lessonId: null,
-    })
-  }
-
-  const effectiveShowScopeToggle = showScopeToggle && SHOW_RECORDED_COURSES
-
-  const showProductPicker = !fixedBatchId && !fixedCourseId
+  const showCoursePicker = !fixedCourseId && !fixedBatchId
 
   return (
     <div className={className}>
-      {showProductPicker && effectiveShowScopeToggle ? (
-        <>
-          <div className="space-y-2">
-            <Label>Learning system</Label>
-            <Select value={scope} onValueChange={(v) => setScope(v as "batch" | "course")}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="batch">{learningSystemLabel("batch")}</SelectItem>
-                <SelectItem value="course">{learningSystemLabel("course")}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>{learningSystemLabel(scope)}</Label>
-            {scope === "batch" ? (
-              <BatchSelect
-                value={batchId}
-                onChange={(id) =>
-                  onChange({
-                    ...value,
-                    scope: "batch",
-                    batchId: id,
-                    subjectId: null,
-                    moduleId: null,
-                    lessonId: null,
-                  })
-                }
-              />
-            ) : (
-              <CourseSelect
-                value={courseId}
-                onChange={(id) =>
-                  onChange({
-                    ...value,
-                    scope: "course",
-                    courseId: id,
-                    moduleId: null,
-                    lessonId: null,
-                  })
-                }
-              />
-            )}
-          </div>
-        </>
+      {showCoursePicker ? (
+        <div className="space-y-2 sm:col-span-2">
+          <Label>{COURSE}</Label>
+          <Select
+            value={courseId || NONE}
+            onValueChange={(id) => {
+              if (id === NONE) return
+              onChange({ courseId: id, subjectId: null, moduleId: null, lessonId: null })
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder={`Select ${COURSE.toLowerCase()}`} />
+            </SelectTrigger>
+            <SelectContent>
+              {(coursesList?.data ?? []).map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      ) : course ? (
+        <div className="space-y-2 sm:col-span-2">
+          <Label>{COURSE}</Label>
+          <p className="text-sm text-muted-foreground">{course.title}</p>
+        </div>
       ) : null}
 
-      {showProductPicker && !effectiveShowScopeToggle ? (
+      {isLive && subjects.length > 0 ? (
         <div className="space-y-2">
-          <Label>{LIVE_COURSE}</Label>
-          <BatchSelect
-            value={batchId}
-            onChange={(id) =>
+          <Label>{subjectLabel}</Label>
+          <Select
+            value={value.subjectId ?? NONE}
+            onValueChange={(id) =>
               onChange({
                 ...value,
-                scope: "batch",
-                batchId: id,
-                courseId: undefined,
-                subjectId: null,
+                courseId,
+                subjectId: id === NONE ? null : id,
                 moduleId: null,
                 lessonId: null,
               })
             }
-          />
-        </div>
-      ) : null}
-
-      {scope === "batch" && batchId ? (
-        <div className="space-y-2">
-          <Label>Subject (optional)</Label>
-          <Select
-            value={value.subjectId ?? NONE}
-            onValueChange={(subjectId) => {
-              onChange({
-                ...value,
-                subjectId: subjectId === NONE ? null : subjectId,
-                moduleId: null,
-                lessonId: null,
-              })
-            }}
           >
             <SelectTrigger>
-              <SelectValue placeholder="All subjects / standalone" />
+              <SelectValue placeholder="All subjects" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={NONE}>All subjects / standalone</SelectItem>
-              {batchData?.data.subjects.map((s) => (
+              <SelectItem value={NONE}>All subjects</SelectItem>
+              {subjects.map((s) => (
                 <SelectItem key={s.id} value={s.id}>
                   {s.title}
                 </SelectItem>
@@ -196,10 +148,10 @@ export function CurriculumPlacementPicker({
             </SelectContent>
           </Select>
         </div>
-      ) : (
-        <div className="hidden sm:block" aria-hidden />
-      )}
+      ) : null}
 
+      {!hideModuleLesson ? (
+        <>
       <div className="space-y-2">
         <Label>{moduleLabel}</Label>
         <Select
@@ -207,14 +159,14 @@ export function CurriculumPlacementPicker({
           onValueChange={(id) =>
             onChange({
               ...value,
+              courseId,
               moduleId: id === NONE ? null : id,
               lessonId: null,
             })
           }
-          disabled={scope === "batch" && Boolean(batchId) && !batchData}
         >
           <SelectTrigger>
-            <SelectValue placeholder="None" />
+            <SelectValue placeholder={`Select ${CHAPTER.toLowerCase()}`} />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={NONE}>None</SelectItem>
@@ -227,19 +179,19 @@ export function CurriculumPlacementPicker({
         </Select>
       </div>
 
-      {beforeLesson ?? null}
+      {beforeLesson}
 
       <div className="space-y-2">
         <Label>{lessonLabel}</Label>
         <Select
           value={value.lessonId ?? NONE}
           onValueChange={(id) =>
-            onChange({ ...value, lessonId: id === NONE ? null : id })
+            onChange({ ...value, courseId, lessonId: id === NONE ? null : id })
           }
           disabled={!value.moduleId}
         >
           <SelectTrigger>
-            <SelectValue placeholder="None" />
+            <SelectValue placeholder="Select lesson" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={NONE}>None</SelectItem>
@@ -251,44 +203,8 @@ export function CurriculumPlacementPicker({
           </SelectContent>
         </Select>
       </div>
+        </>
+      ) : null}
     </div>
-  )
-}
-
-function BatchSelect({ value, onChange }: { value: string; onChange: (id: string) => void }) {
-  const { data } = useListBatchesQuery({ pageSize: 100 })
-  const batches = data?.data ?? []
-  return (
-    <Select value={value || undefined} onValueChange={onChange}>
-      <SelectTrigger>
-        <SelectValue placeholder={`Select ${LIVE_COURSE.toLowerCase()}`} />
-      </SelectTrigger>
-      <SelectContent>
-        {batches.map((b) => (
-          <SelectItem key={b.id} value={b.id}>
-            {b.title}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  )
-}
-
-function CourseSelect({ value, onChange }: { value: string; onChange: (id: string) => void }) {
-  const { data } = useListCoursesQuery({ pageSize: 100 })
-  const courses = data?.data ?? []
-  return (
-    <Select value={value || undefined} onValueChange={onChange}>
-      <SelectTrigger>
-        <SelectValue placeholder="Select course" />
-      </SelectTrigger>
-      <SelectContent>
-        {courses.map((c) => (
-          <SelectItem key={c.id} value={c.id}>
-            {c.title}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
   )
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -16,95 +16,166 @@ import {
   CurriculumPlacementPicker,
   type CurriculumPlacement,
 } from "@/components/curriculum-placement-picker"
+import { useGetBatchQuery } from "@/features/batch/api"
+import {
+  useCreateResourceMutation,
+  useUpdateResourceMutation,
+} from "@/features/resource/api"
 import { getApiErrorMessage } from "@/lib/get-api-error-message"
-import { resolvePlacementIds } from "@/lib/placement-ids"
 import { CHAPTER } from "@/lib/product-vocabulary"
-import { useCreateResourceMutation } from "@/features/resource/api"
+import {
+  ASSESSMENT_RESOURCE_CATEGORIES,
+  CONTENT_RESOURCE_CATEGORIES,
+  isPdfResourceCategory,
+  RESOURCE_CATEGORY_LABELS,
+  SUBJECT_ONLY_CATEGORIES,
+} from "@/lib/resource-categories"
+import type { ResourceItem } from "@/types/api"
+import { ResourceCategory } from "@/types/api"
 
 const initialPlacement: CurriculumPlacement = {
-  scope: "batch",
   subjectId: null,
   moduleId: null,
   lessonId: null,
 }
 
-interface ResourceUploadFormProps {
+interface ResourceFormProps {
   fixedBatchId?: string
   fixedCourseId?: string
+  defaultCategory?: ResourceCategory
+  lockCategory?: boolean
+  resource?: ResourceItem
   onSuccess?: () => void
   inModal?: boolean
 }
 
-export function ResourceUploadForm({
+export function ResourceForm({
   fixedBatchId,
   fixedCourseId,
+  defaultCategory = ResourceCategory.GENERAL,
+  lockCategory = false,
+  resource,
   onSuccess,
   inModal = false,
-}: ResourceUploadFormProps) {
-  const [title, setTitle] = useState("")
-  const [fileUrl, setFileUrl] = useState("")
-  const [fileType, setFileType] = useState<"pdf" | "slide" | "link">("pdf")
+}: ResourceFormProps) {
+  const isEdit = Boolean(resource)
+  const { data: fixedBatch } = useGetBatchQuery(fixedBatchId ?? "", { skip: !fixedBatchId })
+
+  const [title, setTitle] = useState(resource?.title ?? "")
+  const [fileUrl, setFileUrl] = useState(resource?.fileUrl ?? "")
+  const [fileType, setFileType] = useState<"pdf" | "slide" | "link">(
+    (resource?.fileType as "pdf" | "slide" | "link") ?? "pdf",
+  )
+  const [category, setCategory] = useState<ResourceCategory>(
+    resource?.category ?? defaultCategory,
+  )
   const [placement, setPlacement] = useState<CurriculumPlacement>({
     ...initialPlacement,
-    scope: fixedCourseId ? "course" : "batch",
-    batchId: fixedBatchId,
-    courseId: fixedCourseId,
+    courseId: fixedCourseId ?? resource?.courseId ?? undefined,
+    subjectId: resource?.subjectId ?? null,
+    moduleId: resource?.moduleId ?? null,
+    lessonId: resource?.lessonId ?? null,
   })
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
-  const [createResource, { isLoading }] = useCreateResourceMutation()
+  const [createResource, { isLoading: creating }] = useCreateResourceMutation()
+  const [updateResource, { isLoading: updating }] = useUpdateResourceMutation()
+  const isLoading = creating || updating
+
+  const pdfOnly = isPdfResourceCategory(category)
+  const subjectOnly = SUBJECT_ONLY_CATEGORIES.has(category)
+
+  const categoryOptions = useMemo(() => {
+    if (lockCategory) {
+      return [[category, RESOURCE_CATEGORY_LABELS[category]]] as [ResourceCategory, string][]
+    }
+    if (defaultCategory && ASSESSMENT_RESOURCE_CATEGORIES.has(defaultCategory)) {
+      return [[defaultCategory, RESOURCE_CATEGORY_LABELS[defaultCategory]]] as [
+        ResourceCategory,
+        string,
+      ][]
+    }
+    return (
+      Object.entries(RESOURCE_CATEGORY_LABELS) as [ResourceCategory, string][]
+    ).filter(([key]) => CONTENT_RESOURCE_CATEGORIES.has(key))
+  }, [lockCategory, category, defaultCategory])
+
+  useEffect(() => {
+    if (pdfOnly && fileType !== "pdf") {
+      setFileType("pdf")
+    }
+  }, [pdfOnly, fileType])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
     setSuccess(null)
 
-    const { batchId, courseId, error: placementError } = resolvePlacementIds(placement)
-    if (placementError) {
-      setError(placementError)
+    const courseId =
+      placement.courseId?.trim() ||
+      fixedCourseId ||
+      fixedBatch?.data?.courseId ||
+      resource?.courseId
+
+    if (!courseId) {
+      setError("Please select a course.")
       return
     }
 
-    if (courseId && !placement.moduleId && !placement.lessonId) {
-      setError(`Recorded course resources need a ${CHAPTER.toLowerCase()} or lesson.`)
+    if (
+      category === ResourceCategory.GENERAL &&
+      !placement.moduleId &&
+      !placement.lessonId
+    ) {
+      setError(`General resources need a ${CHAPTER.toLowerCase()} or lesson.`)
       return
     }
 
     if (!fileUrl.trim()) {
-      setError("Add a file via upload or paste a link.")
+      setError("Upload a PDF or paste a file link.")
       return
     }
 
+    const payload = {
+      title,
+      fileUrl,
+      fileType: pdfOnly ? ("pdf" as const) : fileType,
+      category,
+      courseId,
+      subjectId: placement.subjectId ?? null,
+      moduleId: subjectOnly ? null : placement.moduleId ?? null,
+      lessonId: subjectOnly ? null : placement.lessonId ?? null,
+    }
+
     try {
-      await createResource({
-        title,
-        fileUrl,
-        fileType,
-        ...(batchId
-          ? {
-              batchId,
-              moduleId: placement.moduleId ?? null,
-              lessonId: placement.lessonId ?? null,
-            }
-          : {
-              courseId,
-              moduleId: placement.moduleId ?? undefined,
-              lessonId: placement.lessonId ?? undefined,
-            }),
-      }).unwrap()
-      setTitle("")
-      setFileUrl("")
-      setPlacement({
-        ...initialPlacement,
-        scope: placement.scope,
-        batchId: fixedBatchId ?? batchId,
-        courseId: fixedCourseId ?? courseId,
-      })
-      setSuccess("Resource saved.")
+      if (isEdit && resource) {
+        await updateResource({
+          id: resource.id,
+          body: {
+            title: payload.title,
+            fileUrl: payload.fileUrl,
+            fileType: payload.fileType,
+            category: payload.category,
+            subjectId: payload.subjectId,
+            moduleId: payload.moduleId,
+            lessonId: payload.lessonId,
+          },
+        }).unwrap()
+        setSuccess("Resource updated.")
+      } else {
+        await createResource(payload).unwrap()
+        setTitle("")
+        setFileUrl("")
+        setPlacement({
+          ...initialPlacement,
+          courseId: fixedCourseId ?? courseId,
+        })
+        setSuccess("Resource saved.")
+      }
       onSuccess?.()
     } catch (err) {
-      setError(getApiErrorMessage(err, "Could not create resource. Check fields and try again."))
+      setError(getApiErrorMessage(err, "Could not save resource. Check fields and try again."))
     }
   }
 
@@ -115,14 +186,19 @@ export function ResourceUploadForm({
     >
       {!inModal ? (
         <>
-          <h2 className="text-lg font-semibold">Add resource</h2>
+          <h2 className="text-lg font-semibold">
+            {isEdit ? "Edit resource" : "Add resource"}
+          </h2>
           <p className="text-sm text-muted-foreground">
-            Add notes, past papers, or question files via upload or external link.
+            Upload PDFs for lecture sheets, solution PDFs, notices, and result sheets.
           </p>
         </>
       ) : null}
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      {success ? <p className="text-sm text-green-700">{success}</p> : null}
+
+      <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2 sm:col-span-2">
           <Label htmlFor="resource-title">Title</Label>
           <Input
@@ -132,51 +208,81 @@ export function ResourceUploadForm({
             required
           />
         </div>
-        <div className="sm:col-span-2">
-          <MediaSourceField
-            label="File"
-            value={fileUrl}
-            onChange={setFileUrl}
-            folder="documents"
-            accept=".pdf,.doc,.docx,.ppt,.pptx,.zip,application/pdf,application/msword,image/*"
-            placeholder="https://…"
-            required
-          />
-        </div>
-        <div className="space-y-2 sm:col-span-1">
-          <Label>File type</Label>
-          <Select value={fileType} onValueChange={(v) => setFileType(v as typeof fileType)}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="pdf">PDF / Notes</SelectItem>
-              <SelectItem value="slide">Slides</SelectItem>
-              <SelectItem value="link">External link</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+
+        {!lockCategory ? (
+          <div className="space-y-2">
+            <Label>Resource type</Label>
+            <Select
+              value={category}
+              onValueChange={(v) => setCategory(v as ResourceCategory)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {categoryOptions.map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <Label>Resource type</Label>
+            <p className="text-sm text-muted-foreground">
+              {RESOURCE_CATEGORY_LABELS[category]}
+            </p>
+          </div>
+        )}
+
+        {!pdfOnly ? (
+          <div className="space-y-2">
+            <Label>File format</Label>
+            <Select value={fileType} onValueChange={(v) => setFileType(v as typeof fileType)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pdf">PDF</SelectItem>
+                <SelectItem value="slide">Slide</SelectItem>
+                <SelectItem value="link">Link</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        ) : null}
+
+        <MediaSourceField
+          label={pdfOnly ? "PDF file" : "File"}
+          value={fileUrl}
+          onChange={setFileUrl}
+          folder="documents"
+          accept={pdfOnly ? ".pdf,application/pdf" : ".pdf,.ppt,.pptx,image/*"}
+          placeholder="Upload or paste URL"
+        />
+
         <CurriculumPlacementPicker
-          className="contents"
+          className="contents sm:col-span-2"
           value={placement}
           onChange={setPlacement}
           fixedBatchId={fixedBatchId}
-          fixedCourseId={fixedCourseId}
-          showScopeToggle={!fixedBatchId && !fixedCourseId}
-          moduleLabel={
-            placement.scope === "course"
-              ? `${CHAPTER} (required if no lesson)`
-              : `${CHAPTER} (optional)`
+          fixedCourseId={fixedCourseId ?? resource?.courseId ?? undefined}
+          hideModuleLesson={subjectOnly}
+          subjectLabel={
+            subjectOnly ? "Subject" : "Subject (optional)"
           }
         />
       </div>
 
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
-      {success ? <p className="text-sm text-green-700">{success}</p> : null}
-
-      <Button type="submit" disabled={isLoading} className="rounded-xl">
-        {isLoading ? "Saving…" : "Save resource"}
+      <Button type="submit" disabled={isLoading}>
+        {isLoading ? "Saving…" : isEdit ? "Update resource" : "Save resource"}
       </Button>
     </form>
   )
+}
+
+/** @deprecated Use ResourceForm */
+export function ResourceUploadForm(props: ResourceFormProps) {
+  return <ResourceForm {...props} />
 }

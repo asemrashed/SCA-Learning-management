@@ -1,7 +1,7 @@
 "use client"
 
 import { use } from "react"
-import { EnrollmentPlayer } from "@/features/enrollment/components/enrollment-player"
+import { CourseDetailsOverview } from "@/features/enrollment/components/course-details-overview"
 import { StudentPageShell } from "@/components/student/student-page-shell"
 
 export default function CourseDetailsPage({
@@ -13,7 +13,7 @@ export default function CourseDetailsPage({
 
   return (
     <StudentPageShell title="Course Details">
-      <EnrollmentPlayer enrollmentId={id} />
+      <CourseDetailsOverview enrollmentId={id} />
     </StudentPageShell>
   )
 }

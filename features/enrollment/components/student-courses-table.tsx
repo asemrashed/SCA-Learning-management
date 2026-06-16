@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import {
   Table,
   TableBody,
@@ -14,25 +15,24 @@ import {
 import { useListEnrollmentsQuery } from "@/features/enrollment/api"
 import { enrollmentHubPath } from "@/features/enrollment/utils"
 import {
-  BROWSE_LIVE_COURSES,
-  LIVE_COURSE,
-  LIVE_COURSE_CATALOG_HREF,
-  SHOW_RECORDED_COURSES,
+  BROWSE_COURSES,
+  COURSE,
+  COURSE_CATALOG_HREF,
+  deliveryModeLabel,
+  LIVE_BATCH_CATALOG_HREF,
 } from "@/lib/product-vocabulary"
-import { EnrollmentKind, EnrollmentStatus } from "@/types/api"
+import { DeliveryMode, EnrollmentKind, EnrollmentStatus } from "@/types/api"
 import { StudentPageShell } from "@/components/student/student-page-shell"
 
 export function StudentCoursesTable() {
   const { data, isLoading, error } = useListEnrollmentsQuery()
 
-  const items = (data?.data ?? [])
-    .filter((item) => SHOW_RECORDED_COURSES || item.kind === EnrollmentKind.BATCH)
-    .filter(
-      (item) =>
-        item.status === EnrollmentStatus.ACTIVE ||
-        item.status === EnrollmentStatus.COMPLETED ||
-        item.status === EnrollmentStatus.PENDING,
-    )
+  const items = (data?.data ?? []).filter(
+    (item) =>
+      item.status === EnrollmentStatus.ACTIVE ||
+      item.status === EnrollmentStatus.COMPLETED ||
+      item.status === EnrollmentStatus.PENDING,
+  )
 
   return (
     <StudentPageShell title="My Courses">
@@ -43,11 +43,16 @@ export function StudentCoursesTable() {
       ) : items.length === 0 ? (
         <div className="rounded-xl border border-dashed p-10 text-center">
           <p className="mb-4 text-muted-foreground">
-            You are not enrolled in any {LIVE_COURSE.toLowerCase()}s yet.
+            You are not enrolled in any {COURSE.toLowerCase()}s yet.
           </p>
-          <Button asChild>
-            <Link href={LIVE_COURSE_CATALOG_HREF}>{BROWSE_LIVE_COURSES}</Link>
-          </Button>
+          <div className="flex flex-wrap justify-center gap-2">
+            <Button asChild variant="outline">
+              <Link href={LIVE_BATCH_CATALOG_HREF}>Browse live batches</Link>
+            </Button>
+            <Button asChild>
+              <Link href={COURSE_CATALOG_HREF}>{BROWSE_COURSES}</Link>
+            </Button>
+          </div>
         </div>
       ) : (
         <>
@@ -55,8 +60,8 @@ export function StudentCoursesTable() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Batch</TableHead>
+                  <TableHead>Course</TableHead>
+                  <TableHead>Enrollment</TableHead>
                   <TableHead className="text-right">Action</TableHead>
                 </TableRow>
               </TableHeader>
@@ -64,20 +69,23 @@ export function StudentCoursesTable() {
                 {items.map((item) => {
                   const courseName =
                     item.kind === EnrollmentKind.BATCH
-                      ? item.batch!.title
+                      ? item.batch!.course.title
                       : item.course!.title
-                  const batchName =
+                  const enrollmentLabel =
                     item.kind === EnrollmentKind.BATCH
-                      ? `Batch ${item.rollNumber ?? "—"} - ${item.batch!.title}`
-                      : item.course!.title
+                      ? `${item.batch!.title}${item.rollNumber ? ` · ${item.rollNumber}` : ""}`
+                      : deliveryModeLabel(DeliveryMode.RECORDED)
 
                   return (
                     <TableRow key={item.id}>
-                      <TableCell className="max-w-md whitespace-normal font-medium">
-                        {courseName}
+                      <TableCell className="max-w-md whitespace-normal">
+                        <div className="font-medium">{courseName}</div>
+                        <Badge variant="outline" className="mt-1">
+                          {deliveryModeLabel(item.deliveryMode)}
+                        </Badge>
                       </TableCell>
                       <TableCell className="max-w-md whitespace-normal text-muted-foreground">
-                        {batchName}
+                        {enrollmentLabel}
                       </TableCell>
                       <TableCell className="text-right">
                         <Button
@@ -101,16 +109,21 @@ export function StudentCoursesTable() {
           <div className="space-y-4 md:hidden">
             {items.map((item) => {
               const courseName =
-                item.kind === EnrollmentKind.BATCH ? item.batch!.title : item.course!.title
-              const batchName =
                 item.kind === EnrollmentKind.BATCH
-                  ? `Batch ${item.rollNumber ?? "—"} - ${item.batch!.title}`
+                  ? item.batch!.course.title
                   : item.course!.title
+              const enrollmentLabel =
+                item.kind === EnrollmentKind.BATCH
+                  ? `${item.batch!.title}${item.rollNumber ? ` · ${item.rollNumber}` : ""}`
+                  : deliveryModeLabel(DeliveryMode.RECORDED)
 
               return (
                 <div key={item.id} className="rounded-xl border p-4">
                   <p className="mb-1 font-semibold">{courseName}</p>
-                  <p className="mb-4 text-sm text-muted-foreground">{batchName}</p>
+                  <p className="mb-2 text-sm text-muted-foreground">{enrollmentLabel}</p>
+                  <Badge variant="outline" className="mb-4">
+                    {deliveryModeLabel(item.deliveryMode)}
+                  </Badge>
                   <Button
                     asChild
                     size="sm"

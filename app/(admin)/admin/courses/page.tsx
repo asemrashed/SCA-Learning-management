@@ -1,5 +1,5 @@
-import { redirect } from 'next/navigation'
+import { CourseManageList } from "@/features/course/components/course-manage-list"
 
-export default function AdminCoursesRedirect() {
-  redirect('/admin/batches')
+export default function AdminCoursesPage() {
+  return <CourseManageList />
 }
