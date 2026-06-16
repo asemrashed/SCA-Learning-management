@@ -6,6 +6,7 @@ import { ArrowRight, Play, BookOpen, Pencil, GraduationCap, Rocket } from "lucid
 import { Button } from "@/components/ui/button"
 import { LIVE_COURSE_CATALOG_HREF } from "@/lib/product-vocabulary"
 import { motion } from "framer-motion"
+import heroImage from "@/public/heroChr.png"
 
 const floatingIcons = [
   { Icon: BookOpen, className: "left-[8%] top-[22%] h-10 w-10 md:h-12 md:w-12" },
@@ -95,7 +96,7 @@ export function HeroSection() {
               <div className="relative flex h-72 w-72 items-center justify-center rounded-full bg-primary/30 md:h-80 md:w-80 lg:h-96 lg:w-96">
                 <div className="relative h-[88%] w-[88%] overflow-hidden rounded-full border-4 border-primary/50">
                   <Image
-                    src={HERO_PERSON_IMAGE}
+                    src={heroImage}
                     alt="Professional learner with laptop"
                     fill
                     className="object-cover object-top"

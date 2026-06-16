@@ -1,5 +1,5 @@
-import { redirect } from 'next/navigation'
+import { StudentCoursesTable } from "@/features/enrollment/components/student-courses-table"
 
-export default function MyCoursesRedirect() {
-  redirect('/dashboard/batches')
+export default function MyCoursesPage() {
+  return <StudentCoursesTable />
 }

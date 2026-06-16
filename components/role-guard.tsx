@@ -20,9 +20,12 @@ export function RoleGuard({ allow, children }: RoleGuardProps) {
   const dispatch = useDispatch<AppDispatch>()
   const user = useSelector((state: RootState) => state.auth.user)
   const accessToken = useSelector((state: RootState) => state.auth.accessToken)
+  const authReady = useSelector((state: RootState) => state.auth.authReady)
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
+    if (!authReady) return
+
     if (!user && !accessToken) {
       if (hasSessionCookie()) return
       router.replace('/login')
@@ -43,7 +46,7 @@ export function RoleGuard({ allow, children }: RoleGuardProps) {
     }
 
     setReady(true)
-  }, [accessToken, user, allow, router, dispatch])
+  }, [authReady, accessToken, user, allow, router, dispatch])
 
   if (!ready) {
     return (

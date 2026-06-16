@@ -1,5 +1,5 @@
-import { OrderList } from "@/features/shop/components/order-list"
+import { StudentOrdersTable } from "@/features/shop/components/student-orders-table"
 
 export default function MyOrdersPage() {
-  return <OrderList />
+  return <StudentOrdersTable />
 }

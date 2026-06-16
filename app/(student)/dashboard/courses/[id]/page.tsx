@@ -1,5 +1,13 @@
-import { redirect } from 'next/navigation'
+"use client"
 
-export default async function StudentCoursePlayerRedirect() {
-  redirect('/dashboard/batches')
+import { use } from "react"
+import { CourseHub } from "@/features/enrollment/components/course-hub"
+
+export default function CourseHubPage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const { id } = use(params)
+  return <CourseHub enrollmentId={id} />
 }

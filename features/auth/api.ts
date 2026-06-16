@@ -42,6 +42,17 @@ export const authApi = createApi({
         method: 'POST',
       }),
     }),
+    updateMe: builder.mutation<
+      { data: User },
+      { name?: string; email?: string | null; avatarUrl?: string | null }
+    >({
+      query: (body) => ({
+        url: '/auth/me',
+        method: 'PATCH',
+        body,
+      }),
+      invalidatesTags: ['Me'],
+    }),
   }),
 })
 
@@ -51,4 +62,5 @@ export const {
   useLoginMutation,
   useRefreshMutation,
   useLogoutMutation,
+  useUpdateMeMutation,
 } = authApi

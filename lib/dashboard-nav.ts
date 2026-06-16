@@ -34,15 +34,14 @@ export const studentShellNav: ShellNavGroup[] = [
     group: 'Learning',
     items: [
       { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-      { href: '/dashboard/batches', label: MY_LIVE_COURSES, icon: Layers },
+      { href: '/dashboard/courses', label: MY_LIVE_COURSES, icon: Layers },
       { href: '/dashboard/resources', label: 'Resources', icon: FileText },
-      { href: '/shop', label: 'Shop', icon: ShoppingBag },
     ],
   },
   {
     group: 'Account',
     items: [
-      { href: '/profile', label: 'Profile', icon: User },
+      { href: '/dashboard/profile', label: 'Profile', icon: User },
       { href: '/dashboard/orders', label: 'My orders', icon: Package },
       { href: '/dashboard/certificates', label: 'Certificates', icon: GraduationCap },
     ],

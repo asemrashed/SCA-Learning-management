@@ -1,9 +1,9 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { ChevronLeft, ChevronRight, LogOut } from "lucide-react"
-import { useState } from "react"
 import { useDispatch } from "react-redux"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -11,17 +11,18 @@ import { BRAND_NAME, BRAND_SHORT } from "@/lib/brand"
 import {
   adminShellNav,
   superAdminShellNav,
-  studentShellNav,
   type ShellNavGroup,
 } from "@/lib/dashboard-nav"
 import { useLogoutMutation } from "@/features/auth/api"
 import { clearCredentials } from "@/features/auth/authSlice"
 import { clearSessionCookie } from "@/lib/auth-session"
+import { StudentHeader } from "@/components/student/student-header"
+import { StudentSidebar } from "@/components/student/student-sidebar"
+import { StudentShellProvider } from "@/components/student/student-shell-context"
 
 export type AppShellVariant = "student" | "admin" | "super-admin"
 
-const navByVariant: Record<AppShellVariant, ShellNavGroup[]> = {
-  student: studentShellNav,
+const navByVariant: Record<Exclude<AppShellVariant, "student">, ShellNavGroup[]> = {
   admin: adminShellNav,
   "super-admin": superAdminShellNav,
 }
@@ -29,9 +30,16 @@ const navByVariant: Record<AppShellVariant, ShellNavGroup[]> = {
 interface AppShellProps {
   variant: AppShellVariant
   children: React.ReactNode
+  clientIp?: string
 }
 
-export function AppShell({ variant, children }: AppShellProps) {
+function StaffAppShell({
+  variant,
+  children,
+}: {
+  variant: Exclude<AppShellVariant, "student">
+  children: React.ReactNode
+}) {
   const nav = navByVariant[variant]
   const pathname = usePathname()
   const router = useRouter()
@@ -141,4 +149,34 @@ export function AppShell({ variant, children }: AppShellProps) {
       <main className="flex-1 overflow-y-auto">{children}</main>
     </div>
   )
+}
+
+function StudentAppShellInner({
+  children,
+  clientIp,
+}: {
+  children: React.ReactNode
+  clientIp?: string
+}) {
+  return (
+    <div className="flex min-h-screen bg-muted/30">
+      <StudentSidebar />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <StudentHeader clientIp={clientIp} />
+        <main className="flex-1 overflow-y-auto">{children}</main>
+      </div>
+    </div>
+  )
+}
+
+export function AppShell({ variant, children, clientIp }: AppShellProps) {
+  if (variant === "student") {
+    return (
+      <StudentShellProvider>
+        <StudentAppShellInner clientIp={clientIp}>{children}</StudentAppShellInner>
+      </StudentShellProvider>
+    )
+  }
+
+  return <StaffAppShell variant={variant}>{children}</StaffAppShell>
 }

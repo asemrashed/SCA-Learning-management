@@ -5,20 +5,14 @@ import { ExternalLink, GraduationCap } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useListMyCertificatesQuery } from "@/features/certificate/api"
 import { CertificateView } from "@/features/certificate/components/certificate-view"
+import { StudentPageShell } from "@/components/student/student-page-shell"
 
 export default function CertificatesPage() {
   const { data, isLoading, isError } = useListMyCertificatesQuery()
   const certificates = data?.data ?? []
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="font-serif text-3xl font-bold tracking-tight">Certificates</h1>
-        <p className="mt-2 text-muted-foreground">
-          Your earned certificates appear here after you complete a batch or course.
-        </p>
-      </div>
-
+    <StudentPageShell title="Certificates">
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Loading certificates…</p>
       ) : isError ? (
@@ -46,14 +40,22 @@ export default function CertificatesPage() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {cert.pdfUrl ? (
-                    <Button variant="outline" size="sm" className="rounded-xl" asChild>
+                    <Button
+                      size="sm"
+                      className="rounded-xl bg-secondary text-primary hover:bg-secondary/90"
+                      asChild
+                    >
                       <a href={cert.pdfUrl} target="_blank" rel="noopener noreferrer">
                         <ExternalLink className="mr-2 h-4 w-4" />
                         Download PDF
                       </a>
                     </Button>
                   ) : null}
-                  <Button variant="outline" size="sm" className="rounded-xl" asChild>
+                  <Button
+                    size="sm"
+                    className="rounded-xl bg-primary text-secondary hover:bg-primary/90"
+                    asChild
+                  >
                     <Link href={`/verify/${cert.serial}`}>Verify online</Link>
                   </Button>
                 </div>
@@ -70,6 +72,6 @@ export default function CertificatesPage() {
           ))}
         </div>
       )}
-    </div>
+    </StudentPageShell>
   )
 }

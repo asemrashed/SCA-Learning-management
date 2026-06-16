@@ -2,37 +2,50 @@
 
 import { useEffect, useRef } from 'react'
 import { useDispatch } from 'react-redux'
-import { useRefreshMutation } from '@/features/auth/api'
-import { setCredentials, clearCredentials } from '@/features/auth/authSlice'
+import { setCredentials, clearCredentials, setAuthReady } from '@/features/auth/authSlice'
 import { clearSessionCookie, hasSessionCookie } from '@/lib/auth-session'
+import { markAuthReady } from '@/lib/auth-ready'
+import { bootstrapRefreshSession } from '@/lib/apiClient'
 import type { AppDispatch } from '@/store'
 
 export function AuthBootstrap() {
   const dispatch = useDispatch<AppDispatch>()
-  const [refresh] = useRefreshMutation()
   const bootstrapped = useRef(false)
 
   useEffect(() => {
     if (bootstrapped.current) return
     bootstrapped.current = true
 
-    if (!hasSessionCookie()) return
+    const finish = () => {
+      dispatch(setAuthReady())
+      markAuthReady()
+    }
 
-    refresh()
-      .unwrap()
+    if (!hasSessionCookie()) {
+      finish()
+      return
+    }
+
+    bootstrapRefreshSession()
       .then((result) => {
-        dispatch(
-          setCredentials({
-            accessToken: result.data.accessToken,
-            user: result.data.user,
-          }),
-        )
+        if (result) {
+          dispatch(
+            setCredentials({
+              accessToken: result.data.accessToken,
+              user: result.data.user,
+            }),
+          )
+        } else {
+          dispatch(clearCredentials())
+          clearSessionCookie()
+        }
       })
       .catch(() => {
         dispatch(clearCredentials())
         clearSessionCookie()
       })
-  }, [dispatch, refresh])
+      .finally(finish)
+  }, [dispatch])
 
   return null
 }

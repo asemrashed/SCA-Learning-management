@@ -4,11 +4,14 @@ import type { User } from '@/types/api'
 interface AuthState {
   accessToken: string | null
   user: User | null
+  /** False until client bootstrap finishes (refresh attempt or no session cookie). */
+  authReady: boolean
 }
 
 const initialState: AuthState = {
   accessToken: null,
   user: null,
+  authReady: false,
 }
 
 export const authSlice = createSlice({
@@ -23,8 +26,11 @@ export const authSlice = createSlice({
       state.accessToken = null
       state.user = null
     },
+    setAuthReady(state) {
+      state.authReady = true
+    },
   },
 })
 
-export const { setCredentials, clearCredentials } = authSlice.actions
+export const { setCredentials, clearCredentials, setAuthReady } = authSlice.actions
 export default authSlice.reducer

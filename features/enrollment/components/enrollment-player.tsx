@@ -8,13 +8,11 @@ import { LessonVideoPlayer } from "@/components/lesson-video-player"
 import { useGetEnrollmentQuery } from "@/features/enrollment/api"
 import { LiveSessionsPanel } from "@/features/liveclass/components/live-sessions-panel"
 import { EnrollmentRecordingsPanel } from "@/features/liveclass/components/enrollment-recordings-panel"
-import { enrollmentListPath } from "@/features/enrollment/utils"
 import { AssignmentListPanel } from "@/features/assessment/components/assignment-list"
 import { ExamListPanel } from "@/features/assessment/components/exam-list"
 import { EnrollmentResourcesPanel } from "@/features/resource/components/enrollment-resources-panel"
 import type { EnrollmentDetail, EnrollmentLesson } from "@/types/api"
 import { EnrollmentKind } from "@/types/api"
-import { LIVE_COURSE, MY_LIVE_COURSES } from "@/lib/product-vocabulary"
 
 function formatDuration(seconds: number | null): string {
   if (!seconds) return ""
@@ -145,7 +143,7 @@ export function EnrollmentPlayer({ enrollmentId }: { enrollmentId: string }) {
       <div className="py-12 text-center">
         <p className="mb-4 text-muted-foreground">Enrollment not found.</p>
         <Button asChild variant="outline">
-          <Link href="/dashboard">Back to dashboard</Link>
+          <Link href={`/dashboard/courses/${enrollmentId}`}>Back to course</Link>
         </Button>
       </div>
     )
@@ -156,15 +154,9 @@ export function EnrollmentPlayer({ enrollmentId }: { enrollmentId: string }) {
   const productId =
     detail.kind === EnrollmentKind.BATCH ? detail.batch!.id : detail.course!.id
 
-  const listPath = enrollmentListPath(detail.kind)
-  const listLabel = MY_LIVE_COURSES
-
   return (
     <div className="space-y-6">
       <div>
-        <Button variant="ghost" size="sm" asChild className="mb-4">
-          <Link href={listPath}>← {listLabel}</Link>
-        </Button>
         <h1 className="text-2xl font-bold">{title}</h1>
         {detail.rollNumber ? (
           <p className="mt-2 text-sm text-muted-foreground">Roll: {detail.rollNumber}</p>

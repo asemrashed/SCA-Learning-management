@@ -5,23 +5,20 @@ import type { RootState } from "@/store"
 import { isStaff } from "@/lib/roles"
 import { ResourceList } from "@/features/resource/components/resource-list"
 import { ResourceManagePanel } from "@/features/resource/components/resource-manage-panel"
+import { StudentPageShell } from "@/components/student/student-page-shell"
 
 export default function ResourcesPage() {
   const user = useSelector((state: RootState) => state.auth.user)
   const canUpload = user?.role !== undefined && isStaff(user.role)
 
   return (
-    <div className="p-6 md:p-8">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-foreground md:text-3xl">Resources</h1>
-        <p className="text-muted-foreground">Access course materials and downloads</p>
-      </div>
+    <StudentPageShell title="Resources">
       {canUpload ? (
         <div className="mb-10">
           <ResourceManagePanel />
         </div>
       ) : null}
       <ResourceList />
-    </div>
+    </StudentPageShell>
   )
 }
