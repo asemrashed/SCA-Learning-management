@@ -1,6 +1,8 @@
 import { createApi } from '@reduxjs/toolkit/query/react'
 import type {
+  ApplyBatchCurriculumInput,
   CourseDetail,
+  CourseInputSubject,
   CourseListResponse,
   CreateCourseInput,
   DeliveryMode,
@@ -68,6 +70,19 @@ export const courseApi = createApi({
       }),
       invalidatesTags: [{ type: 'CourseList', id: 'LIST' }],
     }),
+    applyBatchCurriculum: builder.mutation<
+      { data: { success: boolean } },
+      { courseId: string; body: ApplyBatchCurriculumInput }
+    >({
+      query: ({ courseId, body }) => ({
+        url: `/courses/${courseId}/batch-curriculum`,
+        method: 'PUT',
+        body,
+      }),
+      invalidatesTags: (_result, _error, { courseId }) => [
+        { type: 'Course', id: courseId },
+      ],
+    }),
   }),
 })
 
@@ -77,4 +92,7 @@ export const {
   useCreateCourseMutation,
   useUpdateCourseMutation,
   useDeleteCourseMutation,
+  useApplyBatchCurriculumMutation,
 } = courseApi
+
+export type { CourseInputSubject }

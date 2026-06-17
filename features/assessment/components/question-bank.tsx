@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Plus } from "lucide-react"
+import { Plus, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -20,8 +20,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { MediaSourceField } from "@/components/media-source-field"
+import {
+  CurriculumPlacementPicker,
+  type CurriculumPlacement,
+} from "@/components/curriculum-placement-picker"
 import { getApiErrorMessage } from "@/lib/get-api-error-message"
 import {
+  useCreatePdfQuestionsBulkMutation,
   useCreateQuestionMutation,
   useListQuestionsQuery,
 } from "@/features/assessment/api"
@@ -32,11 +38,20 @@ import {
   type McqOptionRow,
 } from "./mcq-options-editor"
 
-function QuestionForm({
-  onSuccess,
-}: {
-  onSuccess?: () => void
-}) {
+interface PdfQuestionRow {
+  key: string
+  title: string
+  fileUrl: string
+  marks: number
+}
+
+let pdfRowKey = 0
+function newPdfRow(): PdfQuestionRow {
+  pdfRowKey += 1
+  return { key: `pdf-${pdfRowKey}`, title: "", fileUrl: "", marks: 1 }
+}
+
+function QuestionForm({ onSuccess }: { onSuccess?: () => void }) {
   const [createQuestion, { isLoading: creating }] = useCreateQuestionMutation()
   const [stem, setStem] = useState("")
   const [type, setType] = useState<QuestionType>(QuestionType.MCQ)
@@ -98,11 +113,13 @@ function QuestionForm({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {Object.values(QuestionType).map((t) => (
-              <SelectItem key={t} value={t}>
-                {t}
-              </SelectItem>
-            ))}
+            {Object.values(QuestionType)
+              .filter((t) => t !== QuestionType.PDF)
+              .map((t) => (
+                <SelectItem key={t} value={t}>
+                  {t}
+                </SelectItem>
+              ))}
           </SelectContent>
         </Select>
       </div>
@@ -153,19 +170,163 @@ function QuestionForm({
   )
 }
 
+function PdfQuestionsBulkForm({ onSuccess }: { onSuccess?: () => void }) {
+  const [createBulk, { isLoading }] = useCreatePdfQuestionsBulkMutation()
+  const [placement, setPlacement] = useState<CurriculumPlacement>({
+    batchId: null,
+    subjectId: null,
+    moduleId: null,
+    lessonId: null,
+  })
+  const [rows, setRows] = useState<PdfQuestionRow[]>([newPdfRow(), newPdfRow()])
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+
+    if (!placement.courseId || !placement.batchId) {
+      setError("Please select a course and batch.")
+      return
+    }
+    if (!placement.subjectId) {
+      setError("Please select a subject.")
+      return
+    }
+
+    const questions = rows
+      .filter((row) => row.title.trim() && row.fileUrl.trim())
+      .map((row) => ({
+        title: row.title.trim(),
+        fileUrl: row.fileUrl.trim(),
+        marks: row.marks,
+      }))
+
+    if (questions.length === 0) {
+      setError("Add at least one question PDF with a title.")
+      return
+    }
+
+    try {
+      await createBulk({
+        batchId: placement.batchId,
+        subjectId: placement.subjectId,
+        moduleId: placement.moduleId ?? null,
+        questions,
+      }).unwrap()
+      setRows([newPdfRow(), newPdfRow()])
+      onSuccess?.()
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Failed to upload question PDFs"))
+    }
+  }
+
+  return (
+    <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4">
+      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+
+      <CurriculumPlacementPicker
+        value={placement}
+        onChange={setPlacement}
+        requireBatch
+        subjectRequired
+      />
+
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <Label>Question PDFs</Label>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setRows((prev) => [...prev, newPdfRow()])}
+          >
+            <Plus className="mr-1 h-4 w-4" />
+            Add another
+          </Button>
+        </div>
+
+        {rows.map((row, index) => (
+          <div key={row.key} className="space-y-3 rounded-lg border border-dashed p-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Question {index + 1}</span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                disabled={rows.length === 1}
+                onClick={() => setRows((prev) => prev.filter((r) => r.key !== row.key))}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+            <Input
+              placeholder="Question title"
+              value={row.title}
+              onChange={(e) =>
+                setRows((prev) =>
+                  prev.map((r) => (r.key === row.key ? { ...r, title: e.target.value } : r)),
+                )
+              }
+            />
+            <MediaSourceField
+              label="Question PDF"
+              value={row.fileUrl}
+              onChange={(url) =>
+                setRows((prev) =>
+                  prev.map((r) => (r.key === row.key ? { ...r, fileUrl: url } : r)),
+                )
+              }
+              folder="documents"
+              accept=".pdf,application/pdf"
+              placeholder="Upload PDF"
+            />
+            <Input
+              type="number"
+              min={1}
+              placeholder="Marks"
+              value={row.marks}
+              onChange={(e) =>
+                setRows((prev) =>
+                  prev.map((r) =>
+                    r.key === row.key ? { ...r, marks: Number(e.target.value) || 1 } : r,
+                  ),
+                )
+              }
+            />
+          </div>
+        ))}
+      </div>
+
+      <Button type="submit" disabled={isLoading}>
+        {isLoading ? "Saving…" : `Save ${rows.filter((r) => r.title && r.fileUrl).length || ""} question PDFs`}
+      </Button>
+    </form>
+  )
+}
+
 export function QuestionBankPanel() {
   const { data, isLoading } = useListQuestionsQuery({ pageSize: 50 })
-  const [open, setOpen] = useState(false)
+  const [mcqOpen, setMcqOpen] = useState(false)
+  const [pdfOpen, setPdfOpen] = useState(false)
   const questions = data?.data ?? []
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-muted-foreground">Reusable questions for exams</p>
-        <Button className="rounded-xl" onClick={() => setOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add new
-        </Button>
+        <p className="text-sm text-muted-foreground">
+          Reusable questions for exams — MCQ/text or PDF uploads per batch.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Button className="rounded-xl" variant="outline" onClick={() => setPdfOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Upload PDF questions
+          </Button>
+          <Button className="rounded-xl" onClick={() => setMcqOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add MCQ / text
+          </Button>
+        </div>
       </div>
 
       <div className="overflow-hidden rounded-xl border bg-card">
@@ -179,10 +340,13 @@ export function QuestionBankPanel() {
           <ul className="divide-y">
             {questions.map((q) => (
               <li key={q.id} className="px-5 py-4 text-sm">
-                <div className="mb-1 flex items-center gap-2">
+                <div className="mb-1 flex flex-wrap items-center gap-2">
                   <span className="rounded bg-muted px-2 py-0.5 text-xs">{q.type}</span>
                   {q.category ? (
                     <span className="text-xs text-muted-foreground">{q.category}</span>
+                  ) : null}
+                  {q.batchId ? (
+                    <span className="text-xs text-muted-foreground">Batch linked</span>
                   ) : null}
                   <span className="ml-auto text-xs text-muted-foreground">{q.marks} marks</span>
                 </div>
@@ -196,19 +360,34 @@ export function QuestionBankPanel() {
                     ))}
                   </ul>
                 ) : null}
+                {q.type === QuestionType.PDF && q.fileUrl ? (
+                  <p className="mt-1 text-xs text-muted-foreground">PDF attached</p>
+                ) : null}
               </li>
             ))}
           </ul>
         )}
       </div>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={mcqOpen} onOpenChange={setMcqOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Add question</DialogTitle>
-            <DialogDescription>Add a question to the shared bank for exams.</DialogDescription>
+            <DialogDescription>Add an MCQ or text question to the shared bank.</DialogDescription>
           </DialogHeader>
-          <QuestionForm onSuccess={() => setOpen(false)} />
+          <QuestionForm onSuccess={() => setMcqOpen(false)} />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={pdfOpen} onOpenChange={setPdfOpen}>
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Upload question PDFs</DialogTitle>
+            <DialogDescription>
+              Select course, batch, and subject, then upload one or more question PDFs at once.
+            </DialogDescription>
+          </DialogHeader>
+          <PdfQuestionsBulkForm onSuccess={() => setPdfOpen(false)} />
         </DialogContent>
       </Dialog>
     </div>

@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import { useSearchParams } from "next/navigation"
 import { Search, BookOpen, GraduationCap, Grid3X3 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -15,6 +16,7 @@ import { CourseCard } from "@/components/course-card"
 import { CategoryNav } from "@/components/home/category-nav"
 import { formatBdtMinor } from "@/lib/format-currency"
 import { useListCoursesQuery } from "@/features/course/api"
+import { useListCategoriesQuery } from "@/features/category/api"
 import type { CourseListItem } from "@/types/api"
 import { DeliveryMode } from "@/types/api"
 import { motion } from "framer-motion"
@@ -38,11 +40,18 @@ function toCardProps(course: CourseListItem) {
 }
 
 export function CourseCatalog({ pageSize = 12, showHeader = true }: CourseCatalogProps) {
+  const searchParams = useSearchParams()
+  const initialCategory = searchParams.get("category") ?? "all"
+
   const [search, setSearch] = useState("")
   const [debouncedSearch, setDebouncedSearch] = useState("")
   const [sort, setSort] = useState("createdAt:desc")
-  const [activeCategory, setActiveCategory] = useState("all")
+  const [activeCategory, setActiveCategory] = useState(initialCategory)
   const [visibleCount, setVisibleCount] = useState(pageSize)
+
+  useEffect(() => {
+    setActiveCategory(initialCategory)
+  }, [initialCategory])
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search.trim()), 300)
@@ -59,22 +68,23 @@ export function CourseCatalog({ pageSize = 12, showHeader = true }: CourseCatalo
     search: debouncedSearch || undefined,
     sort,
     deliveryMode: DeliveryMode.RECORDED,
+    category: activeCategory !== "all" ? activeCategory : undefined,
+  })
+
+  const { data: categoriesData } = useListCategoriesQuery({
+    pageSize: 100,
+    sort: "order:asc",
   })
 
   const courses = data?.data ?? []
 
   const categories = useMemo(() => {
-    const counts = new Map<string, number>()
-    for (const course of courses) {
-      if (!course.category) continue
-      counts.set(course.category, (counts.get(course.category) ?? 0) + 1)
-    }
-
-    const categoryItems = Array.from(counts.entries()).map(([label, count]) => ({
-      id: label.toLowerCase().replace(/\s+/g, "-"),
-      label,
+    const apiCategories = categoriesData?.data ?? []
+    const categoryItems = apiCategories.map((cat) => ({
+      id: cat.slug,
+      label: cat.title,
       icon: BookOpen,
-      subtitle: `${count} Course${count === 1 ? "" : "s"}`,
+      subtitle: `${cat.courseCount} Course${cat.courseCount === 1 ? "" : "s"}`,
     }))
 
     return [
@@ -86,13 +96,9 @@ export function CourseCatalog({ pageSize = 12, showHeader = true }: CourseCatalo
       },
       ...categoryItems,
     ]
-  }, [courses])
+  }, [categoriesData, courses.length])
 
-  const filteredCourses = useMemo(() => {
-    if (activeCategory === "all") return courses
-    const label = categories.find((c) => c.id === activeCategory)?.label
-    return courses.filter((c) => c.category === label)
-  }, [courses, activeCategory, categories])
+  const filteredCourses = useMemo(() => courses, [courses])
 
   const visibleCourses = filteredCourses.slice(0, visibleCount)
   const hasMore = visibleCount < filteredCourses.length

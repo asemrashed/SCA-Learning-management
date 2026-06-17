@@ -13,7 +13,7 @@ export function isStaff(role: Role): boolean {
 }
 
 export function isLoginAllowed(role: Role): boolean {
-  return role !== Role.INSTRUCTOR
+  return true
 }
 
 export function canAccessAdminDashboard(role: Role): boolean {

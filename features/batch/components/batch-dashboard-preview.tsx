@@ -3,8 +3,7 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { BatchCurriculum } from "@/features/batch/components/BatchCurriculum"
-import { useGetBatchQuery } from "@/features/batch/api"
-import { useGetCourseQuery } from "@/features/course/api"
+import { useGetBatchQuery, useGetBatchCurriculumQuery } from "@/features/batch/api"
 import { BATCH_STATUS_LABEL } from "@/features/batch/utils"
 import { BATCH } from "@/lib/product-vocabulary"
 import { LiveSessionsPanel } from "@/features/liveclass/components/live-sessions-panel"
@@ -26,10 +25,8 @@ export function BatchDashboardPreview({
 }: BatchDashboardPreviewProps) {
   const { data, isLoading, error } = useGetBatchQuery(batchId)
   const batch = data?.data
-  const { data: courseData } = useGetCourseQuery(batch?.courseId ?? "", {
-    skip: !batch?.courseId,
-  })
-  const course = courseData?.data
+  const { data: curriculumData } = useGetBatchCurriculumQuery(batchId, { skip: !batch })
+  const subjects = curriculumData?.data ?? []
 
   if (isLoading) return <p className="text-muted-foreground">Loading {BATCH.toLowerCase()}…</p>
   if (error || !batch) return <p className="text-destructive">{BATCH} not found.</p>
@@ -62,10 +59,10 @@ export function BatchDashboardPreview({
 
       <LiveSessionsPanel kind={EnrollmentKind.BATCH} productId={batch.id} />
 
-      {course?.subjects?.length ? (
+      {subjects.length ? (
         <section>
-          <h2 className="mb-4 text-lg font-semibold">Curriculum (from parent course)</h2>
-          <BatchCurriculum subjects={course.subjects} />
+          <h2 className="mb-4 text-lg font-semibold">Curriculum</h2>
+          <BatchCurriculum subjects={subjects} />
         </section>
       ) : null}
     </div>

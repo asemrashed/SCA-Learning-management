@@ -11,6 +11,8 @@ import { uploadApi } from '@/features/upload/api'
 import { certificateApi } from '@/features/certificate/api'
 import { adminUserApi } from '@/features/admin-user/api'
 import { shopApi } from '@/features/shop/api'
+import { categoryApi } from '@/features/category/api'
+import { monthlyPaymentApi } from '@/features/monthly-payment/api'
 import { rootReducer } from './rootReducer'
 
 export const makeStore = () =>
@@ -30,6 +32,8 @@ export const makeStore = () =>
         certificateApi.middleware,
         adminUserApi.middleware,
         shopApi.middleware,
+        categoryApi.middleware,
+        monthlyPaymentApi.middleware,
       ),
   })
 

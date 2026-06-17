@@ -5,6 +5,7 @@ import { useGetEnrollmentQuery } from "@/features/enrollment/api"
 import {
   enrollmentProductTitle,
   getEnrollmentSubjects,
+  getGrantedEnrollmentSubjects,
   getModulesForSubject,
 } from "@/features/enrollment/curriculum"
 import { ViewLessonsButton } from "@/features/enrollment/components/view-lessons-button"
@@ -23,28 +24,32 @@ interface SubjectChapterPageProps {
   enrollmentId: string
   pageTitle: string
   lessonBasePath: "pre-recorded" | "recorded"
+  curriculumSource?: "own" | "granted"
 }
 
 export function SubjectChapterPage({
   enrollmentId,
   pageTitle,
   lessonBasePath,
+  curriculumSource = "own",
 }: SubjectChapterPageProps) {
   const { data, isLoading, error } = useGetEnrollmentQuery(enrollmentId)
   const enrollment = data?.data
 
-  const subjects = useMemo(
-    () => (enrollment ? getEnrollmentSubjects(enrollment) : []),
-    [enrollment],
-  )
+  const subjects = useMemo(() => {
+    if (!enrollment) return []
+    return curriculumSource === "granted"
+      ? getGrantedEnrollmentSubjects(enrollment)
+      : getEnrollmentSubjects(enrollment)
+  }, [enrollment, curriculumSource])
 
   const [activeSubjectId, setActiveSubjectId] = useState<string | null>(null)
   const selectedSubjectId = activeSubjectId ?? subjects[0]?.id ?? null
 
   const modules = useMemo(() => {
     if (!enrollment || !selectedSubjectId) return []
-    return getModulesForSubject(enrollment, selectedSubjectId)
-  }, [enrollment, selectedSubjectId])
+    return getModulesForSubject(enrollment, selectedSubjectId, curriculumSource)
+  }, [enrollment, selectedSubjectId, curriculumSource])
 
   const courseTitle = enrollment ? enrollmentProductTitle(enrollment) : "Course"
 
@@ -93,7 +98,9 @@ export function SubjectChapterPage({
 
       {modules.length === 0 ? (
         <p className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-          No chapters available yet.
+          {curriculumSource === "granted"
+            ? "No pre-recorded classes available yet. Your admin may grant access to a previous batch."
+            : "No chapters available yet."}
         </p>
       ) : (
         <div className="overflow-hidden rounded-xl border">

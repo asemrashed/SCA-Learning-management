@@ -17,7 +17,11 @@ import {
 import { MediaSourceField } from "@/components/media-source-field"
 import {
   useCreateBatchUnderCourseMutation,
+  useCreateContentGrantMutation,
+  useDeleteContentGrantMutation,
   useGetBatchQuery,
+  useListBatchesByCourseQuery,
+  useListContentGrantsQuery,
   useUpdateBatchMutation,
 } from "@/features/batch/api"
 import type { BatchStatus, CreateBatchBodyInput } from "@/features/batch/types"
@@ -274,6 +278,10 @@ export function BatchAdminForm({
         </div>
       </div>
 
+      {isEdit && batchId && parentCourse ? (
+        <BatchContentGrantsSection batchId={batchId} courseId={parentCourse.id} />
+      ) : null}
+
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
       <div className="flex gap-3">
@@ -285,5 +293,92 @@ export function BatchAdminForm({
         </Button>
       </div>
     </form>
+  )
+}
+
+function BatchContentGrantsSection({
+  batchId,
+  courseId,
+}: {
+  batchId: string
+  courseId: string
+}) {
+  const { data: grantsData } = useListContentGrantsQuery(batchId)
+  const { data: batchesData } = useListBatchesByCourseQuery(courseId)
+  const [createGrant, { isLoading: creating }] = useCreateContentGrantMutation()
+  const [deleteGrant] = useDeleteContentGrantMutation()
+  const [grantingBatchId, setGrantingBatchId] = useState("")
+  const [grantError, setGrantError] = useState<string | null>(null)
+
+  const grants = grantsData?.data ?? []
+  const siblingBatches = (batchesData?.data ?? []).filter((b) => b.id !== batchId)
+
+  async function handleAddGrant() {
+    if (!grantingBatchId) return
+    setGrantError(null)
+    try {
+      await createGrant({ batchId, grantingBatchId }).unwrap()
+      setGrantingBatchId("")
+    } catch (err: unknown) {
+      const apiErr = err as { data?: { error?: { message?: string } } }
+      setGrantError(apiErr.data?.error?.message ?? "Failed to add grant.")
+    }
+  }
+
+  return (
+    <div className="space-y-4 rounded-xl border bg-card p-6">
+      <div>
+        <h2 className="text-lg font-semibold">Pre-recorded access</h2>
+        <p className="text-sm text-muted-foreground">
+          Allow students in this batch to view recorded classes from previous batches.
+        </p>
+      </div>
+
+      {grants.length > 0 ? (
+        <ul className="space-y-2 text-sm">
+          {grants.map((grant) => (
+            <li key={grant.id} className="flex items-center justify-between rounded-lg border px-3 py-2">
+              <span>{grant.grantingBatch.title}</span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => deleteGrant({ batchId, grantId: grant.id })}
+              >
+                Remove
+              </Button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-sm text-muted-foreground">No previous-batch access granted yet.</p>
+      )}
+
+      {siblingBatches.length > 0 ? (
+        <div className="flex flex-wrap items-end gap-2">
+          <div className="min-w-[200px] flex-1 space-y-2">
+            <Label>Grant access from batch</Label>
+            <Select value={grantingBatchId || "none"} onValueChange={(v) => setGrantingBatchId(v === "none" ? "" : v)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select batch" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Select batch</SelectItem>
+                {siblingBatches.map((b) => (
+                  <SelectItem key={b.id} value={b.id}>
+                    {b.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Button type="button" variant="outline" disabled={!grantingBatchId || creating} onClick={handleAddGrant}>
+            Add grant
+          </Button>
+        </div>
+      ) : null}
+
+      {grantError ? <p className="text-sm text-destructive">{grantError}</p> : null}
+    </div>
   )
 }

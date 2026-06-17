@@ -134,6 +134,11 @@ export function ResourceManagePanel({
   const hasProducts = scopeCourses.length > 0
   const showLoading = productsLoading || listLoading
 
+  const categoryLabel = defaultCategory
+    ? RESOURCE_CATEGORY_LABELS[defaultCategory]
+    : "Resource"
+  const categoryLabelLower = categoryLabel.toLowerCase()
+
   async function handleDelete(resource: ResourceItem) {
     if (!window.confirm(`Delete "${resource.title}"? This cannot be undone.`)) return
     setDeleteError(null)
@@ -218,8 +223,10 @@ export function ResourceManagePanel({
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
         <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Add resource</DialogTitle>
-            <DialogDescription>Upload a PDF and link it to a course.</DialogDescription>
+            <DialogTitle>Add {categoryLabelLower}</DialogTitle>
+            <DialogDescription>
+              Upload a PDF and link it to a course{defaultCategory ? "" : " or batch"}.
+            </DialogDescription>
           </DialogHeader>
           <ResourceForm
             fixedBatchId={fixedBatchId}
@@ -238,7 +245,7 @@ export function ResourceManagePanel({
       <Dialog open={Boolean(editResource)} onOpenChange={(open) => !open && setEditResource(null)}>
         <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Edit resource</DialogTitle>
+            <DialogTitle>Edit {categoryLabelLower}</DialogTitle>
             <DialogDescription>Update title, PDF, or placement.</DialogDescription>
           </DialogHeader>
           {editResource ? (

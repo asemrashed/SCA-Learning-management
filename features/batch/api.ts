@@ -9,11 +9,12 @@ import type {
   PaginationMeta,
   UpdateBatchInput,
 } from './types'
+import type { CourseSubject } from '@/types/api'
 
 export const batchApi = createApi({
   reducerPath: 'batchApi',
   baseQuery: baseQueryWithReauth,
-  tagTypes: ['Batch', 'BatchList', 'BatchGrant'],
+  tagTypes: ['Batch', 'BatchList', 'BatchGrant', 'BatchCurriculum'],
   endpoints: (builder) => ({
     listBatches: builder.query<{ data: BatchListItem[]; meta: PaginationMeta }, BatchListParams | void>({
       query: (params) => ({
@@ -102,6 +103,10 @@ export const batchApi = createApi({
       }),
       invalidatesTags: (_result, _error, { batchId }) => [{ type: 'BatchGrant', id: batchId }],
     }),
+    getBatchCurriculum: builder.query<{ data: CourseSubject[] }, string>({
+      query: (batchId) => `/batches/${batchId}/curriculum`,
+      providesTags: (_result, _error, batchId) => [{ type: 'BatchCurriculum', id: batchId }],
+    }),
   }),
 })
 
@@ -115,6 +120,7 @@ export const {
   useListContentGrantsQuery,
   useCreateContentGrantMutation,
   useDeleteContentGrantMutation,
+  useGetBatchCurriculumQuery,
 } = batchApi
 
 /** @deprecated use useCreateBatchUnderCourseMutation */

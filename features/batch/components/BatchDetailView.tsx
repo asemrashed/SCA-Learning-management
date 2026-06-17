@@ -8,8 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { VideoModal } from "@/components/video-modal"
 import { formatBdtMinor } from "@/lib/format-currency"
-import { useGetBatchQuery } from "@/features/batch/api"
-import { useGetCourseQuery } from "@/features/course/api"
+import { useGetBatchQuery, useGetBatchCurriculumQuery } from "@/features/batch/api"
 import { BatchCurriculum } from "@/features/batch/components/BatchCurriculum"
 import { BATCH_STATUS_LABEL, daysUntil, formatBatchDate, formatDuration } from "@/features/batch/utils"
 import { BATCH, BROWSE_COURSES, LIVE_BATCH_CATALOG_HREF } from "@/lib/product-vocabulary"
@@ -27,8 +26,10 @@ interface BatchDetailViewProps {
 export function BatchDetailView({ idOrSlug }: BatchDetailViewProps) {
   const { data, isLoading, isError } = useGetBatchQuery(idOrSlug)
   const batch = data?.data
-  const { data: courseData } = useGetCourseQuery(batch?.courseId ?? "", { skip: !batch?.courseId })
-  const subjects = courseData?.data?.subjects ?? []
+  const { data: curriculumData } = useGetBatchCurriculumQuery(batch?.id ?? "", {
+    skip: !batch?.id,
+  })
+  const subjects = curriculumData?.data ?? []
   const [previewOpen, setPreviewOpen] = useState(false)
 
   if (isLoading) {
@@ -59,7 +60,7 @@ export function BatchDetailView({ idOrSlug }: BatchDetailViewProps) {
   const daysLeft = daysUntil(batch.registrationDeadline)
   const isLive = batch.status === "ACTIVE"
   const previewLessons = subjects.flatMap((s) =>
-    s.modules.flatMap((m) => m.lessons.filter((l) => l.isPreview && l.videoUrl)),
+    (s.modules ?? []).flatMap((m) => (m.lessons ?? []).filter((l) => l.isPreview && l.videoUrl)),
   )
   const previewLesson = previewLessons[0]
 
@@ -188,7 +189,7 @@ export function BatchDetailView({ idOrSlug }: BatchDetailViewProps) {
           onClose={() => setPreviewOpen(false)}
           videoUrl={previewLesson.videoUrl!}
           title={previewLesson.title}
-          duration={formatDuration(previewLesson.durationS)}
+          duration={formatDuration(previewLesson.durationS ?? null)}
         />
       ) : null}
     </>

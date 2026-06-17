@@ -31,11 +31,31 @@ export function PreRecordedModuleLessons({
 }: PreRecordedModuleLessonsProps) {
   const { data, isLoading, error } = useGetEnrollmentQuery(enrollmentId)
   const enrollment = data?.data
-  const mod = enrollment ? findModuleInEnrollment(enrollment, moduleId) : null
-  const subject = enrollment ? findSubjectForModule(enrollment, moduleId) : null
+  const mod = enrollment ? findModuleInEnrollment(enrollment, moduleId, "granted") : null
+  const subject = enrollment ? findSubjectForModule(enrollment, moduleId, "granted") : null
+  const productId = enrollment ? enrollmentProductId(enrollment) : ""
+
+  const batchRecordings = useListBatchRecordingsQuery(
+    { batchId: productId, scope: "granted" },
+    { skip: !enrollment || enrollment.kind !== EnrollmentKind.BATCH },
+  )
 
   const lessons: PlayableLesson[] = useMemo(() => {
     if (!mod) return []
+    const lessonDates = new Map(mod.lessons.map((l) => [l.id, l.lectureDate]))
+    const lessonIds = new Set(mod.lessons.map((l) => l.id))
+    const fromRecordings = (batchRecordings.data?.data ?? [])
+      .filter((r) => r.lessonId && lessonIds.has(r.lessonId))
+      .map((r) => ({
+        id: r.id,
+        title: r.title,
+        videoUrl: r.videoUrl,
+        durationS: r.durationS,
+        lectureDate: r.lessonId ? lessonDates.get(r.lessonId) ?? null : null,
+      }))
+
+    if (fromRecordings.length > 0) return fromRecordings
+
     return mod.lessons
       .filter((l) => l.type === LessonType.RECORDED || l.videoUrl)
       .map((l) => ({
@@ -43,12 +63,14 @@ export function PreRecordedModuleLessons({
         title: l.title,
         videoUrl: l.videoUrl,
         durationS: l.durationS,
+        lectureDate: l.lectureDate,
       }))
-  }, [mod])
+  }, [mod, batchRecordings.data])
 
   const courseTitle = enrollment ? enrollmentProductTitle(enrollment) : "Course"
+  const loading = isLoading || batchRecordings.isLoading
 
-  if (isLoading) {
+  if (loading) {
     return (
       <StudentPageShell title="Pre-Recorded Class">
         <p className="text-muted-foreground">Loading…</p>
@@ -79,11 +101,7 @@ export function PreRecordedModuleLessons({
           No pre-recorded lessons in this chapter yet.
         </p>
       ) : (
-        <ModuleLessonPlayer
-          lessons={lessons}
-          playlistTitle={mod.title}
-          subjectTitle={subject?.title ?? null}
-        />
+        <ModuleLessonPlayer lessons={lessons} playlistTitle={mod.title} />
       )}
     </StudentPageShell>
   )
@@ -105,9 +123,10 @@ export function RecordedModuleLessons({
   const productId = enrollment ? enrollmentProductId(enrollment) : ""
   const kind = enrollment?.kind ?? EnrollmentKind.BATCH
 
-  const batchRecordings = useListBatchRecordingsQuery(productId, {
-    skip: !enrollment || kind !== EnrollmentKind.BATCH,
-  })
+  const batchRecordings = useListBatchRecordingsQuery(
+    { batchId: productId, scope: "own" },
+    { skip: !enrollment || kind !== EnrollmentKind.BATCH },
+  )
   const courseRecordings = useListCourseRecordingsQuery(productId, {
     skip: !enrollment || kind !== EnrollmentKind.COURSE,
   })
@@ -116,6 +135,7 @@ export function RecordedModuleLessons({
 
   const lessons: PlayableLesson[] = useMemo(() => {
     if (!mod) return []
+    const lessonDates = new Map(mod.lessons.map((l) => [l.id, l.lectureDate]))
     const lessonIds = new Set(mod.lessons.map((l) => l.id))
     const fromRecordings = (recordingsQuery.data?.data ?? [])
       .filter((r) => r.lessonId && lessonIds.has(r.lessonId))
@@ -124,6 +144,7 @@ export function RecordedModuleLessons({
         title: r.title,
         videoUrl: r.videoUrl,
         durationS: r.durationS,
+        lectureDate: r.lessonId ? lessonDates.get(r.lessonId) ?? null : null,
       }))
 
     if (fromRecordings.length > 0) return fromRecordings
@@ -135,6 +156,7 @@ export function RecordedModuleLessons({
         title: l.title,
         videoUrl: l.videoUrl,
         durationS: l.durationS,
+        lectureDate: l.lectureDate,
       }))
   }, [mod, recordingsQuery.data])
 
@@ -172,11 +194,7 @@ export function RecordedModuleLessons({
           No recorded lessons in this chapter yet.
         </p>
       ) : (
-        <ModuleLessonPlayer
-          lessons={lessons}
-          playlistTitle={mod.title}
-          subjectTitle={subject?.title ?? null}
-        />
+        <ModuleLessonPlayer lessons={lessons} playlistTitle={mod.title} />
       )}
     </StudentPageShell>
   )

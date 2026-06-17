@@ -52,6 +52,8 @@ export interface CourseListItem {
   deliveryMode: DeliveryMode
   thumbnail: string | null
   category: string | null
+  categorySlug: string | null
+  categoryId: string | null
   priceMinor: number
   isPublished: boolean
   batchCount?: number
@@ -62,6 +64,7 @@ export interface CourseLesson {
   title: string
   type: LessonType
   durationS: number | null
+  lectureDate?: string | null
   order: number
   isPreview: boolean
   videoUrl?: string | null
@@ -99,6 +102,8 @@ export interface CourseDetail {
   description: string | null
   thumbnail: string | null
   category: string | null
+  categorySlug: string | null
+  categoryId: string | null
   priceMinor: number
   isPublished: boolean
   modules?: CourseModule[]
@@ -137,7 +142,7 @@ export interface CreateRecordedCourseInput {
   slug: string
   description?: string | null
   thumbnail?: string | null
-  category?: string | null
+  categoryId?: string | null
   priceMinor?: number
   isPublished?: boolean
   modules?: CourseInputModule[]
@@ -149,10 +154,9 @@ export interface CreateLiveCourseInput {
   slug: string
   description?: string | null
   thumbnail?: string | null
-  category?: string | null
+  categoryId?: string | null
   priceMinor?: number
   isPublished?: boolean
-  subjects?: CourseInputSubject[]
 }
 
 export type CreateCourseInput = CreateRecordedCourseInput | CreateLiveCourseInput
@@ -160,9 +164,13 @@ export type CreateCourseInput = CreateRecordedCourseInput | CreateLiveCourseInpu
 export type UpdateCourseInput = Partial<
   Omit<CreateRecordedCourseInput, 'deliveryMode'> & {
     modules?: CourseInputModule[]
-    subjects?: CourseInputSubject[]
   }
 >
+
+export interface ApplyBatchCurriculumInput {
+  batchIds: string[]
+  subjects: CourseInputSubject[]
+}
 
 export enum EnrollmentStatus {
   PENDING = 'PENDING',
@@ -206,6 +214,7 @@ export interface EnrollmentLesson {
   type: LessonType
   videoUrl: string | null
   durationS: number | null
+  lectureDate: string | null
   order: number
   completed: boolean
 }
@@ -234,6 +243,7 @@ export interface EnrollmentDetail {
   batch: { id: string; title: string; courseId?: string } | null
   course: { id: string; title: string } | null
   subjects?: EnrollmentSubject[]
+  grantedSubjects?: EnrollmentSubject[]
   modules?: EnrollmentModule[]
   grantedBatchIds?: string[]
 }
@@ -266,6 +276,7 @@ export enum QuestionType {
   TRUE_FALSE = 'TRUE_FALSE',
   SHORT_ANSWER = 'SHORT_ANSWER',
   WRITTEN = 'WRITTEN',
+  PDF = 'PDF',
 }
 
 export enum ExamStatus {
@@ -287,6 +298,10 @@ export interface Question {
   correct?: unknown
   category: string | null
   marks: number
+  fileUrl: string | null
+  batchId: string | null
+  subjectId: string | null
+  moduleId: string | null
   createdAt: string
   updatedAt: string
 }
@@ -300,9 +315,24 @@ export interface CreateQuestionInput {
   stem: string
   type: QuestionType
   options?: { key: string; text: string }[] | null
-  correct: unknown
+  correct?: unknown
   category?: string | null
   marks?: number
+  fileUrl?: string | null
+  batchId?: string | null
+  subjectId?: string | null
+  moduleId?: string | null
+}
+
+export interface CreatePdfQuestionsBulkInput {
+  batchId: string
+  subjectId: string
+  moduleId?: string | null
+  questions: {
+    title: string
+    fileUrl: string
+    marks?: number
+  }[]
 }
 
 export interface ExamListItem {
@@ -425,9 +455,11 @@ export interface ResourceItem {
   fileType: string | null
   category: ResourceCategory
   courseId: string | null
+  batchId: string | null
   subjectId: string | null
   moduleId: string | null
   lessonId: string | null
+  deadlineAt: string | null
   createdAt: string
 }
 
@@ -442,9 +474,11 @@ export interface CreateResourceInput {
   fileType?: 'pdf' | 'slide' | 'link' | null
   category?: ResourceCategory
   courseId: string
+  batchId?: string | null
   subjectId?: string | null
   moduleId?: string | null
   lessonId?: string | null
+  deadlineAt?: string | null
 }
 
 export interface UpdateResourceInput {
@@ -452,9 +486,11 @@ export interface UpdateResourceInput {
   fileUrl?: string
   fileType?: 'pdf' | 'slide' | 'link' | null
   category?: ResourceCategory
+  batchId?: string | null
   subjectId?: string | null
   moduleId?: string | null
   lessonId?: string | null
+  deadlineAt?: string | null
 }
 
 export interface ResourceListQuery {
@@ -463,6 +499,7 @@ export interface ResourceListQuery {
   search?: string
   sort?: string
   courseId?: string
+  batchId?: string
   subjectId?: string
   moduleId?: string
   lessonId?: string
@@ -563,6 +600,76 @@ export enum PaymentStatus {
   CANCELLED = 'CANCELLED',
 }
 
+export enum MonthlyPaymentStatus {
+  REQUESTED = 'REQUESTED',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED',
+}
+
+export interface MonthlyPaymentEnrollment {
+  id: string
+  kind: EnrollmentKind
+  status: EnrollmentStatus
+  rollNumber: string | null
+  courseTitle: string
+  batchTitle: string | null
+  courseId: string | null
+  batchId: string | null
+}
+
+export interface MonthlyPaymentStudent {
+  id: string
+  name: string
+  phone: string
+  rollNumber: string | null
+}
+
+export interface MonthlyPaymentRecord {
+  id: string
+  billingMonth: string
+  amountMinor: number | null
+  status: MonthlyPaymentStatus
+  note: string | null
+  requestedAt: string
+  reviewedAt: string | null
+  student: MonthlyPaymentStudent
+  enrollment: MonthlyPaymentEnrollment
+}
+
+export interface EnrollmentPaymentHistoryItem {
+  id: string
+  type: 'MONTHLY' | 'ENROLLMENT'
+  billingMonth: string | null
+  amountMinor: number
+  status: string
+  paidAt: string | null
+  createdAt: string
+}
+
+export interface EnrollmentPaymentHistory {
+  enrollment: MonthlyPaymentEnrollment
+  currentBillingMonth: string
+  canRequestCurrentMonth: boolean
+  currentMonthRequest: MonthlyPaymentRecord | null
+  whatsappUrl: string
+  history: EnrollmentPaymentHistoryItem[]
+}
+
+export interface ReviewMonthlyPaymentInput {
+  action: 'approve' | 'reject'
+  amountMinor?: number
+  note?: string
+}
+
+export interface ListMonthlyPaymentsParams {
+  status?: MonthlyPaymentStatus
+  courseId?: string
+  batchId?: string
+  search?: string
+  page?: number
+  pageSize?: number
+}
+
 export interface InitiatePaymentInput {
   purpose: PaymentPurpose
   refId: string
@@ -623,6 +730,34 @@ export enum ResourceCategory {
   RESULT_SHEET = 'RESULT_SHEET',
   EXAM = 'EXAM',
   ASSIGNMENT = 'ASSIGNMENT',
+}
+
+export interface CategoryListItem {
+  id: string
+  title: string
+  slug: string
+  shortIntro: string | null
+  image: string | null
+  order: number
+  courseCount: number
+}
+
+export interface CategoryListResponse {
+  data: CategoryListItem[]
+  meta: { page: number; pageSize: number; total: number }
+}
+
+export interface CategoryDetail extends CategoryListItem {
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CreateCategoryInput {
+  title: string
+  slug: string
+  shortIntro?: string | null
+  image?: string | null
+  order?: number
 }
 
 export interface ProductListItem {

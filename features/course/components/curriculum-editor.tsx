@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Plus, Trash2 } from "lucide-react"
+import { Plus, Pencil, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -14,6 +14,10 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { CompactMediaSourceField } from "@/components/media-source-field"
+import {
+  LiveCurriculumModals,
+  type LiveCurriculumModal,
+} from "@/features/course/components/live-curriculum-modals"
 import { CHAPTER, CHAPTERS, LESSON_TYPE_LABEL } from "@/lib/product-vocabulary"
 import { LessonType } from "@/types/api"
 
@@ -31,6 +35,7 @@ export interface LessonForm {
   videoUrl: string
   content: string
   durationS: number | null
+  lectureDate: string
   order: number
   isPreview: boolean
 }
@@ -65,6 +70,7 @@ export function newLesson(order: number): LessonForm {
     videoUrl: "",
     content: "",
     durationS: null,
+    lectureDate: "",
   }
 }
 
@@ -89,16 +95,52 @@ export function newSubject(order: number): SubjectForm {
 interface SubjectsEditorProps {
   subjects: SubjectForm[]
   onChange: (subjects: SubjectForm[]) => void
+  showPreBatchCurriculum?: boolean
+  sourceBatchId?: string
 }
 
-export function SubjectsEditor({ subjects, onChange }: SubjectsEditorProps) {
-  const [activeSubjectIndex, setActiveSubjectIndex] = useStateSafe(
-    subjects.length > 0 ? 0 : 0,
-  )
-  const [activeModuleIndex, setActiveModuleIndex] = useStateSafe(0)
+export function SubjectsEditor({
+  subjects,
+  onChange,
+  showPreBatchCurriculum = false,
+  sourceBatchId = "",
+}: SubjectsEditorProps) {
+  const [modal, setModal] = useState<LiveCurriculumModal>(null)
 
-  const subject = subjects[activeSubjectIndex]
-  const mod = subject?.modules[activeModuleIndex]
+  function openModal(next: LiveCurriculumModal) {
+    setModal(next)
+  }
+
+  function removeSubject(index: number) {
+    onChange(subjects.filter((_, i) => i !== index))
+  }
+
+  function removeModule(subjectIndex: number, moduleIndex: number) {
+    onChange(
+      subjects.map((s, si) =>
+        si === subjectIndex
+          ? { ...s, modules: s.modules.filter((_, mi) => mi !== moduleIndex) }
+          : s,
+      ),
+    )
+  }
+
+  function removeLesson(subjectIndex: number, moduleIndex: number, lessonIndex: number) {
+    onChange(
+      subjects.map((s, si) =>
+        si === subjectIndex
+          ? {
+              ...s,
+              modules: s.modules.map((m, mi) =>
+                mi === moduleIndex
+                  ? { ...m, lessons: m.lessons.filter((_, li) => li !== lessonIndex) }
+                  : m,
+              ),
+            }
+          : s,
+      ),
+    )
+  }
 
   return (
     <div className="space-y-4 rounded-xl border bg-card p-6">
@@ -106,214 +148,173 @@ export function SubjectsEditor({ subjects, onChange }: SubjectsEditorProps) {
         <div>
           <h2 className="text-lg font-semibold">Subjects, {CHAPTERS.toLowerCase()} & lessons</h2>
           <p className="text-sm text-muted-foreground">
-            Live course curriculum — Subject → {CHAPTER} → Lesson
+            Subject → {CHAPTER} → Lesson
           </p>
         </div>
         <Button
           type="button"
           variant="outline"
           size="sm"
-          onClick={() => {
-            onChange([...subjects, newSubject(subjects.length)])
-            setActiveSubjectIndex(subjects.length)
-            setActiveModuleIndex(0)
-          }}
+          onClick={() => openModal({ kind: "subject", mode: "add" })}
         >
           <Plus className="mr-1 h-4 w-4" />
           Add subject
         </Button>
       </div>
 
-      {subjects.length > 0 && subject && mod ? (
-        <>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label>Subject</Label>
-              <Select
-                value={String(activeSubjectIndex)}
-                onValueChange={(v) => {
-                  setActiveSubjectIndex(Number(v))
-                  setActiveModuleIndex(0)
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {subjects.map((s, si) => (
-                    <SelectItem key={s.key} value={String(si)}>
-                      {s.title.trim() || `Subject ${si + 1}`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>{CHAPTER}</Label>
-              <Select
-                value={String(activeModuleIndex)}
-                onValueChange={(v) => setActiveModuleIndex(Number(v))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {subject.modules.map((m, mi) => (
-                    <SelectItem key={m.key} value={String(mi)}>
-                      {m.title.trim() || `${CHAPTER} ${mi + 1}`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="space-y-4 rounded-lg border-2 border-primary/20 p-4">
-            <div className="flex flex-wrap items-start gap-2">
-              <div className="min-w-[200px] flex-1 space-y-2">
-                <Label>Subject title</Label>
-                <Input
-                  value={subject.title}
-                  onChange={(e) =>
-                    onChange(
-                      subjects.map((s, i) =>
-                        i === activeSubjectIndex ? { ...s, title: e.target.value } : s,
-                      ),
-                    )
-                  }
-                  required
-                />
+      {subjects.length === 0 ? (
+        <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+          No subjects yet. Click &quot;Add subject&quot; to start building this batch curriculum.
+        </p>
+      ) : (
+        <div className="space-y-4">
+          {subjects.map((subject, si) => (
+            <div key={subject.key} className="rounded-lg border p-4">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <h3 className="font-semibold">{subject.title.trim() || `Subject ${si + 1}`}</h3>
+                <div className="flex flex-wrap gap-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => openModal({ kind: "subject", mode: "edit", subjectIndex: si })}
+                  >
+                    <Pencil className="mr-1 h-3.5 w-3.5" />
+                    Edit
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeSubject(si)}
+                  >
+                    <Trash2 className="mr-1 h-3.5 w-3.5" />
+                    Delete
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => openModal({ kind: "module", mode: "add", subjectIndex: si })}
+                  >
+                    <Plus className="mr-1 h-3.5 w-3.5" />
+                    Add {CHAPTER.toLowerCase()}
+                  </Button>
+                </div>
               </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="mt-8"
-                disabled={subjects.length === 1}
-                onClick={() => {
-                  onChange(subjects.filter((_, i) => i !== activeSubjectIndex))
-                  setActiveSubjectIndex(Math.max(0, activeSubjectIndex - 1))
-                  setActiveModuleIndex(0)
-                }}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
 
-            <div className="flex flex-wrap items-start gap-2">
-              <div className="min-w-[200px] flex-1 space-y-2">
-                <Label>{CHAPTER} title</Label>
-                <Input
-                  value={mod.title}
-                  onChange={(e) =>
-                    onChange(
-                      subjects.map((s, si) =>
-                        si === activeSubjectIndex
-                          ? {
-                              ...s,
-                              modules: s.modules.map((m, mi) =>
-                                mi === activeModuleIndex ? { ...m, title: e.target.value } : m,
-                              ),
+              {subject.modules.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No chapters yet.</p>
+              ) : (
+                <div className="space-y-3 border-l-2 border-muted pl-4">
+                  {subject.modules.map((mod, mi) => (
+                    <div key={mod.key} className="space-y-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-sm font-medium">
+                          {mod.title.trim() || `${CHAPTER} ${mi + 1}`}
+                        </p>
+                        <div className="flex flex-wrap gap-1">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              openModal({
+                                kind: "module",
+                                mode: "edit",
+                                subjectIndex: si,
+                                moduleIndex: mi,
+                              })
                             }
-                          : s,
-                      ),
-                    )
-                  }
-                  required
-                />
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="mt-8"
-                onClick={() =>
-                  onChange(
-                    subjects.map((s, si) =>
-                      si === activeSubjectIndex
-                        ? { ...s, modules: [...s.modules, newModule(s.modules.length)] }
-                        : s,
-                    ),
-                  )
-                }
-              >
-                <Plus className="mr-1 h-4 w-4" />
-                Add {CHAPTER.toLowerCase()}
-              </Button>
-            </div>
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeModule(si, mi)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              openModal({
+                                kind: "lesson",
+                                mode: "add",
+                                subjectIndex: si,
+                                moduleIndex: mi,
+                              })
+                            }
+                          >
+                            <Plus className="mr-1 h-3 w-3" />
+                            Lesson
+                          </Button>
+                        </div>
+                      </div>
 
-            <div className="space-y-3">
-              <Label>Lessons</Label>
-              {mod.lessons.map((lesson, li) => (
-                <LessonRow
-                  key={lesson.key}
-                  lesson={lesson}
-                  onChange={(next) =>
-                    onChange(
-                      subjects.map((s, si) =>
-                        si === activeSubjectIndex
-                          ? {
-                              ...s,
-                              modules: s.modules.map((m, mi) =>
-                                mi === activeModuleIndex
-                                  ? {
-                                      ...m,
-                                      lessons: m.lessons.map((l, k) => (k === li ? next : l)),
-                                    }
-                                  : m,
-                              ),
-                            }
-                          : s,
-                      ),
-                    )
-                  }
-                  onRemove={() =>
-                    onChange(
-                      subjects.map((s, si) =>
-                        si === activeSubjectIndex
-                          ? {
-                              ...s,
-                              modules: s.modules.map((m, mi) =>
-                                mi === activeModuleIndex
-                                  ? { ...m, lessons: m.lessons.filter((_, k) => k !== li) }
-                                  : m,
-                              ),
-                            }
-                          : s,
-                      ),
-                    )
-                  }
-                  canRemove={mod.lessons.length > 1}
-                />
-              ))}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  onChange(
-                    subjects.map((s, si) =>
-                      si === activeSubjectIndex
-                        ? {
-                            ...s,
-                            modules: s.modules.map((m, mi) =>
-                              mi === activeModuleIndex
-                                ? { ...m, lessons: [...m.lessons, newLesson(m.lessons.length)] }
-                                : m,
-                            ),
-                          }
-                        : s,
-                    ),
-                  )
-                }
-              >
-                <Plus className="mr-1 h-4 w-4" />
-                Add lesson
-              </Button>
+                      {mod.lessons.length === 0 ? (
+                        <p className="text-xs text-muted-foreground">No lessons yet.</p>
+                      ) : (
+                        <ul className="space-y-1 border-l border-dashed pl-3">
+                          {mod.lessons.map((lesson, li) => (
+                            <li
+                              key={lesson.key}
+                              className="flex flex-wrap items-center justify-between gap-2 text-sm"
+                            >
+                              <span>{lesson.title.trim() || `Lesson ${li + 1}`}</span>
+                              <div className="flex gap-1">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() =>
+                                    openModal({
+                                      kind: "lesson",
+                                      mode: "edit",
+                                      subjectIndex: si,
+                                      moduleIndex: mi,
+                                      lessonIndex: li,
+                                    })
+                                  }
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() => removeLesson(si, mi, li)}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          </div>
-        </>
-      ) : null}
+          ))}
+        </div>
+      )}
+
+      <LiveCurriculumModals
+        modal={modal}
+        onClose={() => setModal(null)}
+        subjects={subjects}
+        onSave={onChange}
+        showPreBatchCurriculum={showPreBatchCurriculum}
+        sourceBatchId={sourceBatchId}
+      />
     </div>
   )
 }
@@ -367,6 +368,7 @@ export function ModulesEditor({ modules, onChange }: ModulesEditorProps) {
           {mod.lessons.map((lesson, li) => (
             <LessonRow
               key={lesson.key}
+              showLectureDate
               lesson={lesson}
               onChange={(next) =>
                 onChange(
@@ -414,11 +416,13 @@ function LessonRow({
   onChange,
   onRemove,
   canRemove,
+  showLectureDate = false,
 }: {
   lesson: LessonForm
   onChange: (lesson: LessonForm) => void
   onRemove: () => void
   canRemove: boolean
+  showLectureDate?: boolean
 }) {
   return (
     <div className="space-y-2 rounded-lg border border-dashed p-3">
@@ -434,6 +438,17 @@ function LessonRow({
         onChange={(e) => onChange({ ...lesson, title: e.target.value })}
         required
       />
+      {showLectureDate ? (
+        <div className="space-y-1">
+          <Label htmlFor={`lecture-date-${lesson.key}`}>Lecture date</Label>
+          <Input
+            id={`lecture-date-${lesson.key}`}
+            type="date"
+            value={lesson.lectureDate}
+            onChange={(e) => onChange({ ...lesson, lectureDate: e.target.value })}
+          />
+        </div>
+      ) : null}
       <div className="grid gap-2 sm:grid-cols-2">
         <Select
           value={lesson.type}
@@ -482,11 +497,6 @@ function LessonRow({
   )
 }
 
-function useStateSafe(initial: number): [number, (n: number) => void] {
-  const [value, setValue] = useState(initial)
-  return [value, setValue]
-}
-
 export function subjectsToPayload(subjects: SubjectForm[]) {
   return subjects.map((subject, si) => ({
     title: subject.title,
@@ -502,6 +512,9 @@ export function subjectsToPayload(subjects: SubjectForm[]) {
         videoUrl: lesson.videoUrl.trim() || null,
         content: lesson.content.trim() || null,
         durationS: lesson.durationS ? Number(lesson.durationS) : null,
+        ...(lesson.lectureDate.trim()
+          ? { lectureDate: lesson.lectureDate.trim() }
+          : {}),
       })),
     })),
   }))
@@ -519,14 +532,34 @@ export function modulesToPayload(modules: ModuleForm[]) {
       videoUrl: lesson.videoUrl.trim() || null,
       content: lesson.content.trim() || null,
       durationS: lesson.durationS ? Number(lesson.durationS) : null,
+      ...(lesson.lectureDate.trim()
+        ? { lectureDate: lesson.lectureDate.trim() }
+        : {}),
     })),
   }))
 }
 
 export function subjectsFromApi(
-  subjects: { title: string; order: number; modules: { title: string; order: number; lessons: { title: string; type?: LessonType; order?: number; isPreview?: boolean; videoUrl?: string | null; content?: string | null; durationS?: number | null }[] }[] }[],
+  subjects: {
+    title: string
+    order: number
+    modules?: {
+      title: string
+      order: number
+      lessons?: {
+        title: string
+        type?: LessonType
+        order?: number
+        isPreview?: boolean
+        videoUrl?: string | null
+        content?: string | null
+        durationS?: number | null
+        lectureDate?: string | null
+      }[]
+    }[]
+  }[],
 ): SubjectForm[] {
-  if (!subjects.length) return [newSubject(0)]
+  if (!subjects.length) return []
   return subjects.map((subject) => ({
     key: formKey("subject"),
     title: subject.title,
@@ -545,6 +578,7 @@ export function subjectsFromApi(
           videoUrl: lesson.videoUrl ?? "",
           content: lesson.content ?? "",
           durationS: lesson.durationS ?? null,
+          lectureDate: lesson.lectureDate ?? "",
         })),
       }),
     ),
@@ -552,7 +586,7 @@ export function subjectsFromApi(
 }
 
 export function modulesFromApi(
-  modules: { title: string; order: number; lessons: { title: string; type?: LessonType; order?: number; isPreview?: boolean; videoUrl?: string | null; content?: string | null; durationS?: number | null }[] }[],
+  modules: { title: string; order: number; lessons: { title: string; type?: LessonType; order?: number; isPreview?: boolean; videoUrl?: string | null; content?: string | null; durationS?: number | null; lectureDate?: string | null }[] }[],
 ): ModuleForm[] {
   if (!modules.length) return [newModule(0)]
   return modules.map((mod) => ({
@@ -568,6 +602,7 @@ export function modulesFromApi(
       videoUrl: lesson.videoUrl ?? "",
       content: lesson.content ?? "",
       durationS: lesson.durationS ?? null,
+      lectureDate: lesson.lectureDate ?? "",
     })),
   }))
 }

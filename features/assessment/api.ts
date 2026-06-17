@@ -3,6 +3,7 @@ import type {
   AssignmentListItem,
   CreateAssignmentInput,
   CreateExamInput,
+  CreatePdfQuestionsBulkInput,
   CreateQuestionInput,
   CreateSubmissionInput,
   ExamAttempt,
@@ -22,6 +23,9 @@ export interface QuestionListParams {
   search?: string
   category?: string
   type?: string
+  batchId?: string
+  subjectId?: string
+  moduleId?: string
 }
 
 export const assessmentApi = createApi({
@@ -44,6 +48,13 @@ export const assessmentApi = createApi({
     }),
     createQuestion: builder.mutation<{ data: Question }, CreateQuestionInput>({
       query: (body) => ({ url: '/questions', method: 'POST', body }),
+      invalidatesTags: [{ type: 'Question', id: 'LIST' }],
+    }),
+    createPdfQuestionsBulk: builder.mutation<
+      { data: Question[] },
+      CreatePdfQuestionsBulkInput
+    >({
+      query: (body) => ({ url: '/questions/pdf-bulk', method: 'POST', body }),
       invalidatesTags: [{ type: 'Question', id: 'LIST' }],
     }),
     listBatchExams: builder.query<{ data: ExamListItem[] }, string>({
@@ -115,6 +126,7 @@ export const assessmentApi = createApi({
 export const {
   useListQuestionsQuery,
   useCreateQuestionMutation,
+  useCreatePdfQuestionsBulkMutation,
   useListBatchExamsQuery,
   useListCourseExamsQuery,
   useLazyListBatchExamsQuery,

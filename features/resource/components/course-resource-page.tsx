@@ -2,22 +2,31 @@
 
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Send } from "lucide-react"
+import { useSelector } from "react-redux"
 import { Button } from "@/components/ui/button"
 import { useGetEnrollmentQuery } from "@/features/enrollment/api"
 import {
   enrollmentCourseId,
+  enrollmentBatchId,
   enrollmentProductTitle,
   getEnrollmentSubjects,
 } from "@/features/enrollment/curriculum"
 import { useListResourcesQuery } from "@/features/resource/api"
 import { SecurePdfViewer } from "@/components/secure-pdf-viewer"
 import { StudentPageShell } from "@/components/student/student-page-shell"
-import type { ResourceCategory } from "@/types/api"
+import {
+  assignmentSubmitMessage,
+  examSubmitMessage,
+  whatsappUrl,
+} from "@/lib/whatsapp"
+import type { RootState } from "@/store/rootReducer"
+import { ResourceCategory } from "@/types/api"
+import type { ResourceCategory as ResourceCategoryType } from "@/types/api"
 
 interface CourseResourcePageProps {
   enrollmentId: string
-  category: ResourceCategory
+  category: ResourceCategoryType
   pageTitle: string
 }
 
@@ -26,13 +35,21 @@ export function CourseResourcePage({
   category,
   pageTitle,
 }: CourseResourcePageProps) {
+  const user = useSelector((state: RootState) => state.auth.user)
   const [activeId, setActiveId] = useState<string | null>(null)
   const { data, isLoading, error } = useGetEnrollmentQuery(enrollmentId)
   const enrollment = data?.data
   const courseId = enrollment ? enrollmentCourseId(enrollment) : ""
+  const batchId = enrollment ? enrollmentBatchId(enrollment) : null
 
   const resourcesQuery = useListResourcesQuery(
-    { courseId, category, pageSize: 100, sort: "createdAt:desc" },
+    {
+      courseId,
+      ...(batchId ? { batchId } : {}),
+      category,
+      pageSize: 100,
+      sort: "createdAt:desc",
+    },
     { skip: !courseId },
   )
 
@@ -51,6 +68,16 @@ export function CourseResourcePage({
 
   const active = items.find((r) => r.id === activeId) ?? null
   const courseTitle = enrollment ? enrollmentProductTitle(enrollment) : pageTitle
+  const showSubmit =
+    category === ResourceCategory.EXAM || category === ResourceCategory.ASSIGNMENT
+  const submitHref =
+    showSubmit && enrollment
+      ? whatsappUrl(
+          category === ResourceCategory.EXAM
+            ? examSubmitMessage(courseTitle, user?.name ?? "Student")
+            : assignmentSubmitMessage(courseTitle, user?.name ?? "Student"),
+        )
+      : null
 
   useEffect(() => {
     if (items.length > 0 && !activeId) {
@@ -84,6 +111,14 @@ export function CourseResourcePage({
           </Link>
         </Button>
         <h1 className="text-2xl font-bold">{pageTitle}</h1>
+        {submitHref ? (
+          <Button asChild className="ml-auto rounded-xl">
+            <a href={submitHref} target="_blank" rel="noopener noreferrer">
+              <Send className="mr-2 h-4 w-4" />
+              Submit
+            </a>
+          </Button>
+        ) : null}
       </div>
 
       {resourcesQuery.isLoading ? (
@@ -107,6 +142,15 @@ export function CourseResourcePage({
                   }`}
                 >
                   <span className="line-clamp-2">{resource.title}</span>
+                  {resource.deadlineAt ? (
+                    <span className="mt-1 block text-xs text-muted-foreground">
+                      Deadline:{" "}
+                      {new Date(resource.deadlineAt).toLocaleString(undefined, {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      })}
+                    </span>
+                  ) : null}
                 </button>
               </li>
             ))}

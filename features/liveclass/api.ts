@@ -36,9 +36,23 @@ export const liveclassApi = createApi({
       query: ({ id, body }) => ({ url: `/sessions/${id}`, method: 'PATCH', body }),
       invalidatesTags: (_r, _e, arg) => [{ type: 'LiveSession', id: arg.scopeKey }],
     }),
-    listBatchRecordings: builder.query<{ data: Recording[] }, string>({
-      query: (batchId) => `/batches/${batchId}/recordings`,
-      providesTags: (_r, _e, batchId) => [{ type: 'Recording', id: `batch-${batchId}` }],
+    listBatchRecordings: builder.query<
+      { data: Recording[] },
+      string | { batchId: string; scope?: 'own' | 'granted' }
+    >({
+      query: (arg) => {
+        const batchId = typeof arg === 'string' ? arg : arg.batchId
+        const scope = typeof arg === 'string' ? undefined : arg.scope
+        return {
+          url: `/batches/${batchId}/recordings`,
+          params: scope ? { scope } : undefined,
+        }
+      },
+      providesTags: (_r, _e, arg) => {
+        const batchId = typeof arg === 'string' ? arg : arg.batchId
+        const scope = typeof arg === 'string' ? 'own' : (arg.scope ?? 'own')
+        return [{ type: 'Recording', id: `batch-${batchId}-${scope}` }]
+      },
     }),
     listCourseRecordings: builder.query<{ data: Recording[] }, string>({
       query: (courseId) => `/courses/${courseId}/recordings`,

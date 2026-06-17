@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Layers, ShoppingBag } from "lucide-react"
+import { CreditCard, Layers, ShoppingBag } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useListBatchesQuery } from "@/features/batch/api"
 import { StudentShopOverview } from "@/features/shop/components/student-shop-overview"
@@ -54,6 +54,12 @@ export default function InstructorDashboardPage() {
       <div className="flex flex-wrap gap-3">
         <Button asChild variant="outline">
           <Link href="/instructor/batches">{MY_LIVE_COURSES}</Link>
+        </Button>
+        <Button asChild variant="outline">
+          <Link href="/instructor/payments" className="gap-2">
+            <CreditCard className="h-4 w-4" />
+            Payment history
+          </Link>
         </Button>
         <Button asChild variant="outline">
           <Link href={LIVE_COURSE_CATALOG_HREF}>{BROWSE_LIVE_COURSES}</Link>

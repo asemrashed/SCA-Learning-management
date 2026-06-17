@@ -10,7 +10,6 @@ import { VideoModal } from "@/components/video-modal"
 import { formatBdtMinor } from "@/lib/format-currency"
 import { CHAPTERS, deliveryModeLabel } from "@/lib/product-vocabulary"
 import type { CourseDetail, CourseModule } from "@/types/api"
-import { BatchCurriculum } from "@/features/batch/components/BatchCurriculum"
 import { CurriculumTree } from "./curriculum-tree"
 import { DeliveryMode } from "@/types/api"
 
@@ -39,17 +38,15 @@ function formatLessonDuration(seconds: number | null): string {
 
 export function CourseDetailView({ course }: CourseDetailViewProps) {
   const modules = course.modules ?? []
-  const subjects = course.subjects ?? []
   const isRecorded = course.deliveryMode === DeliveryMode.RECORDED
+  const batches = course.batches ?? []
   const previewLesson = isRecorded
     ? modules.flatMap((m) => m.lessons).find((l) => l.isPreview && l.videoUrl)
-    : subjects
-        .flatMap((s) => s.modules.flatMap((m) => m.lessons))
-        .find((l) => l.isPreview && l.videoUrl)
+    : undefined
   const [previewOpen, setPreviewOpen] = useState(false)
   const lessonCount = isRecorded
     ? modules.reduce((n, m) => n + m.lessons.length, 0)
-    : subjects.reduce((n, s) => n + s.modules.reduce((m, mod) => m + mod.lessons.length, 0), 0)
+    : 0
 
   return (
     <>
@@ -71,7 +68,7 @@ export function CourseDetailView({ course }: CourseDetailViewProps) {
                 <BookOpen className="h-5 w-5" />
                 {isRecorded
                   ? `${modules.length} ${CHAPTERS.toLowerCase()} · ${lessonCount} lessons`
-                  : `${subjects.length} subjects · ${lessonCount} lessons`}
+                  : `${batches.length} batch${batches.length === 1 ? "" : "es"} available`}
               </span>
               {isRecorded ? (
                 <span className="inline-flex items-center gap-1">
@@ -86,8 +83,21 @@ export function CourseDetailView({ course }: CourseDetailViewProps) {
             <h2 className="mb-4 text-xl font-bold text-foreground">Curriculum</h2>
             {isRecorded ? (
               <CurriculumTree modules={modules} />
+            ) : batches.length > 0 ? (
+              <ul className="space-y-2 text-sm">
+                {batches.map((b) => (
+                  <li key={b.id}>
+                    <a href={`/batches/${b.slug}`} className="text-primary hover:underline">
+                      {b.title}
+                    </a>
+                    <span className="ml-2 text-muted-foreground">
+                      — {b.priceMinor === 0 ? "Free" : formatBdtMinor(b.priceMinor)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
             ) : (
-              <BatchCurriculum subjects={subjects} />
+              <p className="text-sm text-muted-foreground">No batches open for enrollment yet.</p>
             )}
           </div>
         </div>

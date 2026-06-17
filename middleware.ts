@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { SESSION_COOKIE_NAME } from '@/lib/auth-session'
 
-const protectedPrefixes = ['/dashboard', '/admin', '/super-admin']
+const protectedPrefixes = ['/dashboard', '/admin', '/super-admin', '/instructor']
 const authPaths = ['/login', '/register']
 
 export function middleware(request: NextRequest) {
@@ -10,10 +10,6 @@ export function middleware(request: NextRequest) {
   const hasSession = request.cookies.has(SESSION_COOKIE_NAME)
   const isProtected = protectedPrefixes.some((prefix) => pathname.startsWith(prefix))
   const isAuthPage = authPaths.some((path) => pathname === path)
-
-  if (pathname.startsWith('/instructor')) {
-    return NextResponse.redirect(new URL('/login', request.url))
-  }
 
   if (isProtected && !hasSession) {
     const loginUrl = new URL('/login', request.url)

@@ -72,8 +72,11 @@ export function CourseDashboardPreview({
 
       <section>
         <h2 className="mb-4 text-lg font-semibold">Curriculum</h2>
-        {isLive && course.subjects?.length ? (
-          <BatchCurriculum subjects={course.subjects} />
+        {isLive ? (
+          <p className="text-sm text-muted-foreground">
+            Curriculum is managed per batch. Edit a batch cohort to view or update its subjects and
+            chapters.
+          </p>
         ) : course.modules?.length ? (
           <CurriculumTree modules={course.modules} initialVisible={999} />
         ) : (

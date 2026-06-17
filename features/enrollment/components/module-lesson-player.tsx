@@ -10,12 +10,24 @@ export interface PlayableLesson {
   title: string
   videoUrl: string | null
   durationS?: number | null
+  lectureDate?: string | null
 }
 
 function formatDuration(seconds: number | null | undefined): string {
   if (!seconds) return ""
   const m = Math.round(seconds / 60)
   return `${m} min`
+}
+
+function formatLectureDate(iso: string | null | undefined): string {
+  if (!iso) return ""
+  const [year, month, day] = iso.split("-").map(Number)
+  if (!year || !month || !day) return iso
+  return new Date(year, month - 1, day).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  })
 }
 
 function LessonRow({
@@ -28,6 +40,7 @@ function LessonRow({
   onSelect: (lesson: PlayableLesson) => void
 }) {
   const hasVideo = !!lesson.videoUrl
+  const lectureLabel = formatLectureDate(lesson.lectureDate)
 
   return (
     <div
@@ -36,7 +49,12 @@ function LessonRow({
       }`}
     >
       <div className="flex items-center justify-between gap-2">
-        <span>{lesson.title}</span>
+        <div className="min-w-0">
+          <span className="line-clamp-2">{lesson.title}</span>
+          {lectureLabel ? (
+            <p className="mt-0.5 text-xs text-muted-foreground">{lectureLabel}</p>
+          ) : null}
+        </div>
         <div className="flex shrink-0 items-center gap-2">
           {lesson.durationS ? (
             <span className="text-xs text-muted-foreground">
@@ -63,12 +81,10 @@ function LessonRow({
 export function ModuleLessonPlayer({
   lessons,
   playlistTitle = "Lessons",
-  subjectTitle,
   initialLessonId,
 }: {
   lessons: PlayableLesson[]
   playlistTitle?: string
-  subjectTitle?: string | null
   initialLessonId?: string | null
 }) {
   const [activeLesson, setActiveLesson] = useState<PlayableLesson | null>(null)
@@ -87,14 +103,8 @@ export function ModuleLessonPlayer({
       <div className="min-w-0">
         {activeLesson?.videoUrl ? (
           <div className="space-y-2">
-            {subjectTitle || playlistTitle ? (
-              <p className="text-sm text-muted-foreground">
-                {subjectTitle ? (
-                  <span className="font-medium text-primary">{subjectTitle}</span>
-                ) : null}
-                {subjectTitle && playlistTitle ? <span> · </span> : null}
-                {playlistTitle ? <span>{playlistTitle}</span> : null}
-              </p>
+            {playlistTitle ? (
+              <p className="text-sm text-muted-foreground">{playlistTitle}</p>
             ) : null}
             <div className="overflow-hidden rounded-xl border bg-black shadow-sm">
               <LessonVideoPlayer
@@ -104,6 +114,11 @@ export function ModuleLessonPlayer({
               />
             </div>
             <p className="font-medium">{activeLesson.title}</p>
+            {formatLectureDate(activeLesson.lectureDate) ? (
+              <p className="text-sm text-muted-foreground">
+                {formatLectureDate(activeLesson.lectureDate)}
+              </p>
+            ) : null}
           </div>
         ) : (
           <div className="flex aspect-video items-center justify-center rounded-xl border bg-muted/40 text-sm text-muted-foreground">
@@ -113,9 +128,6 @@ export function ModuleLessonPlayer({
       </div>
 
       <div className="min-w-0 lg:sticky lg:top-24 lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto">
-        {subjectTitle ? (
-          <p className="mb-1 text-sm font-medium text-primary">{subjectTitle}</p>
-        ) : null}
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           {playlistTitle}
         </h2>

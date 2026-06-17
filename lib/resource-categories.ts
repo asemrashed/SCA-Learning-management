@@ -19,10 +19,25 @@ export const PDF_RESOURCE_CATEGORIES = new Set<ResourceCategory>([
   ResourceCategory.ASSIGNMENT,
 ])
 
-/** Course + subject only — no chapter/lesson picker. */
-export const SUBJECT_ONLY_CATEGORIES = new Set<ResourceCategory>([
+export const SUBJECT_REQUIRED_CATEGORIES = new Set<ResourceCategory>([
+  ResourceCategory.LECTURE_SHEET,
+  ResourceCategory.SOLUTION_PDF,
+  ResourceCategory.EXAM,
+  ResourceCategory.ASSIGNMENT,
+])
+
+export const DEADLINE_CATEGORIES = new Set<ResourceCategory>([
+  ResourceCategory.EXAM,
+  ResourceCategory.ASSIGNMENT,
+])
+
+export const BATCH_SCOPED_CATEGORIES = new Set<ResourceCategory>([
+  ResourceCategory.LECTURE_SHEET,
+  ResourceCategory.SOLUTION_PDF,
   ResourceCategory.NOTICE,
   ResourceCategory.RESULT_SHEET,
+  ResourceCategory.EXAM,
+  ResourceCategory.ASSIGNMENT,
 ])
 
 /** Shown on Admin → Resources only (not Exams / Assignments pages). */
@@ -45,4 +60,16 @@ export function isPdfResourceCategory(category: ResourceCategory): boolean {
 
 export function isContentResourceCategory(category: ResourceCategory): boolean {
   return CONTENT_RESOURCE_CATEGORIES.has(category)
+}
+
+export function isSubjectRequiredCategory(category: ResourceCategory): boolean {
+  return SUBJECT_REQUIRED_CATEGORIES.has(category)
+}
+
+export function isDeadlineCategory(category: ResourceCategory): boolean {
+  return DEADLINE_CATEGORIES.has(category)
+}
+
+export function isBatchScopedCategory(category: ResourceCategory): boolean {
+  return BATCH_SCOPED_CATEGORIES.has(category)
 }

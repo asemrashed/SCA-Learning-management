@@ -17,26 +17,38 @@ import {
   type CurriculumPlacement,
 } from "@/components/curriculum-placement-picker"
 import { useGetBatchQuery } from "@/features/batch/api"
+import { useGetCourseQuery } from "@/features/course/api"
 import {
   useCreateResourceMutation,
   useUpdateResourceMutation,
 } from "@/features/resource/api"
 import { getApiErrorMessage } from "@/lib/get-api-error-message"
-import { CHAPTER } from "@/lib/product-vocabulary"
+import { BATCH, CHAPTER } from "@/lib/product-vocabulary"
 import {
   ASSESSMENT_RESOURCE_CATEGORIES,
   CONTENT_RESOURCE_CATEGORIES,
+  isBatchScopedCategory,
+  isDeadlineCategory,
   isPdfResourceCategory,
+  isSubjectRequiredCategory,
   RESOURCE_CATEGORY_LABELS,
-  SUBJECT_ONLY_CATEGORIES,
 } from "@/lib/resource-categories"
 import type { ResourceItem } from "@/types/api"
-import { ResourceCategory } from "@/types/api"
+import { DeliveryMode, ResourceCategory } from "@/types/api"
 
 const initialPlacement: CurriculumPlacement = {
+  batchId: null,
   subjectId: null,
   moduleId: null,
   lessonId: null,
+}
+
+function toDeadlineInputValue(iso: string | null | undefined): string {
+  if (!iso) return ""
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return ""
+  const pad = (n: number) => String(n).padStart(2, "0")
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
 interface ResourceFormProps {
@@ -69,9 +81,11 @@ export function ResourceForm({
   const [category, setCategory] = useState<ResourceCategory>(
     resource?.category ?? defaultCategory,
   )
+  const [deadlineAt, setDeadlineAt] = useState(toDeadlineInputValue(resource?.deadlineAt))
   const [placement, setPlacement] = useState<CurriculumPlacement>({
     ...initialPlacement,
     courseId: fixedCourseId ?? resource?.courseId ?? undefined,
+    batchId: fixedBatchId ?? resource?.batchId ?? null,
     subjectId: resource?.subjectId ?? null,
     moduleId: resource?.moduleId ?? null,
     lessonId: resource?.lessonId ?? null,
@@ -83,8 +97,19 @@ export function ResourceForm({
   const [updateResource, { isLoading: updating }] = useUpdateResourceMutation()
   const isLoading = creating || updating
 
+  const courseIdForQuery =
+    placement.courseId?.trim() ||
+    fixedCourseId ||
+    fixedBatch?.data?.courseId ||
+    resource?.courseId ||
+    ""
+  const { data: courseData } = useGetCourseQuery(courseIdForQuery, { skip: !courseIdForQuery })
+  const isLive = courseData?.data?.deliveryMode === DeliveryMode.LIVE
+
   const pdfOnly = isPdfResourceCategory(category)
-  const subjectOnly = SUBJECT_ONLY_CATEGORIES.has(category)
+  const subjectRequired = isSubjectRequiredCategory(category)
+  const requireBatch = isLive && isBatchScopedCategory(category)
+  const showDeadline = isDeadlineCategory(category)
 
   const categoryOptions = useMemo(() => {
     if (lockCategory) {
@@ -132,6 +157,21 @@ export function ResourceForm({
       return
     }
 
+    if (requireBatch && !placement.batchId) {
+      setError(`Please select a ${BATCH.toLowerCase()}.`)
+      return
+    }
+
+    if (isLive && subjectRequired && !placement.subjectId) {
+      setError("Please select a subject.")
+      return
+    }
+
+    if (showDeadline && !deadlineAt.trim()) {
+      setError("Please set a deadline.")
+      return
+    }
+
     if (!fileUrl.trim()) {
       setError("Upload a PDF or paste a file link.")
       return
@@ -143,9 +183,11 @@ export function ResourceForm({
       fileType: pdfOnly ? ("pdf" as const) : fileType,
       category,
       courseId,
+      batchId: placement.batchId ?? null,
       subjectId: placement.subjectId ?? null,
-      moduleId: subjectOnly ? null : placement.moduleId ?? null,
-      lessonId: subjectOnly ? null : placement.lessonId ?? null,
+      moduleId: placement.moduleId ?? null,
+      lessonId: placement.lessonId ?? null,
+      deadlineAt: showDeadline && deadlineAt ? new Date(deadlineAt).toISOString() : null,
     }
 
     try {
@@ -157,9 +199,11 @@ export function ResourceForm({
             fileUrl: payload.fileUrl,
             fileType: payload.fileType,
             category: payload.category,
+            batchId: payload.batchId,
             subjectId: payload.subjectId,
             moduleId: payload.moduleId,
             lessonId: payload.lessonId,
+            deadlineAt: payload.deadlineAt,
           },
         }).unwrap()
         setSuccess("Resource updated.")
@@ -167,9 +211,11 @@ export function ResourceForm({
         await createResource(payload).unwrap()
         setTitle("")
         setFileUrl("")
+        setDeadlineAt("")
         setPlacement({
           ...initialPlacement,
           courseId: fixedCourseId ?? courseId,
+          batchId: fixedBatchId ?? null,
         })
         setSuccess("Resource saved.")
       }
@@ -237,6 +283,19 @@ export function ResourceForm({
           </div>
         )}
 
+        {showDeadline ? (
+          <div className="space-y-2">
+            <Label htmlFor="resource-deadline">Deadline</Label>
+            <Input
+              id="resource-deadline"
+              type="datetime-local"
+              value={deadlineAt}
+              onChange={(e) => setDeadlineAt(e.target.value)}
+              required
+            />
+          </div>
+        ) : null}
+
         {!pdfOnly ? (
           <div className="space-y-2">
             <Label>File format</Label>
@@ -268,10 +327,8 @@ export function ResourceForm({
           onChange={setPlacement}
           fixedBatchId={fixedBatchId}
           fixedCourseId={fixedCourseId ?? resource?.courseId ?? undefined}
-          hideModuleLesson={subjectOnly}
-          subjectLabel={
-            subjectOnly ? "Subject" : "Subject (optional)"
-          }
+          requireBatch={requireBatch}
+          subjectRequired={isLive && subjectRequired}
         />
       </div>
 

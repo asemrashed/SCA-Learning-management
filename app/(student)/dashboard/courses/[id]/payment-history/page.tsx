@@ -1,7 +1,7 @@
 "use client"
 
 import { use } from "react"
-import { CoursePaymentHistory } from "@/features/enrollment/components/course-payment-history"
+import { CoursePaymentHistory } from "@/features/monthly-payment/components/course-payment-history"
 
 export default function PaymentHistoryPage({
   params,

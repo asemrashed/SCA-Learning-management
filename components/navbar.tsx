@@ -18,6 +18,7 @@ import { motion, AnimatePresence } from "framer-motion"
 
 const navLinks = [
   { href: "/", label: "Home" },
+  { href: "/categories", label: "Categories" },
   { href: LIVE_COURSE_CATALOG_HREF, label: LIVE_COURSES },
   { href: "/shop", label: "Shop" },
   { href: "/about", label: "About Us" },
