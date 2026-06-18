@@ -7,32 +7,23 @@ import type { RootState } from "@/store"
 import { isAdminStaff } from "@/lib/roles"
 import { BatchAdminForm } from "@/features/batch/components/batch-admin-form"
 
-export default function NewBatchPage({
-  searchParams,
+export default function NewCourseBatchPage({
+  params,
 }: {
-  searchParams: Promise<{ courseId?: string }>
+  params: Promise<{ id: string }>
 }) {
   const router = useRouter()
   const user = useSelector((state: RootState) => state.auth.user)
-  const params = use(searchParams)
-  const courseId = params.courseId
+  const { id: courseId } = use(params)
 
   useEffect(() => {
-    if (!courseId) {
-      router.replace("/admin/courses")
-      return
-    }
     if (user && !isAdminStaff(user.role)) {
       router.replace("/admin/batches")
     }
-  }, [user, router, courseId])
-
-  if (!courseId) {
-    return <p className="p-8 text-muted-foreground">Select a live course first…</p>
-  }
+  }, [user, router])
 
   if (!user || !isAdminStaff(user.role)) {
-    return <p className="p-8 text-muted-foreground">Checking access…</p>
+    return <p className="p-8 text-muted-foreground">Checking access...</p>
   }
 
   return (

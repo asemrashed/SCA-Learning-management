@@ -104,7 +104,7 @@ export function CourseDashboardPreview({
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-lg font-semibold">{BATCHES}</h2>
             <Button asChild size="sm">
-              <Link href={`/admin/batches/new?courseId=${course.id}`}>
+              <Link href={`/admin/courses/${course.id}/batches/new`}>
                 <Plus className="mr-1 h-4 w-4" />
                 {NEW_BATCH}
               </Link>
