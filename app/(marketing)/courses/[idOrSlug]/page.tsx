@@ -17,7 +17,7 @@ export default async function CourseDetailPage({
 }) {
   const { idOrSlug } = await params
   const course = await fetchCourse(idOrSlug)
-  if (!course || course.deliveryMode !== DeliveryMode.RECORDED) {
+  if (!course) {
     notFound()
   }
 

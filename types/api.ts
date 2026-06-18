@@ -116,6 +116,7 @@ export interface CourseDetail {
   modules?: CourseModule[]
   subjects?: CourseSubject[]
   batches?: CourseBatchSummary[]
+  studentCount?: number
 }
 
 export interface CourseListResponse {

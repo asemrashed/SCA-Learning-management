@@ -47,10 +47,10 @@ export function CurriculumTree({ modules, initialVisible = 4 }: CurriculumTreePr
                 return (
                   <li
                     key={lesson.id}
-                    className="flex items-center justify-between rounded-lg bg-background/80 px-3 py-2 text-sm"
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-lg bg-background/80 px-3 py-2 text-sm"
                   >
-                    <span className="text-foreground">{lesson.title}</span>
-                    <div className="flex items-center gap-2 text-muted-foreground">
+                    <span className="truncate text-foreground font-medium w-full min-w-0">{lesson.title}</span>
+                    <div className="flex shrink-0 items-center gap-2 justify-between sm:justify-end w-full sm:w-auto text-muted-foreground">
                       {lesson.durationS ? (
                         <span className="text-xs">{formatDuration(lesson.durationS)}</span>
                       ) : null}
@@ -64,7 +64,7 @@ export function CurriculumTree({ modules, initialVisible = 4 }: CurriculumTreePr
                               duration: formatDuration(lesson.durationS),
                             })
                           }
-                          className="inline-flex items-center gap-1 text-primary hover:underline"
+                          className="inline-flex items-center gap-1 text-primary hover:underline text-xs"
                         >
                           <Play className="h-4 w-4" />
                           Preview

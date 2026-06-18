@@ -15,6 +15,7 @@ import { LIVE_COURSE_CATALOG_HREF, LIVE_COURSES } from "@/lib/product-vocabulary
 const usefulLinks = [
   { href: LIVE_COURSE_CATALOG_HREF, label: LIVE_COURSES },
   { href: "/about", label: "About Us" },
+  { href: "/contact", label: "Contact Us" },
   { href: "/blog", label: "Blog" },
 ]
 

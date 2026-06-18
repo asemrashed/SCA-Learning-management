@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Image from "next/image"
-import { BookOpen, Clock, Play } from "lucide-react"
+import { BookOpen, Clock, Play, Users, Calendar, ArrowRight } from "lucide-react"
 import { EnrollButton } from "@/features/enrollment/components/enroll-button"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -14,6 +14,7 @@ import { CHAPTERS, deliveryModeLabel } from "@/lib/product-vocabulary"
 import type { CourseDetail, CourseModule } from "@/types/api"
 import { CurriculumTree } from "./curriculum-tree"
 import { DeliveryMode } from "@/types/api"
+import { formatBatchDate, BATCH_STATUS_LABEL } from "@/features/batch/utils"
 
 interface CourseDetailViewProps {
   course: CourseDetail
@@ -42,6 +43,20 @@ export function CourseDetailView({ course }: CourseDetailViewProps) {
   const modules = course.modules ?? []
   const isRecorded = course.deliveryMode === DeliveryMode.RECORDED
   const batches = course.batches ?? []
+  
+  // Sort batches: latest batch on top (by startDate descending)
+  const sortedBatches = isRecorded
+    ? []
+    : [...batches].sort((a, b) => {
+        const dateA = a.startDate ? new Date(a.startDate).getTime() : 0
+        const dateB = b.startDate ? new Date(b.startDate).getTime() : 0
+        return dateB - dateA
+      })
+
+  const latestBatch = isRecorded
+    ? undefined
+    : sortedBatches.find((b) => b.status === "ACTIVE" || b.status === "UPCOMING") || sortedBatches[0]
+
   const previewLesson = isRecorded
     ? modules.flatMap((m) => m.lessons).find((l) => l.isPreview && l.videoUrl)
     : undefined
@@ -75,6 +90,12 @@ export function CourseDetailView({ course }: CourseDetailViewProps) {
                   {formatTotalDuration(totalDurationS(modules))}
                 </span>
               ) : null}
+              {course.studentCount !== undefined && course.studentCount > 0 ? (
+                <span className="inline-flex items-center gap-1">
+                  <Users className="h-5 w-5" />
+                  {course.studentCount} student{course.studentCount === 1 ? "" : "s"} enrolled
+                </span>
+              ) : null}
             </div>
           </div>
 
@@ -83,22 +104,69 @@ export function CourseDetailView({ course }: CourseDetailViewProps) {
           ) : null}
 
           <div className="rounded-[20px] bg-card p-6 shadow-sm">
-            <h2 className="mb-4 text-xl font-bold text-foreground">Curriculum</h2>
+            <h2 className="mb-4 text-xl font-bold text-foreground">
+              {isRecorded ? "Curriculum" : "Available Batches"}
+            </h2>
             {isRecorded ? (
               <CurriculumTree modules={modules} />
-            ) : batches.length > 0 ? (
-              <ul className="space-y-2 text-sm">
-                {batches.map((b) => (
-                  <li key={b.id}>
-                    <a href={`/batches/${b.slug}`} className="text-primary hover:underline">
-                      {b.title}
-                    </a>
-                    <span className="ml-2 text-muted-foreground">
-                      — {b.priceMinor === 0 ? "Free" : formatBdtMinor(b.priceMinor)}
-                    </span>
-                  </li>
+            ) : sortedBatches.length > 0 ? (
+              <div className="space-y-3">
+                {sortedBatches.map((b) => (
+                  <div
+                    key={b.id}
+                    className="group relative flex flex-col justify-between gap-4 rounded-xl border border-border bg-card p-4 transition-all hover:border-primary sm:flex-row sm:items-center"
+                  >
+                    <div className="space-y-1.5">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                          <a href={`/batches/${b.slug}`}>
+                            {b.title}
+                          </a>
+                        </h3>
+                        <Badge
+                          variant={
+                            b.status === "ACTIVE"
+                              ? "destructive"
+                              : b.status === "UPCOMING"
+                                ? "secondary"
+                                : "outline"
+                          }
+                        >
+                          {BATCH_STATUS_LABEL[b.status] || b.status}
+                        </Badge>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-3.5 w-3.5 text-primary" />
+                          Starts: {formatBatchDate(b.startDate)}
+                        </span>
+                        {(b as any)._count?.enrollments !== undefined && (b as any)._count.enrollments > 0 ? (
+                          <span className="flex items-center gap-1">
+                            <Users className="h-3.5 w-3.5 text-primary" />
+                            {(b as any)._count.enrollments} enrolled
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between gap-4 sm:justify-end">
+                      <span className="text-lg font-bold text-foreground">
+                        {b.priceMinor === 0 ? "Free" : formatBdtMinor(b.priceMinor)}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="rounded-lg border-primary/20 hover:bg-primary hover:text-primary-foreground"
+                        asChild
+                      >
+                        <a href={`/batches/${b.slug}`}>
+                          View Batch
+                          <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                        </a>
+                      </Button>
+                    </div>
+                  </div>
                 ))}
-              </ul>
+              </div>
             ) : (
               <p className="text-sm text-muted-foreground">No batches open for enrollment yet.</p>
             )}
@@ -148,6 +216,15 @@ export function CourseDetailView({ course }: CourseDetailViewProps) {
                 <span className="text-3xl font-bold text-foreground">
                   {course.priceMinor === 0 ? "Free" : formatBdtMinor(course.priceMinor)}
                 </span>
+              ) : latestBatch ? (
+                <div className="space-y-1">
+                  <span className="text-3xl font-bold text-foreground">
+                    {latestBatch.priceMinor === 0 ? "Free" : formatBdtMinor(latestBatch.priceMinor)}
+                  </span>
+                  <p className="text-xs text-muted-foreground">
+                    Enrollment price for {latestBatch.title}
+                  </p>
+                </div>
               ) : (
                 <span className="text-sm text-muted-foreground">
                   Enrollment price is set per batch cohort
@@ -161,9 +238,20 @@ export function CourseDetailView({ course }: CourseDetailViewProps) {
                 productTitle={course.title}
                 className="mb-3 w-full rounded-xl text-lg"
               />
+            ) : latestBatch ? (
+              <div className="space-y-3">
+                <EnrollButton
+                  batchId={latestBatch.id}
+                  productTitle={latestBatch.title}
+                  className="w-full rounded-xl text-lg"
+                />
+                <p className="text-center text-xs text-muted-foreground">
+                  Cohort starts on {formatBatchDate(latestBatch.startDate)}
+                </p>
+              </div>
             ) : (
               <p className="text-sm text-muted-foreground">
-                Live courses enroll by batch cohort — browse available batches from the home page.
+                No active cohorts available for enrollment at the moment.
               </p>
             )}
           </div>
