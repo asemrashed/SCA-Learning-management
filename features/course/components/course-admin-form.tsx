@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
+import { Plus, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -15,6 +16,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { MediaSourceField } from "@/components/media-source-field"
+import { NativeSelect } from "@/components/native-select"
+import { RichTextEditor } from "@/components/rich-text-editor"
 import {
   useApplyBatchCurriculumMutation,
   useCreateCourseMutation,
@@ -35,7 +38,7 @@ import {
   type SubjectForm,
 } from "@/features/course/components/curriculum-editor"
 import { deliveryModeLabel, EDIT_COURSE, NEW_COURSE, SAVE_COURSE } from "@/lib/product-vocabulary"
-import { DeliveryMode, type CreateCourseInput } from "@/types/api"
+import { DeliveryMode, type CreateCourseInput, type CourseFaqItem } from "@/types/api"
 
 function slugify(text: string): string {
   return text
@@ -51,6 +54,8 @@ interface CourseAdminFormProps {
 
 export function CourseAdminForm({ courseId }: CourseAdminFormProps) {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const initialBatchId = searchParams.get("batchId") ?? ""
   const isEdit = Boolean(courseId)
   const { data, isLoading } = useGetCourseQuery(courseId!, { skip: !courseId })
   const [createCourse, { isLoading: creating }] = useCreateCourseMutation()
@@ -73,9 +78,14 @@ export function CourseAdminForm({ courseId }: CourseAdminFormProps) {
   const [applyBatchIds, setApplyBatchIds] = useState<string[]>([])
   const [showPreBatchCurriculum, setShowPreBatchCurriculum] = useState(false)
   const [sourceBatchId, setSourceBatchId] = useState("")
+  const [faq, setFaq] = useState<CourseFaqItem[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [formReady, setFormReady] = useState(!isEdit)
 
-  const { data: categoriesData } = useListCategoriesQuery({ pageSize: 100, sort: "order:asc" })
+  const { data: categoriesData, isLoading: categoriesLoading } = useListCategoriesQuery({
+    pageSize: 100,
+    sort: "order:asc",
+  })
   const categoryOptions = categoriesData?.data ?? []
 
   const courseBatches = data?.data?.batches ?? []
@@ -94,7 +104,12 @@ export function CourseAdminForm({ courseId }: CourseAdminFormProps) {
   }, [isEdit, deliveryMode, modules.length])
 
   useEffect(() => {
-    if (!data?.data) return
+    if (!courseId) return
+    setFormReady(false)
+  }, [courseId])
+
+  useEffect(() => {
+    if (!data?.data || data.data.id !== courseId) return
     const c = data.data
     setDeliveryMode(c.deliveryMode)
     setTitle(c.title)
@@ -105,14 +120,23 @@ export function CourseAdminForm({ courseId }: CourseAdminFormProps) {
     setCategoryId(c.categoryId ?? "")
     setPriceMajor(String(c.priceMinor / 100))
     setIsPublished(c.isPublished)
+    setFaq(c.faq ?? [])
     if (c.deliveryMode === DeliveryMode.RECORDED && c.modules) {
       setModules(modulesFromApi(c.modules))
     }
-    if (c.deliveryMode === DeliveryMode.LIVE && c.batches?.length && !primaryBatchId) {
-      setPrimaryBatchId(c.batches[0].id)
-      setApplyBatchIds([c.batches[0].id])
-    }
-  }, [data, primaryBatchId])
+    setFormReady(true)
+  }, [data, courseId])
+
+  useEffect(() => {
+    if (!data?.data || data.data.id !== courseId) return
+    if (data.data.deliveryMode !== DeliveryMode.LIVE || !data.data.batches?.length) return
+    const preferredBatch =
+      initialBatchId && data.data.batches.some((b) => b.id === initialBatchId)
+        ? initialBatchId
+        : data.data.batches[0].id
+    setPrimaryBatchId(preferredBatch)
+    setApplyBatchIds([preferredBatch])
+  }, [data, courseId, initialBatchId])
 
   useEffect(() => {
     if (!slugTouched && title) {
@@ -147,8 +171,11 @@ export function CourseAdminForm({ courseId }: CourseAdminFormProps) {
       description: description.trim() || null,
       thumbnail: thumbnail.trim() || null,
       categoryId: categoryId || null,
-      priceMinor: Math.round(parseFloat(priceMajor || "0") * 100),
+      faq: faq.filter((item) => item.question.trim() && item.answer.trim()),
       isPublished,
+      ...(deliveryMode === DeliveryMode.RECORDED
+        ? { priceMinor: Math.round(parseFloat(priceMajor || "0") * 100) }
+        : {}),
     }
 
     try {
@@ -157,7 +184,8 @@ export function CourseAdminForm({ courseId }: CourseAdminFormProps) {
           deliveryMode === DeliveryMode.RECORDED
             ? { ...base, modules: modulesToPayload(modules) }
             : base
-        await updateCourse({ id: courseId, body }).unwrap()
+        const courseResult = await updateCourse({ id: courseId, body }).unwrap()
+        setCategoryId(courseResult.data.categoryId ?? "")
 
         if (deliveryMode === DeliveryMode.LIVE && applyBatchIds.length > 0) {
           await applyBatchCurriculum({
@@ -193,7 +221,7 @@ export function CourseAdminForm({ courseId }: CourseAdminFormProps) {
     }
   }
 
-  if (isEdit && isLoading) {
+  if (isEdit && (!formReady || isLoading || categoriesLoading || data?.data?.id !== courseId)) {
     return <p className="text-muted-foreground">Loading course…</p>
   }
 
@@ -248,30 +276,26 @@ export function CourseAdminForm({ courseId }: CourseAdminFormProps) {
           </div>
           <div className="space-y-2">
             <Label htmlFor="category">Category</Label>
-            <Select
+            <NativeSelect
+              id="category"
               value={categoryId || "none"}
-              onValueChange={(value) => setCategoryId(value === "none" ? "" : value)}
+              onChange={(e) => setCategoryId(e.target.value === "none" ? "" : e.target.value)}
+              disabled={categoriesLoading}
             >
-              <SelectTrigger id="category">
-                <SelectValue placeholder="Select category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">No category</SelectItem>
-                {categoryOptions.map((cat) => (
-                  <SelectItem key={cat.id} value={cat.id}>
-                    {cat.title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              <option value="none">No category</option>
+              {categoryOptions.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.title}
+                </option>
+              ))}
+            </NativeSelect>
           </div>
           <div className="space-y-2 sm:col-span-2">
             <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
+            <RichTextEditor
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={4}
+              onChange={setDescription}
+              placeholder="Write about this course…"
             />
           </div>
           <MediaSourceField
@@ -282,24 +306,19 @@ export function CourseAdminForm({ courseId }: CourseAdminFormProps) {
             accept="image/*"
             placeholder="https://…"
           />
-          <div className="space-y-2">
-            <Label htmlFor="price">
-              {deliveryMode === DeliveryMode.LIVE ? "Display price (৳)" : "Price (৳)"}
-            </Label>
-            <Input
-              id="price"
-              type="number"
-              min="0"
-              step="1"
-              value={priceMajor}
-              onChange={(e) => setPriceMajor(e.target.value)}
-            />
-            {deliveryMode === DeliveryMode.LIVE ? (
-              <p className="text-xs text-muted-foreground">
-                Enrollment price is set per batch cohort.
-              </p>
-            ) : null}
-          </div>
+          {deliveryMode === DeliveryMode.RECORDED ? (
+            <div className="space-y-2">
+              <Label htmlFor="price">Price (৳)</Label>
+              <Input
+                id="price"
+                type="number"
+                min="0"
+                step="1"
+                value={priceMajor}
+                onChange={(e) => setPriceMajor(e.target.value)}
+              />
+            </div>
+          ) : null}
           <div className="flex items-center gap-2 sm:col-span-2">
             <Checkbox
               id="published"
@@ -309,6 +328,67 @@ export function CourseAdminForm({ courseId }: CourseAdminFormProps) {
             <Label htmlFor="published">Published (visible in public catalog)</Label>
           </div>
         </div>
+      </div>
+
+      <div className="space-y-4 rounded-xl border bg-card p-6">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h3 className="text-base font-semibold">FAQ</h3>
+            <p className="text-sm text-muted-foreground">
+              Questions and answers shown on the public course page.
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setFaq((prev) => [...prev, { question: "", answer: "" }])}
+          >
+            <Plus className="mr-1 h-4 w-4" />
+            Add question
+          </Button>
+        </div>
+        {faq.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No FAQ items yet.</p>
+        ) : (
+          <div className="space-y-4">
+            {faq.map((item, index) => (
+              <div key={index} className="space-y-3 rounded-lg border p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <Label className="text-sm font-medium">Question {index + 1}</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-destructive"
+                    onClick={() => setFaq((prev) => prev.filter((_, i) => i !== index))}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+                <Input
+                  value={item.question}
+                  onChange={(e) =>
+                    setFaq((prev) =>
+                      prev.map((f, i) => (i === index ? { ...f, question: e.target.value } : f)),
+                    )
+                  }
+                  placeholder="Question"
+                />
+                <Textarea
+                  value={item.answer}
+                  onChange={(e) =>
+                    setFaq((prev) =>
+                      prev.map((f, i) => (i === index ? { ...f, answer: e.target.value } : f)),
+                    )
+                  }
+                  placeholder="Answer"
+                  rows={3}
+                />
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {deliveryMode === DeliveryMode.LIVE ? (

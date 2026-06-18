@@ -57,6 +57,7 @@ export interface CourseListItem {
   priceMinor: number
   isPublished: boolean
   batchCount?: number
+  studentCount?: number
 }
 
 export interface CourseLesson {
@@ -94,6 +95,11 @@ export interface CourseBatchSummary {
   startDate: string | null
 }
 
+export interface CourseFaqItem {
+  question: string
+  answer: string
+}
+
 export interface CourseDetail {
   id: string
   title: string
@@ -105,6 +111,7 @@ export interface CourseDetail {
   categorySlug: string | null
   categoryId: string | null
   priceMinor: number
+  faq: CourseFaqItem[]
   isPublished: boolean
   modules?: CourseModule[]
   subjects?: CourseSubject[]
@@ -144,6 +151,7 @@ export interface CreateRecordedCourseInput {
   thumbnail?: string | null
   categoryId?: string | null
   priceMinor?: number
+  faq?: CourseFaqItem[] | null
   isPublished?: boolean
   modules?: CourseInputModule[]
 }
@@ -155,7 +163,7 @@ export interface CreateLiveCourseInput {
   description?: string | null
   thumbnail?: string | null
   categoryId?: string | null
-  priceMinor?: number
+  faq?: CourseFaqItem[] | null
   isPublished?: boolean
 }
 
@@ -164,6 +172,7 @@ export type CreateCourseInput = CreateRecordedCourseInput | CreateLiveCourseInpu
 export type UpdateCourseInput = Partial<
   Omit<CreateRecordedCourseInput, 'deliveryMode'> & {
     modules?: CourseInputModule[]
+    faq?: CourseFaqItem[] | null
   }
 >
 
@@ -513,6 +522,11 @@ export enum SessionStatus {
   CANCELLED = 'CANCELLED',
 }
 
+export enum LiveClassType {
+  RECURRING = 'RECURRING',
+  ONE_TIME = 'ONE_TIME',
+}
+
 export enum AttendanceStatus {
   PRESENT = 'PRESENT',
   ABSENT = 'ABSENT',
@@ -572,6 +586,48 @@ export interface UpdateSessionInput {
   scheduledAt?: string
   startedAt?: string | null
   endedAt?: string | null
+}
+
+export interface LiveClassSchedule {
+  id: string
+  batchId: string
+  type: LiveClassType
+  subject: string
+  daysOfWeek: number[]
+  scheduledDate: string | null
+  startTime: string
+  endTime: string | null
+  passcode: string | null
+  joinUrl: string
+  order: number
+  createdAt: string
+  updatedAt: string
+  sessionId: string | null
+}
+
+export interface CreateLiveClassScheduleInput {
+  batchId: string
+  type: LiveClassType
+  subject: string
+  daysOfWeek?: number[]
+  scheduledDate?: string
+  startTime: string
+  endTime?: string
+  passcode?: string
+  joinUrl: string
+  order?: number
+}
+
+export interface UpdateLiveClassScheduleInput {
+  type?: LiveClassType
+  subject?: string
+  daysOfWeek?: number[]
+  scheduledDate?: string | null
+  startTime?: string
+  endTime?: string | null
+  passcode?: string | null
+  joinUrl?: string
+  order?: number
 }
 
 export interface CreateRecordingInput {
@@ -728,6 +784,8 @@ export enum ResourceCategory {
   SOLUTION_PDF = 'SOLUTION_PDF',
   NOTICE = 'NOTICE',
   RESULT_SHEET = 'RESULT_SHEET',
+  MATH_SUGGESTION = 'MATH_SUGGESTION',
+  THEORY_SUGGESTION = 'THEORY_SUGGESTION',
   EXAM = 'EXAM',
   ASSIGNMENT = 'ASSIGNMENT',
 }

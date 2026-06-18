@@ -1,31 +1,63 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Plus } from "lucide-react"
+import { Plus, Search } from "lucide-react"
 import { useSelector } from "react-redux"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { formatBdtMinor } from "@/lib/format-currency"
 import { isSuperAdmin } from "@/lib/roles"
 import type { RootState } from "@/store"
 import { useListCoursesQuery, useDeleteCourseMutation } from "@/features/course/api"
+import { useListCategoriesQuery } from "@/features/category/api"
 import { COURSES, MANAGE_COURSES, NEW_COURSE, deliveryModeLabel } from "@/lib/product-vocabulary"
 import { DeliveryMode } from "@/types/api"
+import { cn } from "@/lib/utils"
+
+type ModeFilter = "all" | DeliveryMode.LIVE | DeliveryMode.RECORDED
 
 export function CourseManageList() {
   const user = useSelector((state: RootState) => state.auth.user)
   const canCreateDelete = user?.role !== undefined && isSuperAdmin(user.role)
 
+  const [search, setSearch] = useState("")
+  const [debouncedSearch, setDebouncedSearch] = useState("")
+  const [modeFilter, setModeFilter] = useState<ModeFilter>("all")
+  const [categoryFilter, setCategoryFilter] = useState("all")
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search.trim()), 300)
+    return () => clearTimeout(timer)
+  }, [search])
+
+  const { data: categoriesData } = useListCategoriesQuery({ pageSize: 100, sort: "order:asc" })
+  const categories = categoriesData?.data ?? []
+
   const { data, isLoading, error } = useListCoursesQuery({
-    pageSize: 50,
+    pageSize: 100,
     sort: "createdAt:desc",
+    search: debouncedSearch || undefined,
+    deliveryMode: modeFilter !== "all" ? modeFilter : undefined,
+    category:
+      categoryFilter !== "all"
+        ? categories.find((c) => c.id === categoryFilter)?.slug
+        : undefined,
   })
   const [deleteCourse] = useDeleteCourseMutation()
 
   const courses = data?.data ?? []
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10">
+    <div className="mx-auto max-w-6xl px-4 py-10">
       <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">{MANAGE_COURSES}</h1>
@@ -43,12 +75,64 @@ export function CourseManageList() {
         ) : null}
       </div>
 
+      <div className="mb-6 flex flex-wrap gap-2">
+        <Button
+          type="button"
+          variant={modeFilter === "all" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setModeFilter("all")}
+        >
+          All courses
+        </Button>
+        <Button
+          type="button"
+          variant={modeFilter === DeliveryMode.LIVE ? "default" : "outline"}
+          size="sm"
+          onClick={() => setModeFilter(DeliveryMode.LIVE)}
+        >
+          {deliveryModeLabel(DeliveryMode.LIVE)} courses
+        </Button>
+        <Button
+          type="button"
+          variant={modeFilter === DeliveryMode.RECORDED ? "default" : "outline"}
+          size="sm"
+          onClick={() => setModeFilter(DeliveryMode.RECORDED)}
+        >
+          {deliveryModeLabel(DeliveryMode.RECORDED)} courses
+        </Button>
+      </div>
+
+      <div className="mb-6 flex flex-wrap items-center gap-3">
+        <div className="relative min-w-[200px] flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search courses…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+          <SelectTrigger className={cn("w-[180px]")}>
+            <SelectValue placeholder="Category" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All categories</SelectItem>
+            {categories.map((cat) => (
+              <SelectItem key={cat.id} value={cat.id}>
+                {cat.title}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       {isLoading ? (
         <p className="text-muted-foreground">Loading…</p>
       ) : error ? (
         <p className="text-destructive">Could not load {COURSES.toLowerCase()}.</p>
       ) : courses.length === 0 ? (
-        <p className="text-muted-foreground">No {COURSES.toLowerCase()} yet.</p>
+        <p className="text-muted-foreground">No {COURSES.toLowerCase()} match your filters.</p>
       ) : (
         <div className="overflow-hidden rounded-xl border">
           <table className="w-full text-sm">
@@ -56,6 +140,7 @@ export function CourseManageList() {
               <tr>
                 <th className="px-4 py-3 font-medium">Title</th>
                 <th className="px-4 py-3 font-medium">Mode</th>
+                <th className="px-4 py-3 font-medium">Category</th>
                 <th className="px-4 py-3 font-medium">Price</th>
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium">Actions</th>
@@ -76,8 +161,17 @@ export function CourseManageList() {
                       </span>
                     ) : null}
                   </td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {course.category ?? "—"}
+                  </td>
                   <td className="px-4 py-3">
-                    {course.priceMinor === 0 ? "Free" : formatBdtMinor(course.priceMinor)}
+                    {course.deliveryMode === DeliveryMode.LIVE ? (
+                      <span className="text-muted-foreground">Per batch</span>
+                    ) : course.priceMinor === 0 ? (
+                      "Free"
+                    ) : (
+                      formatBdtMinor(course.priceMinor)
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     {course.isPublished ? "Published" : "Draft"}

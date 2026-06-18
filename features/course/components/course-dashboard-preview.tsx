@@ -17,6 +17,8 @@ import {
   deliveryModeLabel,
 } from "@/lib/product-vocabulary"
 import { DeliveryMode } from "@/types/api"
+import { ExpandableRichContent } from "@/components/expandable-rich-content"
+import { FAQAccordion } from "@/components/faq-accordion"
 import { CurriculumTree } from "./curriculum-tree"
 
 interface CourseDashboardPreviewProps {
@@ -55,8 +57,13 @@ export function CourseDashboardPreview({
             </div>
             <h1 className="text-2xl font-bold">{course.title}</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              {course.isPublished ? "Published" : "Draft"} ·{" "}
-              {course.priceMinor === 0 ? "Free" : formatBdtMinor(course.priceMinor)}
+              {course.isPublished ? "Published" : "Draft"}
+              {course.deliveryMode === DeliveryMode.RECORDED ? (
+                <>
+                  {" · "}
+                  {course.priceMinor === 0 ? "Free" : formatBdtMinor(course.priceMinor)}
+                </>
+              ) : null}
             </p>
           </div>
           {editHref ? (
@@ -65,10 +72,18 @@ export function CourseDashboardPreview({
             </Button>
           ) : null}
         </div>
-        {course.description ? (
-          <p className="mt-4 text-muted-foreground">{course.description}</p>
-        ) : null}
       </div>
+
+      {course.description ? (
+        <ExpandableRichContent html={course.description} />
+      ) : null}
+
+      {course.faq?.length ? (
+        <section className="rounded-xl border bg-card p-6">
+          <h2 className="mb-4 text-lg font-semibold">Frequently Asked Questions</h2>
+          <FAQAccordion items={course.faq} />
+        </section>
+      ) : null}
 
       <section>
         <h2 className="mb-4 text-lg font-semibold">Curriculum</h2>
@@ -122,6 +137,11 @@ export function CourseDashboardPreview({
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap gap-2">
+                          <Button variant="outline" size="sm" asChild>
+                            <Link href={`/admin/courses/${course.id}/edit?batchId=${batch.id}`}>
+                              Curriculum
+                            </Link>
+                          </Button>
                           <Button variant="outline" size="sm" asChild>
                             <Link href={`/admin/batches/${batch.id}/edit`}>Edit</Link>
                           </Button>

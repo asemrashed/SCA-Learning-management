@@ -28,6 +28,8 @@ export function getStudentBackLabel(pathname: string): string {
       return "My Profile"
     case "resources":
       return "Resources"
+    case "suggestions":
+      return "Suggestion"
     case "certificates":
       return "Certificates"
     case "details":
@@ -37,6 +39,8 @@ export function getStudentBackLabel(pathname: string): string {
     case "exam":
       return "Course"
     case "assignment":
+      return "Course"
+    case "suggestion":
       return "Course"
     case "live-class":
       return "Course"

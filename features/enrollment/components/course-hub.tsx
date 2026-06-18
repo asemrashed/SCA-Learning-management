@@ -12,6 +12,7 @@ import {
   PenLine,
   Bell,
   Award,
+  Lightbulb,
 } from "lucide-react"
 import { useGetEnrollmentQuery } from "@/features/enrollment/api"
 import { SectionLinkCard } from "@/components/student/section-link-card"
@@ -23,17 +24,18 @@ interface CourseHubProps {
 }
 
 const sections = [
-  { slug: "details", title: "Course Details", icon: BookOpen },
+  { slug: "live-class", title: "Live Class", icon: Radio },
+  { slug: "recorded", title: "Recorded Class", icon: PlayCircle },
+  { slug: "pre-recorded", title: "Pre-Recorded Class", icon: Video },
   { slug: "lecture-sheet", title: "Lecture Sheet", icon: FileText },
   { slug: "solution-pdf", title: "Solution PDF", icon: FileCheck },
-  { slug: "notice", title: "Notice", icon: Bell },
-  { slug: "result-sheet", title: "Result Sheet", icon: Award },
-  { slug: "live-class", title: "Live Class Link", icon: Radio },
-  { slug: "pre-recorded", title: "Pre-Recorded Class", icon: Video },
-  { slug: "recorded", title: "Recorded Class", icon: PlayCircle },
-  { slug: "payment-history", title: "Payment History", icon: CreditCard },
-  { slug: "exam", title: "Exam", icon: ClipboardList },
+  { slug: "suggestion", title: "Suggestions", icon: Lightbulb },
   { slug: "assignment", title: "Assignment", icon: PenLine },
+  { slug: "exam", title: "Exam", icon: ClipboardList },
+  { slug: "result-sheet", title: "Result Sheet", icon: Award },
+  { slug: "notice", title: "Notice", icon: Bell },
+  { slug: "payment-history", title: "Payment History", icon: CreditCard },
+  { slug: "details", title: "Course Details", icon: BookOpen },
 ] as const
 
 export function CourseHub({ enrollmentId }: CourseHubProps) {

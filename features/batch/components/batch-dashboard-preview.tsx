@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { BookOpen } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { BatchCurriculum } from "@/features/batch/components/BatchCurriculum"
 import { useGetBatchQuery, useGetBatchCurriculumQuery } from "@/features/batch/api"
@@ -51,9 +52,17 @@ export function BatchDashboardPreview({
               </Link>
             </p>
           </div>
-          <Button asChild variant="outline" className="rounded-xl">
-            <Link href={liveManageHref}>Manage live classes</Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="outline" className="rounded-xl">
+              <Link href={`/admin/courses/${batch.course.id}/edit?batchId=${batchId}`}>
+                <BookOpen className="mr-1 h-4 w-4" />
+                Edit curriculum
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="rounded-xl">
+              <Link href={liveManageHref}>Manage live classes</Link>
+            </Button>
+          </div>
         </div>
       </div>
 

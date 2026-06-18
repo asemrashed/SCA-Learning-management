@@ -17,12 +17,23 @@ export const RECORDED_COURSES = 'Recorded courses'
 
 export const BATCH = 'Batch'
 export const BATCHES = 'Batches'
+export const OUR_LIVE_BATCHES = 'Our live batches'
+export const OUR_LIVE_COURSES = 'Our Live courses'
+export const OUR_RECORDED_COURSES = 'Our Recorded Courses'
 export const NEW_BATCH = 'New batch'
 export const EDIT_BATCH = 'Edit batch'
 export const SAVE_BATCH = 'Save batch'
 
 export function courseCount(n: number): string {
   return `${n} course${n === 1 ? '' : 's'}`
+}
+
+export function batchCount(n: number): string {
+  return `${n} batch${n === 1 ? '' : 'es'}`
+}
+
+export function studentCount(n: number): string {
+  return `${n} student${n === 1 ? '' : 's'}`
 }
 
 /** @deprecated use courseCount */

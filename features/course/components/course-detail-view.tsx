@@ -7,6 +7,8 @@ import { EnrollButton } from "@/features/enrollment/components/enroll-button"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { VideoModal } from "@/components/video-modal"
+import { FAQAccordion } from "@/components/faq-accordion"
+import { ExpandableRichContent } from "@/components/expandable-rich-content"
 import { formatBdtMinor } from "@/lib/format-currency"
 import { CHAPTERS, deliveryModeLabel } from "@/lib/product-vocabulary"
 import type { CourseDetail, CourseModule } from "@/types/api"
@@ -60,9 +62,6 @@ export function CourseDetailView({ course }: CourseDetailViewProps) {
             <h1 className="mb-4 text-2xl font-bold text-foreground md:text-3xl lg:text-4xl">
               {course.title}
             </h1>
-            {course.description ? (
-              <p className="mb-6 text-muted-foreground">{course.description}</p>
-            ) : null}
             <div className="flex flex-wrap items-center gap-6 text-sm text-muted-foreground">
               <span className="inline-flex items-center gap-1">
                 <BookOpen className="h-5 w-5" />
@@ -78,6 +77,10 @@ export function CourseDetailView({ course }: CourseDetailViewProps) {
               ) : null}
             </div>
           </div>
+
+          {course.description ? (
+            <ExpandableRichContent html={course.description} />
+          ) : null}
 
           <div className="rounded-[20px] bg-card p-6 shadow-sm">
             <h2 className="mb-4 text-xl font-bold text-foreground">Curriculum</h2>
@@ -100,6 +103,15 @@ export function CourseDetailView({ course }: CourseDetailViewProps) {
               <p className="text-sm text-muted-foreground">No batches open for enrollment yet.</p>
             )}
           </div>
+
+          {course.faq?.length ? (
+            <div className="rounded-[20px] bg-card p-6 shadow-sm">
+              <h2 className="mb-4 text-xl font-bold text-foreground">
+                Frequently Asked Questions
+              </h2>
+              <FAQAccordion items={course.faq} />
+            </div>
+          ) : null}
         </div>
 
         <div className="lg:col-span-1">
@@ -132,9 +144,15 @@ export function CourseDetailView({ course }: CourseDetailViewProps) {
             </div>
 
             <div className="mb-6">
-              <span className="text-3xl font-bold text-foreground">
-                {course.priceMinor === 0 ? "Free" : formatBdtMinor(course.priceMinor)}
-              </span>
+              {isRecorded ? (
+                <span className="text-3xl font-bold text-foreground">
+                  {course.priceMinor === 0 ? "Free" : formatBdtMinor(course.priceMinor)}
+                </span>
+              ) : (
+                <span className="text-sm text-muted-foreground">
+                  Enrollment price is set per batch cohort
+                </span>
+              )}
             </div>
 
             {isRecorded ? (

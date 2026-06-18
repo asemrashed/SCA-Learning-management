@@ -1,6 +1,6 @@
 "use client"
 
-import { use } from "react"
+import { Suspense, use } from "react"
 import { CourseAdminForm } from "@/features/course/components/course-admin-form"
 
 export default function AdminEditCoursePage({
@@ -11,7 +11,9 @@ export default function AdminEditCoursePage({
   const { id } = use(params)
   return (
     <div className="px-4 py-10">
-      <CourseAdminForm courseId={id} />
+      <Suspense fallback={<p className="text-muted-foreground">Loading course…</p>}>
+        <CourseAdminForm courseId={id} />
+      </Suspense>
     </div>
   )
 }

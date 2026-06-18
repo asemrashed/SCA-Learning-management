@@ -9,9 +9,18 @@ import { motion } from "framer-motion"
 import { formatBdtMinor } from "@/lib/format-currency"
 import type { BatchListItem } from "@/features/batch/types"
 import { BATCH_STATUS_LABEL, daysUntil, formatBatchDate } from "@/features/batch/utils"
+import { cn } from "@/lib/utils"
 
 const FALLBACK_IMAGE =
   "https://images.unsplash.com/photo-1517180102446-f3ece451e9d8?w=400&h=250&fit=crop"
+
+const STATUS_BADGE_CLASS: Record<string, string> = {
+  UPCOMING: "bg-amber-400 text-secondary hover:bg-amber-400",
+  ACTIVE: "bg-destructive text-white hover:bg-destructive",
+  COMPLETED: "bg-white/90 text-secondary hover:bg-white/90",
+  CANCELLED: "bg-muted text-secondary hover:bg-muted",
+  DRAFT: "bg-white/20 text-white hover:bg-white/20",
+}
 
 interface BatchCardProps {
   batch: BatchListItem
@@ -19,7 +28,6 @@ interface BatchCardProps {
 
 export function BatchCard({ batch }: BatchCardProps) {
   const daysLeft = daysUntil(batch.registrationDeadline)
-  const isLive = batch.status === "ACTIVE"
 
   return (
     <motion.div
@@ -37,13 +45,17 @@ export function BatchCard({ batch }: BatchCardProps) {
           fill
           className="object-cover transition-transform duration-300 group-hover:scale-105"
         />
-        {isLive && (
-          <div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-destructive px-3 py-1">
-            <span className="h-2 w-2 animate-pulse rounded-full bg-white" />
-            <span className="text-xs font-medium text-white">LIVE</span>
-          </div>
-        )}
-        <Badge className="absolute right-3 top-3 bg-secondary text-primary hover:bg-secondary">
+        {batch.courseTitle ? (
+          <Badge className="absolute left-3 top-3 max-w-[calc(100%-6rem)] truncate bg-primary text-secondary hover:bg-primary">
+            {batch.courseTitle}
+          </Badge>
+        ) : null}
+        <Badge
+          className={cn(
+            "absolute right-3 top-3",
+            STATUS_BADGE_CLASS[batch.status] ?? "bg-secondary text-primary hover:bg-secondary",
+          )}
+        >
           {BATCH_STATUS_LABEL[batch.status] ?? batch.status}
         </Badge>
       </div>

@@ -11,10 +11,11 @@ import { useListBatchesQuery } from "@/features/batch/api"
 import type { BatchStatus } from "@/features/batch/types"
 import { BATCH_STATUS_LABEL } from "@/features/batch/utils"
 import {
+  BATCHES,
   BROWSE_LIVE_COURSES,
   LIVE_COURSE_CATALOG_HREF,
-  LIVE_COURSES,
-  liveCourseCount,
+  OUR_LIVE_BATCHES,
+  batchCount,
 } from "@/lib/product-vocabulary"
 import { motion } from "framer-motion"
 
@@ -47,7 +48,7 @@ export function LiveBatchesSection() {
         id: status.toLowerCase(),
         label: BATCH_STATUS_LABEL[status] ?? status,
         icon: STATUS_ICONS[status] ?? Layers,
-        subtitle: liveCourseCount(counts.get(status) ?? 0),
+        subtitle: batchCount(counts.get(status) ?? 0),
       }))
 
     return [
@@ -55,7 +56,7 @@ export function LiveBatchesSection() {
         id: "all",
         label: "All",
         icon: Grid3X3,
-        subtitle: liveCourseCount(batches.length),
+        subtitle: batchCount(batches.length),
       },
       ...statusItems,
     ]
@@ -88,7 +89,7 @@ export function LiveBatchesSection() {
             </Badge>
           </div>
           <h2 className="mb-2 text-3xl font-bold text-white md:text-4xl">
-            Our {LIVE_COURSES}
+            {OUR_LIVE_BATCHES}
           </h2>
           <p className="mx-auto max-w-2xl text-white/70">
             Join structured programs with live sessions, expert instructors, and a full curriculum
@@ -106,9 +107,9 @@ export function LiveBatchesSection() {
         ) : null}
 
         {isLoading ? (
-          <p className="py-12 text-center text-white/70">Loading {LIVE_COURSES.toLowerCase()}…</p>
+          <p className="py-12 text-center text-white/70">Loading {BATCHES.toLowerCase()}…</p>
         ) : displayBatches.length === 0 ? (
-          <p className="py-12 text-center text-white/70">{LIVE_COURSES} coming soon.</p>
+          <p className="py-12 text-center text-white/70">{BATCHES} coming soon.</p>
         ) : (
           <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-4">
             {displayBatches.map((batch, index) => (

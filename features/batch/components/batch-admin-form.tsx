@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ExternalLink } from "lucide-react"
+import { ExternalLink, BookOpen } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { NativeSelect } from "@/components/native-select"
 import {
   Select,
   SelectContent,
@@ -86,21 +87,28 @@ export function BatchAdminForm({
   const [startDate, setStartDate] = useState("")
   const [endDate, setEndDate] = useState("")
   const [error, setError] = useState<string | null>(null)
+  const [formReady, setFormReady] = useState(!isEdit)
 
   useEffect(() => {
-    if (!data?.data) return
+    if (!batchId) return
+    setFormReady(false)
+  }, [batchId])
+
+  useEffect(() => {
+    if (!data?.data || data.data.id !== batchId) return
     const b = data.data
     setTitle(b.title)
     setSlug(b.slug)
     setSlugTouched(true)
-    setStatus(b.status)
+    setStatus(b.status ?? "DRAFT")
     setThumbnail(b.thumbnail ?? "")
     setPriceMajor(String(b.priceMinor / 100))
     setCapacity(b.capacity != null ? String(b.capacity) : "")
     setRegistrationDeadline(toDatetimeLocal(b.registrationDeadline))
     setStartDate(toDatetimeLocal(b.startDate))
     setEndDate(toDatetimeLocal(b.endDate))
-  }, [data])
+    setFormReady(true)
+  }, [data, batchId])
 
   useEffect(() => {
     if (!slugTouched && title) {
@@ -126,7 +134,8 @@ export function BatchAdminForm({
 
     try {
       if (isEdit && batchId) {
-        await updateBatch({ id: batchId, body }).unwrap()
+        const result = await updateBatch({ id: batchId, body }).unwrap()
+        setStatus(result.data.status ?? status)
         router.refresh()
       } else {
         const resolvedCourseId = courseId ?? data?.data?.courseId
@@ -153,7 +162,7 @@ export function BatchAdminForm({
     }
   }
 
-  if (isEdit && isLoading) {
+  if (isEdit && (!formReady || isLoading || data?.data?.id !== batchId)) {
     return <p className="text-muted-foreground">Loading {BATCH.toLowerCase()}…</p>
   }
 
@@ -177,12 +186,22 @@ export function BatchAdminForm({
             ) : null}
           </div>
           {isEdit && publicSlug ? (
-            <Button type="button" variant="outline" size="sm" asChild>
-              <Link href={`/batches/${publicSlug}`} target="_blank">
-                <ExternalLink className="mr-1 h-4 w-4" />
-                View public page
-              </Link>
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              {parentCourse && batchId ? (
+                <Button type="button" variant="outline" size="sm" asChild>
+                  <Link href={`/admin/courses/${parentCourse.id}/edit?batchId=${batchId}`}>
+                    <BookOpen className="mr-1 h-4 w-4" />
+                    Edit curriculum
+                  </Link>
+                </Button>
+              ) : null}
+              <Button type="button" variant="outline" size="sm" asChild>
+                <Link href={`/batches/${publicSlug}`} target="_blank">
+                  <ExternalLink className="mr-1 h-4 w-4" />
+                  View public page
+                </Link>
+              </Button>
+            </div>
           ) : null}
         </div>
 
@@ -205,18 +224,17 @@ export function BatchAdminForm({
           </div>
           <div className="space-y-2">
             <Label htmlFor="status">Status</Label>
-            <Select value={status} onValueChange={(v) => setStatus(v as BatchStatus)}>
-              <SelectTrigger id="status">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {BATCH_STATUSES.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {BATCH_STATUS_LABEL[s] ?? s}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <NativeSelect
+              id="status"
+              value={status}
+              onChange={(e) => setStatus(e.target.value as BatchStatus)}
+            >
+              {BATCH_STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {BATCH_STATUS_LABEL[s] ?? s}
+                </option>
+              ))}
+            </NativeSelect>
           </div>
           <MediaSourceField
             label="Thumbnail"

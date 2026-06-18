@@ -6,6 +6,8 @@ export const RESOURCE_CATEGORY_LABELS: Record<ResourceCategory, string> = {
   [ResourceCategory.SOLUTION_PDF]: 'Solution PDF',
   [ResourceCategory.NOTICE]: 'Notice',
   [ResourceCategory.RESULT_SHEET]: 'Result sheet',
+  [ResourceCategory.MATH_SUGGESTION]: 'Math suggestion',
+  [ResourceCategory.THEORY_SUGGESTION]: 'Theory suggestion',
   [ResourceCategory.EXAM]: 'Exam',
   [ResourceCategory.ASSIGNMENT]: 'Assignment',
 }
@@ -15,6 +17,8 @@ export const PDF_RESOURCE_CATEGORIES = new Set<ResourceCategory>([
   ResourceCategory.SOLUTION_PDF,
   ResourceCategory.NOTICE,
   ResourceCategory.RESULT_SHEET,
+  ResourceCategory.MATH_SUGGESTION,
+  ResourceCategory.THEORY_SUGGESTION,
   ResourceCategory.EXAM,
   ResourceCategory.ASSIGNMENT,
 ])
@@ -36,6 +40,8 @@ export const BATCH_SCOPED_CATEGORIES = new Set<ResourceCategory>([
   ResourceCategory.SOLUTION_PDF,
   ResourceCategory.NOTICE,
   ResourceCategory.RESULT_SHEET,
+  ResourceCategory.MATH_SUGGESTION,
+  ResourceCategory.THEORY_SUGGESTION,
   ResourceCategory.EXAM,
   ResourceCategory.ASSIGNMENT,
 ])
@@ -47,6 +53,8 @@ export const CONTENT_RESOURCE_CATEGORIES = new Set<ResourceCategory>([
   ResourceCategory.SOLUTION_PDF,
   ResourceCategory.NOTICE,
   ResourceCategory.RESULT_SHEET,
+  ResourceCategory.MATH_SUGGESTION,
+  ResourceCategory.THEORY_SUGGESTION,
 ])
 
 export const ASSESSMENT_RESOURCE_CATEGORIES = new Set<ResourceCategory>([

@@ -1,58 +1,67 @@
 "use client"
 
 import { useGetEnrollmentQuery } from "@/features/enrollment/api"
-import { enrollmentProductTitle } from "@/features/enrollment/curriculum"
+import { enrollmentCourseId, enrollmentProductTitle } from "@/features/enrollment/curriculum"
+import { useGetCourseQuery } from "@/features/course/api"
+import { ExpandableRichContent } from "@/components/expandable-rich-content"
+import { FAQAccordion } from "@/components/faq-accordion"
 import { StudentPageShell } from "@/components/student/student-page-shell"
-import { EnrollmentKind } from "@/types/api"
 
 export function CourseDetailsOverview({ enrollmentId }: { enrollmentId: string }) {
   const { data, isLoading, error } = useGetEnrollmentQuery(enrollmentId)
   const enrollment = data?.data
+  const courseId = enrollment ? enrollmentCourseId(enrollment) : ""
 
-  if (isLoading) {
-    return <p className="text-muted-foreground">Loading…</p>
+  const {
+    data: courseData,
+    isLoading: courseLoading,
+    error: courseError,
+  } = useGetCourseQuery(courseId, { skip: !courseId })
+
+  const course = courseData?.data
+  const title = enrollment ? enrollmentProductTitle(enrollment) : "Course Details"
+
+  if (isLoading || courseLoading) {
+    return (
+      <StudentPageShell title="Course Details">
+        <p className="text-muted-foreground">Loading…</p>
+      </StudentPageShell>
+    )
   }
 
-  if (error || !enrollment) {
-    return <p className="text-destructive">Course not found.</p>
+  if (error || !enrollment || courseError || !course) {
+    return (
+      <StudentPageShell title="Course Details">
+        <p className="text-destructive">Course not found.</p>
+      </StudentPageShell>
+    )
   }
-
-  const title = enrollmentProductTitle(enrollment)
-  const productLabel =
-    enrollment.kind === EnrollmentKind.BATCH ? "Live batch" : "Recorded course"
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">{title}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">{productLabel}</p>
-      </div>
+    <StudentPageShell title={title}>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground md:text-3xl">{title}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {course.isPublished ? "Published" : "Draft"}
+          </p>
+        </div>
 
-      <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {enrollment.rollNumber ? (
-          <div className="rounded-xl bg-muted/40 p-4">
-            <dt className="text-sm text-muted-foreground">Roll number</dt>
-            <dd className="font-semibold">{enrollment.rollNumber}</dd>
-          </div>
+        {course.description ? <ExpandableRichContent html={course.description} /> : null}
+
+        {course.faq?.length ? (
+          <section className="rounded-[20px] bg-card p-6 shadow-sm">
+            <h2 className="mb-4 text-xl font-bold text-foreground">Frequently Asked Questions</h2>
+            <FAQAccordion items={course.faq} />
+          </section>
         ) : null}
-        <div className="rounded-xl bg-muted/40 p-4">
-          <dt className="text-sm text-muted-foreground">Status</dt>
-          <dd className="font-semibold">{enrollment.status}</dd>
-        </div>
-        <div className="rounded-xl bg-muted/40 p-4">
-          <dt className="text-sm text-muted-foreground">Progress</dt>
-          <dd className="font-semibold">{enrollment.progressPct}%</dd>
-        </div>
-        <div className="rounded-xl bg-muted/40 p-4">
-          <dt className="text-sm text-muted-foreground">Enrollment</dt>
-          <dd className="font-semibold capitalize">{enrollment.kind.toLowerCase()}</dd>
-        </div>
-      </dl>
 
-      <p className="text-sm text-muted-foreground">
-        Use the course menu to open live classes, recorded lessons, pre-recorded videos, exams,
-        assignments, and other materials.
-      </p>
-    </div>
+        {!course.description && !course.faq?.length ? (
+          <p className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
+            Course details have not been added yet.
+          </p>
+        ) : null}
+      </div>
+    </StudentPageShell>
   )
 }

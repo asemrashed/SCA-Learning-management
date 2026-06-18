@@ -7,6 +7,8 @@ import { AppNotFound } from "@/components/status/app-not-found"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { VideoModal } from "@/components/video-modal"
+import { FAQAccordion } from "@/components/faq-accordion"
+import { ExpandableRichContent } from "@/components/expandable-rich-content"
 import { formatBdtMinor } from "@/lib/format-currency"
 import { useGetBatchQuery, useGetBatchCurriculumQuery } from "@/features/batch/api"
 import { BatchCurriculum } from "@/features/batch/components/BatchCurriculum"
@@ -92,6 +94,16 @@ export function BatchDetailView({ idOrSlug }: BatchDetailViewProps) {
                 </div>
               </motion.div>
 
+              {batch.course?.description ? (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.05 }}
+                >
+                  <ExpandableRichContent html={batch.course.description} />
+                </motion.div>
+              ) : null}
+
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -101,6 +113,20 @@ export function BatchDetailView({ idOrSlug }: BatchDetailViewProps) {
                 <h2 className="mb-4 text-xl font-bold text-foreground">Curriculum</h2>
                 <BatchCurriculum subjects={subjects} />
               </motion.div>
+
+              {batch.course?.faq?.length ? (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.15 }}
+                  className="rounded-[20px] bg-card p-6 shadow-sm"
+                >
+                  <h2 className="mb-4 text-xl font-bold text-foreground">
+                    Frequently Asked Questions
+                  </h2>
+                  <FAQAccordion items={batch.course.faq} />
+                </motion.div>
+              ) : null}
             </div>
 
             <div className="lg:col-span-1">

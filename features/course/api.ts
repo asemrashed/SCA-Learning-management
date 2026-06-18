@@ -39,7 +39,11 @@ export const courseApi = createApi({
     }),
     getCourse: builder.query<{ data: CourseDetail }, string>({
       query: (idOrSlug) => `/courses/${idOrSlug}`,
-      providesTags: (_result, _error, idOrSlug) => [{ type: 'Course', id: idOrSlug }],
+      providesTags: (result, _error, idOrSlug) => [
+        { type: 'Course', id: idOrSlug },
+        ...(result ? [{ type: 'Course' as const, id: result.data.id }] : []),
+      ],
+      keepUnusedDataFor: 0,
     }),
     createCourse: builder.mutation<{ data: CourseDetail }, CreateCourseInput>({
       query: (body) => ({
@@ -58,6 +62,16 @@ export const courseApi = createApi({
         method: 'PATCH',
         body,
       }),
+      async onQueryStarted({ id }, { dispatch, queryFulfilled }) {
+        try {
+          const { data: result } = await queryFulfilled
+          dispatch(
+            courseApi.util.updateQueryData('getCourse', id, () => result),
+          )
+        } catch {
+          /* invalidation below handles failed saves */
+        }
+      },
       invalidatesTags: (_result, _error, { id }) => [
         { type: 'Course', id },
         { type: 'CourseList', id: 'LIST' },

@@ -2,18 +2,21 @@ import { createApi } from '@reduxjs/toolkit/query/react'
 import { baseQueryWithReauth } from '@/lib/apiClient'
 import type {
   AttendanceSummary,
+  CreateLiveClassScheduleInput,
   CreateRecordingInput,
   CreateSessionInput,
+  LiveClassSchedule,
   LiveSession,
   MarkAttendanceInput,
   Recording,
+  UpdateLiveClassScheduleInput,
   UpdateSessionInput,
 } from '@/types/api'
 
 export const liveclassApi = createApi({
   reducerPath: 'liveclassApi',
   baseQuery: baseQueryWithReauth,
-  tagTypes: ['LiveSession', 'Recording', 'Attendance'],
+  tagTypes: ['LiveSession', 'LiveClassSchedule', 'Recording', 'Attendance'],
   endpoints: (builder) => ({
     listBatchSessions: builder.query<{ data: LiveSession[] }, string>({
       query: (batchId) => `/batches/${batchId}/sessions`,
@@ -22,6 +25,45 @@ export const liveclassApi = createApi({
     listCourseSessions: builder.query<{ data: LiveSession[] }, string>({
       query: (courseId) => `/courses/${courseId}/sessions`,
       providesTags: (_r, _e, courseId) => [{ type: 'LiveSession', id: `course-${courseId}` }],
+    }),
+    listBatchLiveClassSchedules: builder.query<{ data: LiveClassSchedule[] }, string>({
+      query: (batchId) => `/batches/${batchId}/live-classes`,
+      providesTags: (_r, _e, batchId) => [
+        { type: 'LiveClassSchedule', id: `batch-${batchId}` },
+      ],
+    }),
+    listCourseLiveClassSchedules: builder.query<{ data: LiveClassSchedule[] }, string>({
+      query: (courseId) => `/courses/${courseId}/live-classes`,
+      providesTags: (_r, _e, courseId) => [
+        { type: 'LiveClassSchedule', id: `course-${courseId}` },
+      ],
+    }),
+    createLiveClassSchedule: builder.mutation<
+      { data: LiveClassSchedule },
+      CreateLiveClassScheduleInput
+    >({
+      query: (body) => ({ url: '/live-classes', method: 'POST', body }),
+      invalidatesTags: (_r, _e, arg) => [
+        { type: 'LiveClassSchedule', id: `batch-${arg.batchId}` },
+        { type: 'LiveSession', id: `batch-${arg.batchId}` },
+      ],
+    }),
+    updateLiveClassSchedule: builder.mutation<
+      { data: LiveClassSchedule },
+      { id: string; body: UpdateLiveClassScheduleInput; scopeKey: string }
+    >({
+      query: ({ id, body }) => ({ url: `/live-classes/${id}`, method: 'PATCH', body }),
+      invalidatesTags: (_r, _e, arg) => [
+        { type: 'LiveClassSchedule', id: arg.scopeKey },
+        { type: 'LiveSession', id: arg.scopeKey },
+      ],
+    }),
+    deleteLiveClassSchedule: builder.mutation<void, { id: string; scopeKey: string }>({
+      query: ({ id }) => ({ url: `/live-classes/${id}`, method: 'DELETE' }),
+      invalidatesTags: (_r, _e, arg) => [
+        { type: 'LiveClassSchedule', id: arg.scopeKey },
+        { type: 'LiveSession', id: arg.scopeKey },
+      ],
     }),
     createSession: builder.mutation<{ data: LiveSession }, CreateSessionInput>({
       query: (body) => ({ url: '/sessions', method: 'POST', body }),
@@ -34,7 +76,17 @@ export const liveclassApi = createApi({
       { id: string; body: UpdateSessionInput; scopeKey: string }
     >({
       query: ({ id, body }) => ({ url: `/sessions/${id}`, method: 'PATCH', body }),
-      invalidatesTags: (_r, _e, arg) => [{ type: 'LiveSession', id: arg.scopeKey }],
+      invalidatesTags: (_r, _e, arg) => [
+        { type: 'LiveSession', id: arg.scopeKey },
+        { type: 'LiveClassSchedule', id: arg.scopeKey },
+      ],
+    }),
+    deleteSession: builder.mutation<void, { id: string; scopeKey: string }>({
+      query: ({ id }) => ({ url: `/sessions/${id}`, method: 'DELETE' }),
+      invalidatesTags: (_r, _e, arg) => [
+        { type: 'LiveSession', id: arg.scopeKey },
+        { type: 'LiveClassSchedule', id: arg.scopeKey },
+      ],
     }),
     listBatchRecordings: builder.query<
       { data: Recording[] },
@@ -89,8 +141,14 @@ export const liveclassApi = createApi({
 export const {
   useListBatchSessionsQuery,
   useListCourseSessionsQuery,
+  useListBatchLiveClassSchedulesQuery,
+  useListCourseLiveClassSchedulesQuery,
+  useCreateLiveClassScheduleMutation,
+  useUpdateLiveClassScheduleMutation,
+  useDeleteLiveClassScheduleMutation,
   useCreateSessionMutation,
   useUpdateSessionMutation,
+  useDeleteSessionMutation,
   useListBatchRecordingsQuery,
   useListCourseRecordingsQuery,
   useCreateRecordingMutation,

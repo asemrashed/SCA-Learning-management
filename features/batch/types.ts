@@ -5,6 +5,8 @@ export interface BatchListItem {
   title: string
   slug: string
   courseId: string
+  courseTitle: string | null
+  courseCategory: string | null
   status: BatchStatus
   priceMinor: number
   capacity: number | null
@@ -25,6 +27,8 @@ export interface BatchCourseSummary {
   title: string
   slug: string
   deliveryMode: string
+  description: string | null
+  faq: { question: string; answer: string }[]
 }
 
 export interface BatchDetail {
@@ -55,6 +59,8 @@ export interface BatchListParams {
   search?: string
   status?: BatchStatus
   courseId?: string
+  categoryId?: string
+  year?: number
   sort?: string
 }
 

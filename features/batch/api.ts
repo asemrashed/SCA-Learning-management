@@ -41,7 +41,11 @@ export const batchApi = createApi({
     }),
     getBatch: builder.query<{ data: BatchDetail }, string>({
       query: (idOrSlug) => `/batches/${idOrSlug}`,
-      providesTags: (_result, _error, idOrSlug) => [{ type: 'Batch', id: idOrSlug }],
+      providesTags: (result, _error, idOrSlug) => [
+        { type: 'Batch', id: idOrSlug },
+        ...(result ? [{ type: 'Batch' as const, id: result.data.id }] : []),
+      ],
+      keepUnusedDataFor: 0,
     }),
     createBatchUnderCourse: builder.mutation<
       { data: BatchDetail },
@@ -66,6 +70,16 @@ export const batchApi = createApi({
         method: 'PATCH',
         body,
       }),
+      async onQueryStarted({ id }, { dispatch, queryFulfilled }) {
+        try {
+          const { data: result } = await queryFulfilled
+          dispatch(
+            batchApi.util.updateQueryData('getBatch', id, () => result),
+          )
+        } catch {
+          /* invalidation below handles failed saves */
+        }
+      },
       invalidatesTags: (_result, _error, { id }) => [
         { type: 'Batch', id },
         { type: 'BatchList', id: 'LIST' },
