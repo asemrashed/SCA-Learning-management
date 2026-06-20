@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   LayoutGrid,
   Lightbulb,
+  MessageSquareQuote,
   Package,
   PenLine,
   ShoppingBag,
@@ -42,6 +43,7 @@ export const studentShellNav: ShellNavGroup[] = [
       { href: '/dashboard/courses', label: MY_COURSES, icon: Layers },
       { href: '/dashboard/suggestions', label: 'Suggestion', icon: Lightbulb },
       { href: '/dashboard/resources', label: 'Resources', icon: FileText },
+      { href: '/dashboard/reviews', label: 'Review', icon: MessageSquareQuote },
     ],
   },
   {
@@ -67,6 +69,7 @@ const adminOperationsNav: ShellNavItem[] = [
   { href: '/admin/assignments', label: 'Assignments', icon: PenLine },
   { href: '/admin/questions', label: 'Question bank', icon: ClipboardList },
   { href: '/admin/certificates', label: 'Certificates', icon: GraduationCap },
+  { href: '/admin/reviews', label: 'Reviews', icon: MessageSquareQuote },
 ]
 
 export const adminShellNav: ShellNavGroup[] = [

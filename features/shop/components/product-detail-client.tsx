@@ -25,5 +25,5 @@ export function ProductDetailClient({ idOrSlug }: ProductDetailClientProps) {
     )
   }
 
-  return <ProductDetailView product={data.data} />
+  return <ProductDetailView product={data.data} idOrSlug={idOrSlug} />
 }

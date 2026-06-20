@@ -1,11 +1,10 @@
 "use client"
 
-import { useState } from "react"
-import { Plus, Trash2 } from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
+import { Eye, Plus, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import {
   Dialog,
   DialogContent,
@@ -20,23 +19,30 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
 import { MediaSourceField } from "@/components/media-source-field"
 import {
   CurriculumPlacementPicker,
   type CurriculumPlacement,
 } from "@/components/curriculum-placement-picker"
+import { useListBatchesByCourseQuery, useGetBatchCurriculumQuery } from "@/features/batch/api"
+import { useListCoursesQuery } from "@/features/course/api"
 import { getApiErrorMessage } from "@/lib/get-api-error-message"
+import { BATCH, COURSE } from "@/lib/product-vocabulary"
 import {
   useCreatePdfQuestionsBulkMutation,
-  useCreateQuestionMutation,
   useListQuestionsQuery,
 } from "@/features/assessment/api"
 import { QuestionType } from "@/types/api"
-import {
-  McqOptionsEditor,
-  defaultMcqOptions,
-  type McqOptionRow,
-} from "./mcq-options-editor"
+
+const PAGE_SIZE = 20
+const ALL = "__all__"
 
 interface PdfQuestionRow {
   key: string
@@ -51,122 +57,131 @@ function newPdfRow(): PdfQuestionRow {
   return { key: `pdf-${pdfRowKey}`, title: "", fileUrl: "", marks: 1 }
 }
 
-function QuestionForm({ onSuccess }: { onSuccess?: () => void }) {
-  const [createQuestion, { isLoading: creating }] = useCreateQuestionMutation()
-  const [stem, setStem] = useState("")
-  const [type, setType] = useState<QuestionType>(QuestionType.MCQ)
-  const [category, setCategory] = useState("")
-  const [marks, setMarks] = useState(1)
-  const [mcqOptions, setMcqOptions] = useState<McqOptionRow[]>(defaultMcqOptions)
-  const [correctKey, setCorrectKey] = useState("A")
-  const [correctText, setCorrectText] = useState("")
-  const [correctBool, setCorrectBool] = useState("true")
-  const [error, setError] = useState<string | null>(null)
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  })
+}
 
-  async function handleCreate(e: React.FormEvent) {
-    e.preventDefault()
-    setError(null)
-    try {
-      const options =
-        type === QuestionType.MCQ
-          ? mcqOptions.filter((o) => o.text.trim()).map((o) => ({ key: o.key, text: o.text.trim() }))
-          : null
-
-      const correctValue =
-        type === QuestionType.TRUE_FALSE
-          ? correctBool === "true"
-          : type === QuestionType.MCQ
-            ? correctKey
-            : correctText
-
-      await createQuestion({
-        stem,
-        type,
-        options,
-        correct: correctValue,
-        category: category || null,
-        marks,
-      }).unwrap()
-
-      setStem("")
-      setCategory("")
-      setMarks(1)
-      setMcqOptions(defaultMcqOptions)
-      setCorrectKey("A")
-      onSuccess?.()
-    } catch (err) {
-      setError(getApiErrorMessage(err, "Failed to create question"))
-    }
-  }
+function QuestionPdfViewButton({ title, fileUrl }: { title: string; fileUrl: string }) {
+  const [open, setOpen] = useState(false)
 
   return (
-    <form onSubmit={(e) => void handleCreate(e)} className="space-y-4">
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+    <>
+      <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)}>
+        <Eye className="mr-1 h-4 w-4" />
+        PDF
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-h-[95vh] max-w-5xl gap-0 overflow-hidden p-0">
+          <DialogHeader className="border-b px-4 py-3">
+            <DialogTitle className="text-base">{title}</DialogTitle>
+          </DialogHeader>
+          <iframe
+            src={fileUrl}
+            title={title}
+            className="min-h-[80vh] w-full border-0"
+          />
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}
+
+function QuestionBankFilters({
+  courseId,
+  batchId,
+  subjectId,
+  onCourseChange,
+  onBatchChange,
+  onSubjectChange,
+}: {
+  courseId: string
+  batchId: string
+  subjectId: string
+  onCourseChange: (id: string) => void
+  onBatchChange: (id: string) => void
+  onSubjectChange: (id: string) => void
+}) {
+  const { data: coursesData } = useListCoursesQuery({ pageSize: 100 })
+  const { data: batchesData } = useListBatchesByCourseQuery(courseId, { skip: !courseId })
+  const { data: curriculumData } = useGetBatchCurriculumQuery(batchId, { skip: !batchId })
+
+  const courses = coursesData?.data ?? []
+  const batches = batchesData?.data ?? []
+  const subjects = curriculumData?.data ?? []
+
+  return (
+    <div className="grid gap-3 sm:grid-cols-3">
       <div className="space-y-2">
-        <Label htmlFor="stem">Question</Label>
-        <Textarea id="stem" value={stem} onChange={(e) => setStem(e.target.value)} required />
-      </div>
-      <div className="space-y-2">
-        <Label>Type</Label>
-        <Select value={type} onValueChange={(v) => setType(v as QuestionType)}>
+        <Label>{COURSE}</Label>
+        <Select
+          value={courseId || ALL}
+          onValueChange={(v) => {
+            onCourseChange(v === ALL ? "" : v)
+            onBatchChange("")
+            onSubjectChange("")
+          }}
+        >
           <SelectTrigger>
-            <SelectValue />
+            <SelectValue placeholder={`All ${COURSE.toLowerCase()}s`} />
           </SelectTrigger>
           <SelectContent>
-            {Object.values(QuestionType)
-              .filter((t) => t !== QuestionType.PDF)
-              .map((t) => (
-                <SelectItem key={t} value={t}>
-                  {t}
-                </SelectItem>
-              ))}
+            <SelectItem value={ALL}>All {COURSE.toLowerCase()}s</SelectItem>
+            {courses.map((c) => (
+              <SelectItem key={c.id} value={c.id}>
+                {c.title}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="marks">Marks</Label>
-        <Input
-          id="marks"
-          type="number"
-          min={1}
-          value={marks}
-          onChange={(e) => setMarks(Number(e.target.value))}
-        />
+        <Label>{BATCH}</Label>
+        <Select
+          value={batchId || ALL}
+          onValueChange={(v) => {
+            onBatchChange(v === ALL ? "" : v)
+            onSubjectChange("")
+          }}
+          disabled={!courseId}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder={courseId ? `All ${BATCH.toLowerCase()}es` : `Select ${COURSE.toLowerCase()} first`} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>All {BATCH.toLowerCase()}es</SelectItem>
+            {batches.map((b) => (
+              <SelectItem key={b.id} value={b.id}>
+                {b.title}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="category">Category</Label>
-        <Input id="category" value={category} onChange={(e) => setCategory(e.target.value)} />
+        <Label>Subject</Label>
+        <Select
+          value={subjectId || ALL}
+          onValueChange={(v) => onSubjectChange(v === ALL ? "" : v)}
+          disabled={!batchId}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder={batchId ? "All subjects" : `Select ${BATCH.toLowerCase()} first`} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>All subjects</SelectItem>
+            {subjects.map((s) => (
+              <SelectItem key={s.id} value={s.id}>
+                {s.title}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
-      {type === QuestionType.MCQ ? (
-        <McqOptionsEditor
-          options={mcqOptions}
-          correctKey={correctKey}
-          onOptionsChange={setMcqOptions}
-          onCorrectChange={setCorrectKey}
-        />
-      ) : type === QuestionType.TRUE_FALSE ? (
-        <div className="space-y-2">
-          <Label>Correct answer</Label>
-          <Select value={correctBool} onValueChange={setCorrectBool}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="true">True</SelectItem>
-              <SelectItem value="false">False</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          <Label htmlFor="correct">Correct answer</Label>
-          <Input id="correct" value={correctText} onChange={(e) => setCorrectText(e.target.value)} />
-        </div>
-      )}
-      <Button type="submit" disabled={creating}>
-        {creating ? "Saving…" : "Add question"}
-      </Button>
-    </form>
+    </div>
   )
 }
 
@@ -178,7 +193,7 @@ function PdfQuestionsBulkForm({ onSuccess }: { onSuccess?: () => void }) {
     moduleId: null,
     lessonId: null,
   })
-  const [rows, setRows] = useState<PdfQuestionRow[]>([newPdfRow(), newPdfRow()])
+  const [rows, setRows] = useState<PdfQuestionRow[]>([newPdfRow()])
   const [error, setError] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
@@ -214,7 +229,7 @@ function PdfQuestionsBulkForm({ onSuccess }: { onSuccess?: () => void }) {
         moduleId: placement.moduleId ?? null,
         questions,
       }).unwrap()
-      setRows([newPdfRow(), newPdfRow()])
+      setRows([newPdfRow()])
       onSuccess?.()
     } catch (err) {
       setError(getApiErrorMessage(err, "Failed to upload question PDFs"))
@@ -306,27 +321,54 @@ function PdfQuestionsBulkForm({ onSuccess }: { onSuccess?: () => void }) {
 }
 
 export function QuestionBankPanel() {
-  const { data, isLoading } = useListQuestionsQuery({ pageSize: 50 })
-  const [mcqOpen, setMcqOpen] = useState(false)
+  const [page, setPage] = useState(1)
+  const [courseId, setCourseId] = useState("")
+  const [batchId, setBatchId] = useState("")
+  const [subjectId, setSubjectId] = useState("")
   const [pdfOpen, setPdfOpen] = useState(false)
+
+  const queryParams = useMemo(
+    () => ({
+      page,
+      pageSize: PAGE_SIZE,
+      ...(courseId ? { courseId } : {}),
+      ...(batchId ? { batchId } : {}),
+      ...(subjectId ? { subjectId } : {}),
+      sort: "createdAt:desc",
+    }),
+    [page, courseId, batchId, subjectId],
+  )
+
+  const { data, isLoading, isFetching } = useListQuestionsQuery(queryParams)
   const questions = data?.data ?? []
+  const meta = data?.meta
+  const totalPages = meta ? Math.max(1, Math.ceil(meta.total / PAGE_SIZE)) : 1
+
+  useEffect(() => {
+    setPage(1)
+  }, [courseId, batchId, subjectId])
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">
-          Reusable questions for exams — MCQ/text or PDF uploads per batch.
+          Upload question PDFs per batch — they appear in the list automatically.
         </p>
-        <div className="flex flex-wrap gap-2">
-          <Button className="rounded-xl" variant="outline" onClick={() => setPdfOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Upload PDF questions
-          </Button>
-          <Button className="rounded-xl" onClick={() => setMcqOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add MCQ / text
-          </Button>
-        </div>
+        <Button className="rounded-xl" onClick={() => setPdfOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          Upload PDF questions
+        </Button>
+      </div>
+
+      <div className="rounded-xl border bg-card p-4">
+        <QuestionBankFilters
+          courseId={courseId}
+          batchId={batchId}
+          subjectId={subjectId}
+          onCourseChange={setCourseId}
+          onBatchChange={setBatchId}
+          onSubjectChange={setSubjectId}
+        />
       </div>
 
       <div className="overflow-hidden rounded-xl border bg-card">
@@ -334,50 +376,104 @@ export function QuestionBankPanel() {
           <p className="px-5 py-8 text-sm text-muted-foreground">Loading…</p>
         ) : questions.length === 0 ? (
           <p className="px-5 py-8 text-center text-sm text-muted-foreground">
-            No question is added yet.
+            No questions found.
           </p>
         ) : (
-          <ul className="divide-y">
-            {questions.map((q) => (
-              <li key={q.id} className="px-5 py-4 text-sm">
-                <div className="mb-1 flex flex-wrap items-center gap-2">
-                  <span className="rounded bg-muted px-2 py-0.5 text-xs">{q.type}</span>
-                  {q.category ? (
-                    <span className="text-xs text-muted-foreground">{q.category}</span>
-                  ) : null}
-                  {q.batchId ? (
-                    <span className="text-xs text-muted-foreground">Batch linked</span>
-                  ) : null}
-                  <span className="ml-auto text-xs text-muted-foreground">{q.marks} marks</span>
-                </div>
-                <p>{q.stem}</p>
-                {q.type === QuestionType.MCQ && q.options ? (
-                  <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
-                    {q.options.map((o) => (
-                      <li key={o.key}>
-                        {o.key}. {o.text}
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-                {q.type === QuestionType.PDF && q.fileUrl ? (
-                  <p className="mt-1 text-xs text-muted-foreground">PDF attached</p>
-                ) : null}
-              </li>
-            ))}
-          </ul>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[720px] text-sm">
+              <thead>
+                <tr className="border-b bg-muted/40 text-left text-xs text-muted-foreground">
+                  <th className="px-4 py-3 font-medium">#</th>
+                  <th className="px-4 py-3 font-medium">Title</th>
+                  <th className="px-4 py-3 font-medium">Subject</th>
+                  <th className="px-4 py-3 font-medium">{COURSE}</th>
+                  <th className="px-4 py-3 font-medium">{BATCH}</th>
+                  <th className="px-4 py-3 font-medium">Date</th>
+                  <th className="px-4 py-3 font-medium">PDF</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {questions.map((q, index) => {
+                  const rowNumber = (page - 1) * PAGE_SIZE + index + 1
+                  return (
+                    <tr key={q.id} className="hover:bg-muted/20">
+                      <td className="px-4 py-3 text-muted-foreground">{rowNumber}</td>
+                      <td className="max-w-[220px] px-4 py-3">
+                        <p className="truncate font-medium" title={q.stem}>
+                          {q.stem}
+                        </p>
+                        <p className="text-xs text-muted-foreground">{q.marks} marks</p>
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {q.subjectTitle ?? "—"}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {q.courseTitle ?? "—"}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {q.batchTitle ?? "—"}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
+                        {formatDate(q.createdAt)}
+                      </td>
+                      <td className="px-4 py-3">
+                        {q.type === QuestionType.PDF && q.fileUrl ? (
+                          <QuestionPdfViewButton title={q.stem} fileUrl={q.fileUrl} />
+                        ) : q.type !== QuestionType.PDF ? (
+                          <span className="text-xs text-muted-foreground">{q.type}</span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
-      </div>
 
-      <Dialog open={mcqOpen} onOpenChange={setMcqOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add question</DialogTitle>
-            <DialogDescription>Add an MCQ or text question to the shared bank.</DialogDescription>
-          </DialogHeader>
-          <QuestionForm onSuccess={() => setMcqOpen(false)} />
-        </DialogContent>
-      </Dialog>
+        {meta && meta.total > PAGE_SIZE ? (
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t px-4 py-3">
+            <p className="text-xs text-muted-foreground">
+              Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, meta.total)} of{" "}
+              {meta.total}
+              {isFetching ? " · Updating…" : ""}
+            </p>
+            <Pagination className="mx-0 w-auto justify-end">
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      if (page > 1) setPage((p) => p - 1)
+                    }}
+                    className={page <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+                <PaginationItem>
+                  <span className="px-2 text-sm text-muted-foreground">
+                    Page {page} of {totalPages}
+                  </span>
+                </PaginationItem>
+                <PaginationItem>
+                  <PaginationNext
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      if (page < totalPages) setPage((p) => p + 1)
+                    }}
+                    className={
+                      page >= totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"
+                    }
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
+        ) : null}
+      </div>
 
       <Dialog open={pdfOpen} onOpenChange={setPdfOpen}>
         <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">

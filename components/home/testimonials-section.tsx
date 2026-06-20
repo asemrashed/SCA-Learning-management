@@ -1,77 +1,39 @@
 "use client"
 
 import { ReviewCard } from "@/components/review-card"
+import type { ReviewPublicItem } from "@/types/api"
 import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
 
-const reviews = [
-  {
-    name: "Faisal Azam Siddiqui",
-    review:
-      "The MERN course was incredibly helpful for skill development. They tried to solve every problem of mine during live classes. The support instructors were excellent too. For all these reasons, my MERN learning journey was outstanding.",
-    course: "Full Stack Web Development with MERN",
-    batch: "Batch 1",
-    initials: "FA",
-  },
-  {
-    name: "Shafayet Rana",
-    review:
-      "What makes this platform special is that they focus more on design psychology than design alone. That really helps students stand out in the job market. This industry-focused approach helped me professionally in many ways.",
-    course: "UX/UI Design",
-    batch: "Batch 6",
-    initials: "SR",
-  },
-  {
-    name: "Abu Hasan",
-    review:
-      "I got the classes exactly as I wanted. I learned a lot from the sessions. The instructor was excellent. I enjoyed the experience overall and I'm fully satisfied.",
-    course: "UX/UI Design",
-    batch: "Batch 17",
-    initials: "AH",
-  },
-  {
-    name: "Jahid Hossain",
-    review:
-      "This is one of the best courses I've ever taken! Whether it's the learning experience or the team's support, everything was outstanding. Concepts were taught in such detail from the very basics that I had the chance to learn so much.",
-    course: "Full Stack Web Development with MERN",
-    batch: "Batch 2",
-    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
-  },
-  {
-    name: "MD Galib Hasan",
-    review:
-      "Even though I come from a non-CS background, I felt that understanding data science would help me advance in my profession. I enrolled in the Data Science course thinking it would be tough without prior knowledge, but they made it simple and easy to follow.",
-    course: "Data Science Certificate Program",
-    batch: "Batch 09",
-    initials: "MG",
-  },
-  {
-    name: "Md Ashfaque Ul Hoque",
-    review:
-      "A well-structured, complete course packed with clear guidelines. In my opinion, you won't need any extra help beyond what's covered in the modules.",
-    course: "UX/UI Design",
-    batch: "Batch 6",
-    image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&crop=face",
-  },
-  {
-    name: "Nayem Islam",
-    review:
-      "My expectations for the MERN course were 100% fulfilled. I received instant support whenever I needed it. That's why I had the confidence to learn by making mistakes. I'll always recommend these courses.",
-    course: "Full Stack Web Development with MERN",
-    batch: "Batch 2",
-    initials: "NI",
-  },
-  {
-    name: "ARM Salahuddin",
-    review:
-      "The Data Science program was perfect for me. I would recommend it to anyone interested in taking the course.",
-    course: "Data Science Certificate Program",
-    batch: "Batch 10",
-    image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face",
-  },
-]
+function initialsFromName(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("")
+}
 
-export function TestimonialsSection() {
+function toCardProps(review: ReviewPublicItem) {
+  return {
+    name: review.studentName,
+    review: review.text,
+    course: review.courseTitle,
+    batch: review.batchTitle ?? undefined,
+    image: review.studentAvatarUrl ?? undefined,
+    initials: review.studentAvatarUrl ? undefined : initialsFromName(review.studentName),
+  }
+}
+
+interface TestimonialsSectionProps {
+  reviews: ReviewPublicItem[]
+}
+
+export function TestimonialsSection({ reviews }: TestimonialsSectionProps) {
+  if (reviews.length === 0) return null
+
+  const cards = reviews.map(toCardProps)
+
   return (
     <section className="bg-background py-20">
       <div className="container mx-auto px-4">
@@ -90,100 +52,69 @@ export function TestimonialsSection() {
           </p>
         </motion.div>
 
-        {/* Desktop Layout (4 columns on lg screens) */}
         <div className="hidden lg:grid lg:grid-cols-4 lg:gap-6">
-          {/* Column 1 */}
           <div className="flex flex-col gap-6">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.0 }}
-              viewport={{ once: true }}
-            >
-              <ReviewCard {...reviews[0]} /> {/* Faisal */}
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.1 }}
-              viewport={{ once: true }}
-            >
-              <ReviewCard {...reviews[3]} /> {/* Jahid */}
-            </motion.div>
+            {cards.slice(0, 2).map((review, index) => (
+              <motion.div
+                key={`${review.name}-${index}`}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: index * 0.1 }}
+                viewport={{ once: true }}
+              >
+                <ReviewCard {...review} />
+              </motion.div>
+            ))}
           </div>
 
-          {/* Column 2 & 3 */}
           <div className="col-span-2 flex flex-col gap-6">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.1 }}
-              viewport={{ once: true }}
-            >
-              <ReviewCard {...reviews[1]} /> {/* Shafayet */}
-            </motion.div>
+            {cards.slice(2, 3).map((review, index) => (
+              <motion.div
+                key={`${review.name}-center-${index}`}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.1 }}
+                viewport={{ once: true }}
+              >
+                <ReviewCard {...review} />
+              </motion.div>
+            ))}
             <div className="grid grid-cols-2 gap-6">
-              {/* Column 2 inner */}
-              <div className="flex flex-col gap-6">
+              {cards.slice(3, 5).map((review, index) => (
                 <motion.div
+                  key={`${review.name}-mid-${index}`}
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: 0.2 }}
+                  transition={{ duration: 0.4, delay: 0.2 + index * 0.1 }}
                   viewport={{ once: true }}
                 >
-                  <ReviewCard {...reviews[4]} /> {/* Galib */}
+                  <ReviewCard {...review} />
                 </motion.div>
-              </div>
-              {/* Column 3 inner */}
-              <div className="flex flex-col gap-6">
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: 0.3 }}
-                  viewport={{ once: true }}
-                >
-                  <ReviewCard {...reviews[5]} /> {/* Ashfaque */}
-                </motion.div>
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: 0.4 }}
-                  viewport={{ once: true }}
-                >
-                  <ReviewCard {...reviews[7]} /> {/* Salahuddin */}
-                </motion.div>
-              </div>
+              ))}
             </div>
           </div>
 
-          {/* Column 4 */}
           <div className="flex flex-col gap-6">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.2 }}
-              viewport={{ once: true }}
-            >
-              <ReviewCard {...reviews[2]} /> {/* Abu Hasan */}
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.3 }}
-              viewport={{ once: true }}
-            >
-              <ReviewCard {...reviews[6]} /> {/* Nayem Islam */}
-            </motion.div>
+            {cards.slice(5, 8).map((review, index) => (
+              <motion.div
+                key={`${review.name}-right-${index}`}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.2 + index * 0.1 }}
+                viewport={{ once: true }}
+              >
+                <ReviewCard {...review} />
+              </motion.div>
+            ))}
           </div>
         </div>
 
-        {/* Mobile/Tablet Layout */}
         <div className="grid grid-cols-2 gap-4 lg:hidden">
-          {reviews.map((review, index) => {
+          {cards.map((review, index) => {
             const isLong = review.review.length > 220
             return (
               <motion.div
-                key={review.name}
+                key={`${review.name}-mobile-${index}`}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: (index % 2) * 0.1 }}

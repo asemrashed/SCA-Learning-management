@@ -1,5 +1,8 @@
 "use client"
 
+import Link from "next/link"
+import { Star } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { useGetEnrollmentQuery } from "@/features/enrollment/api"
 import { enrollmentCourseId, enrollmentProductTitle } from "@/features/enrollment/curriculum"
 import { useGetCourseQuery } from "@/features/course/api"
@@ -40,11 +43,22 @@ export function CourseDetailsOverview({ enrollmentId }: { enrollmentId: string }
   return (
     <StudentPageShell title={title}>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground md:text-3xl">{title}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {course.isPublished ? "Published" : "Draft"}
-          </p>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground md:text-3xl">{title}</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {course.isPublished ? "Published" : "Draft"}
+            </p>
+          </div>
+          <Button
+            asChild
+            className="rounded-lg bg-secondary px-5 text-primary hover:bg-secondary/90"
+          >
+            <Link href={`/dashboard/reviews?enrollmentId=${enrollmentId}`}>
+              <Star className="mr-2 h-4 w-4" />
+              Review
+            </Link>
+          </Button>
         </div>
 
         {course.description ? <ExpandableRichContent html={course.description} /> : null}

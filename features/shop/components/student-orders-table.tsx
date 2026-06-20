@@ -1,7 +1,8 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
-import { ArrowRight } from "lucide-react"
+import { ArrowRight, BookOpen } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -13,6 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { useListOrdersQuery } from "@/features/shop/api"
+import { ProductReadModal } from "@/features/shop/components/product-read-modal"
 import { ORDER_STATUS_LABEL } from "@/features/shop/utils"
 import {
   formatOrderAmount,
@@ -30,9 +32,16 @@ function formatOrderDate(iso: string): string {
   })
 }
 
+interface ReadTarget {
+  productId: string
+  title: string
+  priceMinor: number
+}
+
 export function StudentOrdersTable() {
   const { data, isLoading, error } = useListOrdersQuery()
   const orders = data?.data ?? []
+  const [readTarget, setReadTarget] = useState<ReadTarget | null>(null)
 
   return (
     <StudentPageShell title="My Orders">
@@ -67,12 +76,16 @@ export function StudentOrdersTable() {
                   <TableHead>Total</TableHead>
                   <TableHead>Paid</TableHead>
                   <TableHead>Due</TableHead>
+                  <TableHead className="text-right">Read</TableHead>
                   <TableHead className="text-right">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {orders.map((order) => {
                   const { paidMinor, dueMinor } = orderPaymentSummary(order)
+                  const canRead = order.status === OrderStatus.CONFIRMED && order.items[0]
+                  const firstItem = order.items[0]
+
                   return (
                     <TableRow key={order.id}>
                       <TableCell>
@@ -98,6 +111,28 @@ export function StudentOrdersTable() {
                       <TableCell>{formatOrderAmount(paidMinor)}</TableCell>
                       <TableCell>{formatOrderAmount(dueMinor)}</TableCell>
                       <TableCell className="text-right">
+                        {canRead && firstItem ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="rounded-lg"
+                            onClick={() =>
+                              setReadTarget({
+                                productId: firstItem.productId,
+                                title: firstItem.title,
+                                priceMinor: firstItem.unitPriceMinor,
+                              })
+                            }
+                          >
+                            <BookOpen className="mr-1 h-4 w-4" />
+                            Read
+                          </Button>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
                         <Button
                           asChild
                           size="sm"
@@ -119,6 +154,9 @@ export function StudentOrdersTable() {
           <div className="space-y-4 md:hidden">
             {orders.map((order) => {
               const { paidMinor, dueMinor } = orderPaymentSummary(order)
+              const canRead = order.status === OrderStatus.CONFIRMED && order.items[0]
+              const firstItem = order.items[0]
+
               return (
                 <div key={order.id} className="rounded-xl border p-4">
                   <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -145,22 +183,53 @@ export function StudentOrdersTable() {
                       <dd>{formatOrderAmount(dueMinor)}</dd>
                     </div>
                   </dl>
-                  <Button
-                    asChild
-                    size="sm"
-                    className="mt-4 w-full rounded-lg bg-primary text-secondary hover:bg-primary/90"
-                  >
-                    <Link href={`/dashboard/orders/${order.id}`}>
-                      View
-                      <ArrowRight className="ml-1 h-4 w-4" />
-                    </Link>
-                  </Button>
+                  <div className="mt-4 flex gap-2">
+                    {canRead && firstItem ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 rounded-lg"
+                        onClick={() =>
+                          setReadTarget({
+                            productId: firstItem.productId,
+                            title: firstItem.title,
+                            priceMinor: firstItem.unitPriceMinor,
+                          })
+                        }
+                      >
+                        <BookOpen className="mr-1 h-4 w-4" />
+                        Read
+                      </Button>
+                    ) : null}
+                    <Button
+                      asChild
+                      size="sm"
+                      className="flex-1 rounded-lg bg-primary text-secondary hover:bg-primary/90"
+                    >
+                      <Link href={`/dashboard/orders/${order.id}`}>
+                        View
+                        <ArrowRight className="ml-1 h-4 w-4" />
+                      </Link>
+                    </Button>
+                  </div>
                 </div>
               )
             })}
           </div>
         </>
       )}
+
+      <ProductReadModal
+        open={readTarget != null}
+        onOpenChange={(open) => {
+          if (!open) setReadTarget(null)
+        }}
+        productId={readTarget?.productId ?? ""}
+        title={readTarget?.title ?? ""}
+        priceMinor={readTarget?.priceMinor ?? 0}
+        purchased
+      />
     </StudentPageShell>
   )
 }

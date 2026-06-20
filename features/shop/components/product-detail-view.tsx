@@ -13,15 +13,17 @@ import {
   BuyNowButton,
   QuantityStepper,
 } from "@/features/shop/components/buy-now-button"
+import { ProductPdfViewer } from "@/features/shop/components/product-pdf-viewer"
 
 const FALLBACK_IMAGE =
   "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=800&h=600&fit=crop"
 
 interface ProductDetailViewProps {
   product: ProductDetail
+  idOrSlug: string
 }
 
-export function ProductDetailView({ product }: ProductDetailViewProps) {
+export function ProductDetailView({ product, idOrSlug }: ProductDetailViewProps) {
   const [quantity, setQuantity] = useState(1)
 
   return (
@@ -73,6 +75,18 @@ export function ProductDetailView({ product }: ProductDetailViewProps) {
           </div>
         </div>
       </div>
+
+      {product.hasDigitalFile ? (
+        <div className="mt-12">
+          <h2 className="mb-4 text-xl font-semibold">Preview</h2>
+          <ProductPdfViewer
+            idOrSlug={idOrSlug}
+            productId={product.id}
+            title={product.title}
+            priceMinor={product.priceMinor}
+          />
+        </div>
+      ) : null}
     </div>
   )
 }

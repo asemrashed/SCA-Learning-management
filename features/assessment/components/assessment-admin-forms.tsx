@@ -46,7 +46,6 @@ export function ExamCreateForm({
   onSuccess,
   inModal = false,
 }: FormProps = {}) {
-  const { data: questionsData } = useListQuestionsQuery({ pageSize: 100 })
   const [createQuestion] = useCreateQuestionMutation()
   const [createExam, { isLoading }] = useCreateExamMutation()
   const [title, setTitle] = useState("")
@@ -63,6 +62,13 @@ export function ExamCreateForm({
   })
   const [message, setMessage] = useState<string | null>(null)
   const [isError, setIsError] = useState(false)
+
+  const { data: questionsData } = useListQuestionsQuery({
+    pageSize: 100,
+    ...(placement.batchId ? { batchId: placement.batchId } : {}),
+    ...(placement.subjectId ? { subjectId: placement.subjectId } : {}),
+    ...(placement.courseId ? { courseId: placement.courseId } : {}),
+  })
 
   const bankQuestions = questionsData?.data ?? []
 
@@ -149,7 +155,7 @@ export function ExamCreateForm({
         <div>
           <h3 className="text-lg font-semibold">Create exam</h3>
           <p className="text-sm text-muted-foreground">
-            Add questions directly or pick from the bank, then attach to a course.
+            Pick questions from the bank (filtered by course/batch/subject) or create new ones.
           </p>
         </div>
       ) : null}
@@ -215,7 +221,8 @@ export function ExamCreateForm({
           <div className="max-h-56 space-y-2 overflow-y-auto rounded border p-3">
             {bankQuestions.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                Bank is empty — use Create new questions instead.
+                No questions in the bank for this placement — upload PDFs in Question bank or use
+                Create new questions.
               </p>
             ) : (
               bankQuestions.map((q) => (
@@ -224,7 +231,14 @@ export function ExamCreateForm({
                     checked={selectedBank.includes(q.id)}
                     onCheckedChange={() => toggleBank(q.id)}
                   />
-                  <span>{q.stem.slice(0, 160)}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="font-medium">{q.stem}</span>
+                    {(q.subjectTitle || q.batchTitle) && (
+                      <span className="mt-0.5 block text-xs text-muted-foreground">
+                        {[q.subjectTitle, q.batchTitle].filter(Boolean).join(" · ")}
+                      </span>
+                    )}
+                  </span>
                 </label>
               ))
             )}

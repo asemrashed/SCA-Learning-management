@@ -10,12 +10,18 @@ export interface PdfPage {
   render: (ctx: {
     canvasContext: CanvasRenderingContext2D
     viewport: { width: number; height: number }
+    transform?: number[]
   }) => { promise: Promise<void> }
 }
 
 type PdfJsLib = {
   getDocument: (src: { data: ArrayBuffer }) => { promise: Promise<PdfDocument> }
   GlobalWorkerOptions: { workerSrc: string }
+}
+
+export interface RenderPdfOptions {
+  /** When set, only render this many pages (supports decimals, e.g. 0.5 = half of page 1). */
+  maxPreviewPages?: number
 }
 
 let pdfJsPromise: Promise<PdfJsLib> | null = null
@@ -50,26 +56,78 @@ export function loadPdfJs(): Promise<PdfJsLib> {
   return pdfJsPromise
 }
 
+function styleCanvas(canvas: HTMLCanvasElement): void {
+  canvas.className = 'mx-auto mb-4 block max-w-full shadow-sm'
+  canvas.oncontextmenu = (e) => e.preventDefault()
+  canvas.draggable = false
+}
+
+async function renderPageToCanvas(
+  pdf: PdfDocument,
+  pageNum: number,
+  scale: number,
+  visibleFraction = 1,
+): Promise<HTMLCanvasElement | null> {
+  const page = await pdf.getPage(pageNum)
+  const viewport = page.getViewport({ scale })
+  const canvas = document.createElement('canvas')
+  canvas.width = viewport.width
+
+  const context = canvas.getContext('2d')
+  if (!context) return null
+
+  if (visibleFraction >= 1) {
+    canvas.height = viewport.height
+    await page.render({ canvasContext: context, viewport }).promise
+  } else {
+    const visibleHeight = viewport.height * visibleFraction
+    canvas.height = visibleHeight
+    canvas.style.maxHeight = `${visibleHeight}px`
+    canvas.style.overflow = 'hidden'
+    await page.render({
+      canvasContext: context,
+      viewport,
+      transform: [1, 0, 0, 1, 0, -(viewport.height - visibleHeight)],
+    }).promise
+  }
+
+  styleCanvas(canvas)
+  return canvas
+}
+
 export async function renderPdfToCanvases(
   data: ArrayBuffer,
   container: HTMLElement,
   scale = 1.35,
-): Promise<void> {
+  options?: RenderPdfOptions,
+): Promise<{ totalPages: number }> {
   const pdfjs = await loadPdfJs()
   const pdf = await pdfjs.getDocument({ data }).promise
   container.replaceChildren()
 
-  for (let pageNum = 1; pageNum <= pdf.numPages; pageNum += 1) {
-    const page = await pdf.getPage(pageNum)
-    const viewport = page.getViewport({ scale })
-    const canvas = document.createElement('canvas')
-    canvas.width = viewport.width
-    canvas.height = viewport.height
-    canvas.className = 'mx-auto mb-4 block max-w-full shadow-sm'
-    canvas.oncontextmenu = (e) => e.preventDefault()
-    const context = canvas.getContext('2d')
-    if (!context) continue
-    await page.render({ canvasContext: context, viewport }).promise
-    container.appendChild(canvas)
+  const maxPreview = options?.maxPreviewPages
+  const totalPages = pdf.numPages
+
+  if (maxPreview == null || maxPreview <= 0) {
+    for (let pageNum = 1; pageNum <= totalPages; pageNum += 1) {
+      const canvas = await renderPageToCanvas(pdf, pageNum, scale)
+      if (canvas) container.appendChild(canvas)
+    }
+    return { totalPages }
   }
+
+  const fullPages = Math.floor(maxPreview)
+  const partialFraction = maxPreview - fullPages
+
+  for (let pageNum = 1; pageNum <= Math.min(fullPages, totalPages); pageNum += 1) {
+    const canvas = await renderPageToCanvas(pdf, pageNum, scale)
+    if (canvas) container.appendChild(canvas)
+  }
+
+  if (partialFraction > 0 && fullPages < totalPages) {
+    const canvas = await renderPageToCanvas(pdf, fullPages + 1, scale, partialFraction)
+    if (canvas) container.appendChild(canvas)
+  }
+
+  return { totalPages }
 }

@@ -12,10 +12,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useListBatchesByCourseQuery, useListBatchesQuery } from "@/features/batch/api"
 import { useListCoursesQuery } from "@/features/course/api"
 import {
   useListAdminMonthlyPaymentsQuery,
+  useListUnpaidStudentsQuery,
   useReviewMonthlyPaymentMutation,
 } from "@/features/monthly-payment/api"
 import { formatBdtMinor } from "@/lib/format-currency"
@@ -25,6 +27,20 @@ function formatBillingMonth(billingMonth: string): string {
   const [year, month] = billingMonth.split("-")
   const date = new Date(Number(year), Number(month) - 1, 1)
   return date.toLocaleDateString("en-GB", { month: "long", year: "numeric" })
+}
+
+function currentBillingMonthLabel(): string {
+  const now = new Date()
+  const billingMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`
+  return formatBillingMonth(billingMonth)
+}
+
+function formatDeadline(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  })
 }
 
 function productTitle(item: {
@@ -61,21 +77,34 @@ export function AdminPaymentsPanel({
     skip: !courseId,
   })
 
-  const queryParams = useMemo(
+  const filterParams = useMemo(
     () => ({
-      status: status === "ALL" ? undefined : status,
       courseId: courseId || undefined,
       batchId: batchId || undefined,
       search: search.trim() || undefined,
       pageSize: 50,
     }),
-    [status, courseId, batchId, search],
+    [courseId, batchId, search],
   )
 
-  const { data, isLoading, error } = useListAdminMonthlyPaymentsQuery(queryParams)
+  const paymentQueryParams = useMemo(
+    () => ({
+      ...filterParams,
+      status: status === "ALL" ? undefined : status,
+    }),
+    [filterParams, status],
+  )
+
+  const { data, isLoading, error } = useListAdminMonthlyPaymentsQuery(paymentQueryParams)
+  const {
+    data: unpaidData,
+    isLoading: unpaidLoading,
+    error: unpaidError,
+  } = useListUnpaidStudentsQuery(filterParams)
   const [reviewPayment, { isLoading: reviewing }] = useReviewMonthlyPaymentMutation()
 
   const payments = data?.data ?? []
+  const unpaidStudents = unpaidData?.data ?? []
   const batchOptions = courseId
     ? (courseBatchesData?.data ?? [])
     : (batchesData?.data ?? [])
@@ -116,141 +145,207 @@ export function AdminPaymentsPanel({
     }
   }
 
+  const filterControls = (
+    <div className="grid gap-3 md:grid-cols-3">
+      <Select value={courseId || "all"} onValueChange={(v) => setCourseId(v === "all" ? "" : v)}>
+        <SelectTrigger>
+          <SelectValue placeholder="Course" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All courses</SelectItem>
+          {(coursesData?.data ?? []).map((course) => (
+            <SelectItem key={course.id} value={course.id}>
+              {course.title}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <Select value={batchId || "all"} onValueChange={(v) => setBatchId(v === "all" ? "" : v)}>
+        <SelectTrigger>
+          <SelectValue placeholder="Batch" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All batches</SelectItem>
+          {batchOptions.map((batch) => (
+            <SelectItem key={batch.id} value={batch.id}>
+              {batch.title}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <Input
+        placeholder="Search name, phone, roll, or ID"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+      />
+    </div>
+  )
+
   return (
-    <div className="space-y-4">
-      <div className="grid gap-3 md:grid-cols-4">
-        <Select
-          value={status}
-          onValueChange={(value) => setStatus(value as MonthlyPaymentStatus | "ALL")}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={MonthlyPaymentStatus.REQUESTED}>Pending requests</SelectItem>
-            <SelectItem value={MonthlyPaymentStatus.APPROVED}>Approved</SelectItem>
-            <SelectItem value={MonthlyPaymentStatus.REJECTED}>Rejected</SelectItem>
-            <SelectItem value="ALL">All</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <Select value={courseId || "all"} onValueChange={(v) => setCourseId(v === "all" ? "" : v)}>
-          <SelectTrigger>
-            <SelectValue placeholder="Course" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All courses</SelectItem>
-            {(coursesData?.data ?? []).map((course) => (
-              <SelectItem key={course.id} value={course.id}>
-                {course.title}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select value={batchId || "all"} onValueChange={(v) => setBatchId(v === "all" ? "" : v)}>
-          <SelectTrigger>
-            <SelectValue placeholder="Batch" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All batches</SelectItem>
-            {batchOptions.map((batch) => (
-              <SelectItem key={batch.id} value={batch.id}>
-                {batch.title}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Input
-          placeholder="Search name, phone, roll, or ID"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-      </div>
+    <Tabs defaultValue="requests" className="space-y-4">
+      <TabsList>
+        <TabsTrigger value="requests">Payment requests</TabsTrigger>
+        <TabsTrigger value="unpaid">Unpaid students</TabsTrigger>
+      </TabsList>
 
       {actionError ? <p className="text-sm text-destructive">{actionError}</p> : null}
 
-      {isLoading ? (
-        <p className="text-muted-foreground">Loading payments…</p>
-      ) : error ? (
-        <p className="text-destructive">Could not load payments.</p>
-      ) : payments.length === 0 ? (
-        <div className="rounded-xl border border-dashed p-10 text-center text-muted-foreground">
-          No payment records match your filters.
+      <TabsContent value="requests" className="space-y-4">
+        <div className="grid gap-3 md:grid-cols-4">
+          <Select
+            value={status}
+            onValueChange={(value) => setStatus(value as MonthlyPaymentStatus | "ALL")}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={MonthlyPaymentStatus.REQUESTED}>Pending requests</SelectItem>
+              <SelectItem value={MonthlyPaymentStatus.APPROVED}>Approved</SelectItem>
+              <SelectItem value={MonthlyPaymentStatus.REJECTED}>Rejected</SelectItem>
+              <SelectItem value="ALL">All</SelectItem>
+            </SelectContent>
+          </Select>
+          {filterControls}
         </div>
-      ) : (
-        <div className="space-y-4">
-          {payments.map((item) => (
-            <div key={item.id} className="rounded-xl border bg-card p-5">
-              <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <div className="mb-1 flex flex-wrap items-center gap-2">
-                    <Badge>{item.status}</Badge>
-                    <Badge variant="secondary">{formatBillingMonth(item.billingMonth)}</Badge>
-                  </div>
-                  <h3 className="text-lg font-semibold">{productTitle(item)}</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {item.student.name} · {item.student.phone}
-                    {item.student.rollNumber ? ` · Roll ${item.student.rollNumber}` : ""}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Requested {new Date(item.requestedAt).toLocaleString()}
-                  </p>
-                  {item.amountMinor != null ? (
-                    <p className="mt-2 text-sm font-medium">
-                      Amount: {formatBdtMinor(item.amountMinor)}
-                    </p>
-                  ) : null}
-                  {item.note ? (
-                    <p className="mt-1 text-sm text-muted-foreground">Note: {item.note}</p>
-                  ) : null}
-                </div>
-              </div>
 
-              {!readOnly && item.status === MonthlyPaymentStatus.REQUESTED ? (
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-                  <div className="flex-1">
-                    <label className="mb-1 block text-sm font-medium" htmlFor={`amount-${item.id}`}>
-                      Payment amount (৳)
-                    </label>
-                    <Input
-                      id={`amount-${item.id}`}
-                      type="number"
-                      min="1"
-                      step="0.01"
-                      placeholder="e.g. 1500"
-                      value={amounts[item.id] ?? ""}
-                      onChange={(e) =>
-                        setAmounts((prev) => ({ ...prev, [item.id]: e.target.value }))
-                      }
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={() => handleApprove(item.id)}
-                      disabled={reviewing}
-                      className="gap-2"
-                    >
-                      <Check className="h-4 w-4" />
-                      Approve
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => handleReject(item.id)}
-                      disabled={reviewing}
-                      className="gap-2"
-                    >
-                      <X className="h-4 w-4" />
-                      Deny
-                    </Button>
+        {isLoading ? (
+          <p className="text-muted-foreground">Loading payments…</p>
+        ) : error ? (
+          <p className="text-destructive">Could not load payments.</p>
+        ) : payments.length === 0 ? (
+          <div className="rounded-xl border border-dashed p-10 text-center text-muted-foreground">
+            No payment records match your filters.
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {payments.map((item) => (
+              <div key={item.id} className="rounded-xl border bg-card p-5">
+                <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <div className="mb-1 flex flex-wrap items-center gap-2">
+                      <Badge>{item.status}</Badge>
+                      <Badge variant="secondary">{formatBillingMonth(item.billingMonth)}</Badge>
+                    </div>
+                    <h3 className="text-lg font-semibold">{productTitle(item)}</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {item.student.name} · {item.student.phone}
+                      {item.student.rollNumber ? ` · Roll ${item.student.rollNumber}` : ""}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Requested {new Date(item.requestedAt).toLocaleString()}
+                    </p>
+                    {item.amountMinor != null ? (
+                      <p className="mt-2 text-sm font-medium">
+                        Amount: {formatBdtMinor(item.amountMinor)}
+                      </p>
+                    ) : null}
+                    {item.note ? (
+                      <p className="mt-1 text-sm text-muted-foreground">Note: {item.note}</p>
+                    ) : null}
                   </div>
                 </div>
-              ) : null}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+
+                {!readOnly && item.status === MonthlyPaymentStatus.REQUESTED ? (
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                    <div className="flex-1">
+                      <label className="mb-1 block text-sm font-medium" htmlFor={`amount-${item.id}`}>
+                        Payment amount (৳)
+                      </label>
+                      <Input
+                        id={`amount-${item.id}`}
+                        type="number"
+                        min="1"
+                        step="0.01"
+                        placeholder="e.g. 1500"
+                        value={amounts[item.id] ?? ""}
+                        onChange={(e) =>
+                          setAmounts((prev) => ({ ...prev, [item.id]: e.target.value }))
+                        }
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => handleApprove(item.id)}
+                        disabled={reviewing}
+                        className="gap-2"
+                      >
+                        <Check className="h-4 w-4" />
+                        Approve
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => handleReject(item.id)}
+                        disabled={reviewing}
+                        className="gap-2"
+                      >
+                        <X className="h-4 w-4" />
+                        Deny
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        )}
+      </TabsContent>
+
+      <TabsContent value="unpaid" className="space-y-4">
+        {filterControls}
+        <p className="text-sm text-muted-foreground">
+          Active batch students without an approved payment for{" "}
+          {unpaidStudents[0]
+            ? formatBillingMonth(unpaidStudents[0].billingMonth)
+            : currentBillingMonthLabel()}
+          . Payment deadline is the 20th of each month.
+        </p>
+
+        {unpaidLoading ? (
+          <p className="text-muted-foreground">Loading unpaid students…</p>
+        ) : unpaidError ? (
+          <p className="text-destructive">Could not load unpaid students.</p>
+        ) : unpaidStudents.length === 0 ? (
+          <div className="rounded-xl border border-dashed p-10 text-center text-muted-foreground">
+            All students have paid for the current billing month.
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {unpaidStudents.map((item) => (
+              <div key={item.enrollment.id} className="rounded-xl border bg-card p-5">
+                <div className="mb-1 flex flex-wrap items-center gap-2">
+                  <Badge variant="destructive">Unpaid</Badge>
+                  <Badge variant="secondary">{formatBillingMonth(item.billingMonth)}</Badge>
+                  {item.isAccessBlocked ? (
+                    <Badge variant="outline">Access blocked</Badge>
+                  ) : item.isPastDeadline ? null : (
+                    <Badge variant="outline">Before deadline</Badge>
+                  )}
+                  {item.currentMonthRequest ? (
+                    <Badge>{item.currentMonthRequest.status}</Badge>
+                  ) : null}
+                </div>
+                <h3 className="text-lg font-semibold">{productTitle(item)}</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {item.student.name} · {item.student.phone}
+                  {item.student.rollNumber ? ` · Roll ${item.student.rollNumber}` : ""}
+                </p>
+                <p className="mt-2 text-sm">
+                  Deadline:{" "}
+                  <span className="font-medium">{formatDeadline(item.paymentDeadline)}</span>
+                </p>
+                {item.currentMonthRequest?.status === MonthlyPaymentStatus.REQUESTED ? (
+                  <p className="mt-1 text-sm text-amber-700">
+                    Payment request pending admin approval.
+                  </p>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        )}
+      </TabsContent>
+    </Tabs>
   )
 }

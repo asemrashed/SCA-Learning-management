@@ -4,6 +4,7 @@ import type {
   ListMonthlyPaymentsParams,
   MonthlyPaymentRecord,
   ReviewMonthlyPaymentInput,
+  UnpaidStudentRecord,
 } from '@/types/api'
 import { baseQueryWithReauth } from '@/lib/apiClient'
 
@@ -44,6 +45,16 @@ export const monthlyPaymentApi = createApi({
       }),
       providesTags: [{ type: 'MonthlyPayment', id: 'LIST' }],
     }),
+    listUnpaidStudents: builder.query<
+      { data: UnpaidStudentRecord[]; meta: { total: number; page: number; pageSize: number } },
+      ListMonthlyPaymentsParams | void
+    >({
+      query: (params) => ({
+        url: '/admin/monthly-payments/unpaid-students',
+        params: params ?? {},
+      }),
+      providesTags: [{ type: 'MonthlyPayment', id: 'UNPAID' }],
+    }),
     reviewMonthlyPayment: builder.mutation<
       { data: MonthlyPaymentRecord },
       { id: string; body: ReviewMonthlyPaymentInput }
@@ -55,6 +66,7 @@ export const monthlyPaymentApi = createApi({
       }),
       invalidatesTags: (result) => [
         { type: 'MonthlyPayment', id: 'LIST' },
+        { type: 'MonthlyPayment', id: 'UNPAID' },
         { type: 'MonthlyPayment', id: 'INSTRUCTOR' },
         ...(result
           ? [{ type: 'EnrollmentPaymentHistory' as const, id: result.data.enrollment.id }]
@@ -78,6 +90,7 @@ export const {
   useGetEnrollmentPaymentHistoryQuery,
   useRequestMonthlyPaymentMutation,
   useListAdminMonthlyPaymentsQuery,
+  useListUnpaidStudentsQuery,
   useReviewMonthlyPaymentMutation,
   useListInstructorMonthlyPaymentsQuery,
 } = monthlyPaymentApi

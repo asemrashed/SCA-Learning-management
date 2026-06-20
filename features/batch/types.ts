@@ -66,7 +66,7 @@ export interface BatchListParams {
 
 export interface CreateBatchBodyInput {
   title: string
-  slug: string
+  slug?: string
   status?: BatchStatus
   priceMinor?: number
   capacity?: number | null

@@ -5,8 +5,6 @@ import Link from "next/link"
 import { MessageCircle } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { useGetEnrollmentQuery } from "@/features/enrollment/api"
-import { enrollmentProductTitle } from "@/features/enrollment/curriculum"
 import {
   useGetEnrollmentPaymentHistoryQuery,
   useRequestMonthlyPaymentMutation,
@@ -31,6 +29,14 @@ function formatDate(iso: string): string {
   })
 }
 
+function formatDeadline(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  })
+}
+
 function formatBillingMonth(billingMonth: string): string {
   const [year, month] = billingMonth.split("-")
   const date = new Date(Number(year), Number(month) - 1, 1)
@@ -45,17 +51,23 @@ function historyLabel(item: {
   return item.billingMonth ? formatBillingMonth(item.billingMonth) : "Monthly fee"
 }
 
+function enrollmentTitle(enrollment: {
+  courseTitle: string
+  batchTitle: string | null
+}): string {
+  return enrollment.batchTitle
+    ? `${enrollment.courseTitle} · ${enrollment.batchTitle}`
+    : enrollment.courseTitle
+}
+
 export function CoursePaymentHistory({ enrollmentId }: { enrollmentId: string }) {
-  const { data: enrollmentData, isLoading: enrollmentLoading } =
-    useGetEnrollmentQuery(enrollmentId)
   const { data: historyData, isLoading: historyLoading, error } =
     useGetEnrollmentPaymentHistoryQuery(enrollmentId)
   const [requestPayment, { isLoading: requesting }] = useRequestMonthlyPaymentMutation()
   const [actionError, setActionError] = useState<string | null>(null)
 
-  const enrollment = enrollmentData?.data
-  const productTitle = enrollment ? enrollmentProductTitle(enrollment) : ""
   const history = historyData?.data
+  const productTitle = history ? enrollmentTitle(history.enrollment) : ""
 
   async function handlePayThisMonth() {
     setActionError(null)
@@ -67,7 +79,7 @@ export function CoursePaymentHistory({ enrollmentId }: { enrollmentId: string })
     }
   }
 
-  if (enrollmentLoading || historyLoading) {
+  if (historyLoading) {
     return (
       <StudentPageShell title="Payment History">
         <p className="text-muted-foreground">Loading…</p>
@@ -75,7 +87,7 @@ export function CoursePaymentHistory({ enrollmentId }: { enrollmentId: string })
     )
   }
 
-  if (!enrollment || !history) {
+  if (!history) {
     return (
       <StudentPageShell title="Payment History">
         <p className="text-destructive">Could not load payment history.</p>
@@ -99,6 +111,21 @@ export function CoursePaymentHistory({ enrollmentId }: { enrollmentId: string })
             <p className="text-lg font-semibold">
               {formatBillingMonth(history.currentBillingMonth)}
             </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Payment deadline:{" "}
+              <span className="font-medium text-foreground">
+                {formatDeadline(history.paymentDeadline)}
+              </span>
+            </p>
+            {history.isAccessBlocked ? (
+              <p className="mt-2 text-sm font-medium text-destructive">
+                Course access is blocked until this month&apos;s fee is paid and approved.
+              </p>
+            ) : history.isPastDeadline ? null : !history.isCurrentMonthPaid ? (
+              <p className="mt-2 text-sm text-amber-700">
+                Pay by the deadline to keep uninterrupted course access.
+              </p>
+            ) : null}
             {currentRequest?.status === MonthlyPaymentStatus.REQUESTED ? (
               <p className="mt-1 text-sm text-amber-700">
                 Payment request sent — waiting for admin approval.

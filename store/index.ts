@@ -13,6 +13,7 @@ import { adminUserApi } from '@/features/admin-user/api'
 import { shopApi } from '@/features/shop/api'
 import { categoryApi } from '@/features/category/api'
 import { monthlyPaymentApi } from '@/features/monthly-payment/api'
+import { reviewApi } from '@/features/review/api'
 import { rootReducer } from './rootReducer'
 
 export const makeStore = () =>
@@ -34,6 +35,7 @@ export const makeStore = () =>
         shopApi.middleware,
         categoryApi.middleware,
         monthlyPaymentApi.middleware,
+        reviewApi.middleware,
       ),
   })
 

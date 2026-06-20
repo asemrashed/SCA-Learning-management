@@ -9,6 +9,7 @@ import type {
   AdminOrderRequest,
   ReviewOrderInput,
   OrderStatus,
+  ProductDigitalAccess,
 } from '@/types/api'
 import { baseQueryWithReauth } from '@/lib/apiClient'
 
@@ -33,6 +34,10 @@ export const shopApi = createApi({
     getProduct: builder.query<{ data: ProductDetail }, string>({
       query: (idOrSlug) => `/products/${idOrSlug}`,
       providesTags: (_r, _e, id) => [{ type: 'Product', id }],
+    }),
+    getProductDigitalAccess: builder.query<{ data: ProductDigitalAccess }, string>({
+      query: (idOrSlug) => `/products/${idOrSlug}/digital-access`,
+      providesTags: (_r, _e, id) => [{ type: 'Product', id: `${id}-access` }],
     }),
     createProduct: builder.mutation<{ data: ProductDetail }, CreateProductInput>({
       query: (body) => ({ url: '/products', method: 'POST', body }),
@@ -100,6 +105,7 @@ export const shopApi = createApi({
 export const {
   useListProductsQuery,
   useGetProductQuery,
+  useGetProductDigitalAccessQuery,
   useCreateProductMutation,
   useUpdateProductMutation,
   useDeleteProductMutation,

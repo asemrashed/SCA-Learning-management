@@ -13,29 +13,17 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { CompactMediaSourceField } from "@/components/media-source-field"
-import {
   CopyLessonPicker,
   CopyModulePicker,
   CopySubjectPicker,
 } from "@/features/course/components/copy-from-batch-picker"
-import { CHAPTER, LESSON_TYPE_LABEL } from "@/lib/product-vocabulary"
-import { LessonType } from "@/types/api"
+import {
+  LessonTypeFields,
+  LIVE_COURSE_LESSON_TYPES,
+} from "@/features/course/components/lesson-type-fields"
+import { CHAPTER } from "@/lib/product-vocabulary"
 import type { LessonForm, ModuleForm, SubjectForm } from "./curriculum-editor"
 import { newLesson, newModule, newSubject } from "./curriculum-editor"
-
-const LESSON_TYPES: LessonType[] = [
-  LessonType.RECORDED,
-  LessonType.LIVE,
-  LessonType.TEXT,
-  LessonType.DOCUMENT,
-]
 
 export type LiveCurriculumModal =
   | { kind: "subject"; mode: "add" | "edit"; subjectIndex?: number }
@@ -181,7 +169,7 @@ export function LiveCurriculumModals({
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className={modal.kind === "lesson" ? "sm:max-w-2xl" : "sm:max-w-lg"}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
@@ -286,56 +274,12 @@ function LessonFormFields({
           required
         />
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="lesson-date">Date</Label>
-        <Input
-          id="lesson-date"
-          type="date"
-          value={lesson.lectureDate}
-          onChange={(e) => onChange({ ...lesson, lectureDate: e.target.value })}
-        />
-      </div>
-      <div className="grid gap-2 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label>Type</Label>
-          <Select
-            value={lesson.type}
-            onValueChange={(v) => onChange({ ...lesson, type: v as LessonType })}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {LESSON_TYPES.map((t) => (
-                <SelectItem key={t} value={t}>
-                  {LESSON_TYPE_LABEL[t] ?? t}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="lesson-duration">Duration (seconds)</Label>
-          <Input
-            id="lesson-duration"
-            type="number"
-            value={lesson.durationS ?? ""}
-            onChange={(e) =>
-              onChange({
-                ...lesson,
-                durationS: e.target.value ? Number(e.target.value) : null,
-              })
-            }
-          />
-        </div>
-      </div>
-      <CompactMediaSourceField
-        label="Video"
-        value={lesson.videoUrl}
-        onChange={(url) => onChange({ ...lesson, videoUrl: url })}
-        folder="videos"
-        accept="video/*"
-        placeholder="Video URL or YouTube link"
+      <LessonTypeFields
+        lesson={lesson}
+        onChange={onChange}
+        lessonTypes={LIVE_COURSE_LESSON_TYPES}
+        showLectureDate
+        idPrefix={lesson.key}
       />
       <div className="flex items-center gap-2">
         <Checkbox

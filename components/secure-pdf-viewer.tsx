@@ -87,6 +87,17 @@ export function SecurePdfViewer({
     return () => document.removeEventListener("fullscreenchange", onFullscreenChange)
   }, [])
 
+  useEffect(() => {
+    const style = document.createElement("style")
+    style.setAttribute("data-secure-pdf-viewer", "print-block")
+    style.textContent =
+      "@media print { [data-secure-pdf-viewer] { display: none !important; visibility: hidden !important; } }"
+    document.head.appendChild(style)
+    return () => {
+      style.remove()
+    }
+  }, [])
+
   const blockShortcuts = useCallback((e: KeyboardEvent) => {
     if ((e.ctrlKey || e.metaKey) && ["s", "p", "c", "a"].includes(e.key.toLowerCase())) {
       e.preventDefault()
@@ -116,6 +127,7 @@ export function SecurePdfViewer({
     <div
       ref={shellRef}
       tabIndex={-1}
+      data-secure-pdf-viewer=""
       className={cn(
         "relative flex min-h-[70vh] flex-col overflow-hidden rounded-xl border bg-muted/30",
         isFullscreen && "min-h-screen rounded-none border-0",
@@ -198,8 +210,8 @@ export function SecurePdfViewer({
       </div>
 
       <p className="shrink-0 border-t bg-background px-4 py-2 text-center text-xs text-muted-foreground">
-        View-only canvas preview — text selection and download are disabled. Screenshots cannot be
-        blocked on the web.
+        View-only canvas preview — text selection, download, and printing are disabled. Screenshots
+        cannot be blocked on the web.
       </p>
     </div>
   )

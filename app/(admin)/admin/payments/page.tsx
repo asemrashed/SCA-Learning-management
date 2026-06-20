@@ -6,7 +6,7 @@ export default function AdminPaymentsPage() {
       <div>
         <h1 className="text-2xl font-bold text-foreground md:text-3xl">Monthly payments</h1>
         <p className="mt-2 text-muted-foreground">
-          Review student payment requests, set the amount received, and approve or deny each request.
+          Review student payment requests, set the amount received, approve or deny each request, and track students who have not paid for the current month.
         </p>
       </div>
       <AdminPaymentsPanel />

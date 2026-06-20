@@ -37,14 +37,6 @@ const BATCH_STATUSES: BatchStatus[] = [
   "CANCELLED",
 ]
 
-function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-}
-
 function toDatetimeLocal(iso: string | null): string {
   if (!iso) return ""
   const d = new Date(iso)
@@ -77,8 +69,6 @@ export function BatchAdminForm({
   const [updateBatch, { isLoading: updating }] = useUpdateBatchMutation()
 
   const [title, setTitle] = useState("")
-  const [slug, setSlug] = useState("")
-  const [slugTouched, setSlugTouched] = useState(false)
   const [status, setStatus] = useState<BatchStatus>("DRAFT")
   const [thumbnail, setThumbnail] = useState("")
   const [priceMajor, setPriceMajor] = useState("0")
@@ -98,8 +88,6 @@ export function BatchAdminForm({
     if (!data?.data || data.data.id !== batchId) return
     const b = data.data
     setTitle(b.title)
-    setSlug(b.slug)
-    setSlugTouched(true)
     setStatus(b.status ?? "DRAFT")
     setThumbnail(b.thumbnail ?? "")
     setPriceMajor(String(b.priceMinor / 100))
@@ -110,19 +98,12 @@ export function BatchAdminForm({
     setFormReady(true)
   }, [data, batchId])
 
-  useEffect(() => {
-    if (!slugTouched && title) {
-      setSlug(slugify(title))
-    }
-  }, [title, slugTouched])
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
 
     const body: CreateBatchBodyInput = {
       title: title.trim(),
-      slug: slug.trim(),
       status,
       thumbnail: thumbnail.trim() || null,
       priceMinor: Math.round(parseFloat(priceMajor || "0") * 100),
@@ -167,7 +148,7 @@ export function BatchAdminForm({
   }
 
   const saving = creating || updating
-  const publicSlug = data?.data?.slug ?? slug
+  const publicSlug = data?.data?.slug
   const parentCourse = data?.data?.course
 
   return (
@@ -209,18 +190,6 @@ export function BatchAdminForm({
           <div className="space-y-2 sm:col-span-2">
             <Label htmlFor="title">Cohort title</Label>
             <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} required />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="slug">Slug</Label>
-            <Input
-              id="slug"
-              value={slug}
-              onChange={(e) => {
-                setSlugTouched(true)
-                setSlug(e.target.value)
-              }}
-              required
-            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="status">Status</Label>
@@ -267,7 +236,7 @@ export function BatchAdminForm({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="registrationDeadline">Registration deadline</Label>
+            <Label htmlFor="registrationDeadline">Registration deadline (optional)</Label>
             <Input
               id="registrationDeadline"
               type="datetime-local"

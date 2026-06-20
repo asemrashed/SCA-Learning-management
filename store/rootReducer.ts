@@ -14,6 +14,7 @@ import { adminUserApi } from '@/features/admin-user/api'
 import { shopApi } from '@/features/shop/api'
 import { categoryApi } from '@/features/category/api'
 import { monthlyPaymentApi } from '@/features/monthly-payment/api'
+import { reviewApi } from '@/features/review/api'
 
 export const rootReducer = combineReducers({
   auth: authReducer,
@@ -31,6 +32,7 @@ export const rootReducer = combineReducers({
   [shopApi.reducerPath]: shopApi.reducer,
   [categoryApi.reducerPath]: categoryApi.reducer,
   [monthlyPaymentApi.reducerPath]: monthlyPaymentApi.reducer,
+  [reviewApi.reducerPath]: reviewApi.reducer,
 })
 
 export type RootState = ReturnType<typeof rootReducer>

@@ -23,6 +23,7 @@ export interface QuestionListParams {
   search?: string
   category?: string
   type?: string
+  courseId?: string
   batchId?: string
   subjectId?: string
   moduleId?: string

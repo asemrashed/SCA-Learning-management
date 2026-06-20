@@ -7,26 +7,15 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { CompactMediaSourceField } from "@/components/media-source-field"
-import {
   LiveCurriculumModals,
   type LiveCurriculumModal,
 } from "@/features/course/components/live-curriculum-modals"
-import { CHAPTER, CHAPTERS, LESSON_TYPE_LABEL } from "@/lib/product-vocabulary"
+import {
+  LessonTypeFields,
+  RECORDED_COURSE_LESSON_TYPES,
+} from "@/features/course/components/lesson-type-fields"
+import { CHAPTER, CHAPTERS } from "@/lib/product-vocabulary"
 import { LessonType } from "@/types/api"
-
-const LESSON_TYPES: LessonType[] = [
-  LessonType.RECORDED,
-  LessonType.LIVE,
-  LessonType.TEXT,
-  LessonType.DOCUMENT,
-]
 
 export interface LessonForm {
   key: string
@@ -438,52 +427,12 @@ function LessonRow({
         onChange={(e) => onChange({ ...lesson, title: e.target.value })}
         required
       />
-      {showLectureDate ? (
-        <div className="space-y-1">
-          <Label htmlFor={`lecture-date-${lesson.key}`}>Lecture date</Label>
-          <Input
-            id={`lecture-date-${lesson.key}`}
-            type="date"
-            value={lesson.lectureDate}
-            onChange={(e) => onChange({ ...lesson, lectureDate: e.target.value })}
-          />
-        </div>
-      ) : null}
-      <div className="grid gap-2 sm:grid-cols-2">
-        <Select
-          value={lesson.type}
-          onValueChange={(v) => onChange({ ...lesson, type: v as LessonType })}
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {LESSON_TYPES.map((t) => (
-              <SelectItem key={t} value={t}>
-                {LESSON_TYPE_LABEL[t] ?? t}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Input
-          type="number"
-          placeholder="Duration (seconds)"
-          value={lesson.durationS ?? ""}
-          onChange={(e) =>
-            onChange({
-              ...lesson,
-              durationS: e.target.value ? Number(e.target.value) : null,
-            })
-          }
-        />
-      </div>
-      <CompactMediaSourceField
-        label="Video"
-        value={lesson.videoUrl}
-        onChange={(url) => onChange({ ...lesson, videoUrl: url })}
-        folder="videos"
-        accept="video/*"
-        placeholder="Video URL or YouTube link"
+      <LessonTypeFields
+        lesson={lesson}
+        onChange={onChange}
+        lessonTypes={RECORDED_COURSE_LESSON_TYPES}
+        showLectureDate={showLectureDate}
+        idPrefix={lesson.key}
       />
       <div className="flex items-center gap-2">
         <Checkbox

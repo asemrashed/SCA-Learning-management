@@ -147,7 +147,7 @@ export interface CourseInputSubject {
 export interface CreateRecordedCourseInput {
   deliveryMode: DeliveryMode.RECORDED
   title: string
-  slug: string
+  slug?: string
   description?: string | null
   thumbnail?: string | null
   categoryId?: string | null
@@ -160,7 +160,7 @@ export interface CreateRecordedCourseInput {
 export interface CreateLiveCourseInput {
   deliveryMode: DeliveryMode.LIVE
   title: string
-  slug: string
+  slug?: string
   description?: string | null
   thumbnail?: string | null
   categoryId?: string | null
@@ -256,6 +256,7 @@ export interface EnrollmentDetail {
   grantedSubjects?: EnrollmentSubject[]
   modules?: EnrollmentModule[]
   grantedBatchIds?: string[]
+  isAccessBlocked: boolean
 }
 
 export interface CreateEnrollmentInput {
@@ -310,7 +311,11 @@ export interface Question {
   marks: number
   fileUrl: string | null
   batchId: string | null
+  batchTitle: string | null
   subjectId: string | null
+  subjectTitle: string | null
+  courseId: string | null
+  courseTitle: string | null
   moduleId: string | null
   createdAt: string
   updatedAt: string
@@ -706,10 +711,24 @@ export interface EnrollmentPaymentHistoryItem {
 export interface EnrollmentPaymentHistory {
   enrollment: MonthlyPaymentEnrollment
   currentBillingMonth: string
+  paymentDeadline: string
+  isPastDeadline: boolean
+  isAccessBlocked: boolean
+  isCurrentMonthPaid: boolean
   canRequestCurrentMonth: boolean
   currentMonthRequest: MonthlyPaymentRecord | null
   whatsappUrl: string
   history: EnrollmentPaymentHistoryItem[]
+}
+
+export interface UnpaidStudentRecord {
+  billingMonth: string
+  paymentDeadline: string
+  isPastDeadline: boolean
+  isAccessBlocked: boolean
+  student: MonthlyPaymentStudent
+  enrollment: MonthlyPaymentEnrollment
+  currentMonthRequest: MonthlyPaymentRecord | null
 }
 
 export interface ReviewMonthlyPaymentInput {
@@ -844,12 +863,20 @@ export interface ProductDetail {
   priceMinor: number
   stock: number | null
   isPublished: boolean
+  freePreviewPages: number
+  hasDigitalFile: boolean
   digitalUrl?: string | null
+}
+
+export interface ProductDigitalAccess {
+  hasFullAccess: boolean
+  freePreviewPages: number
+  hasDigitalFile: boolean
 }
 
 export interface CreateProductInput {
   title: string
-  slug: string
+  slug?: string
   description?: string | null
   thumbnail?: string | null
   type?: ProductType
@@ -857,6 +884,7 @@ export interface CreateProductInput {
   stock?: number | null
   isPublished?: boolean
   digitalUrl?: string | null
+  freePreviewPages?: number
 }
 
 export interface OrderItem {
@@ -891,4 +919,53 @@ export interface AdminOrderRequest extends OrderListItem {
 
 export interface ReviewOrderInput {
   action: 'confirm' | 'cancel'
+}
+
+export enum ReviewStatus {
+  PENDING = 'PENDING',
+  ACTIVE = 'ACTIVE',
+  HIDDEN = 'HIDDEN',
+}
+
+export interface ReviewPublicItem {
+  id: string
+  text: string
+  createdAt: string
+  studentName: string
+  studentAvatarUrl: string | null
+  courseTitle: string
+  batchTitle: string | null
+}
+
+export interface ReviewStudentItem extends ReviewPublicItem {
+  courseId: string
+  batchId: string | null
+  enrollmentId: string | null
+  status: ReviewStatus
+  reviewedAt: string | null
+}
+
+export interface ReviewAdminItem extends ReviewStudentItem {
+  studentId: string
+  studentPhone: string
+}
+
+export interface CreateReviewInput {
+  courseId: string
+  batchId?: string
+  enrollmentId?: string
+  text: string
+}
+
+export interface ModerateReviewInput {
+  action: 'activate' | 'hide'
+}
+
+export interface ListAdminReviewsParams {
+  status?: ReviewStatus
+  courseId?: string
+  batchId?: string
+  period?: 'week' | 'month' | 'all'
+  page?: number
+  pageSize?: number
 }

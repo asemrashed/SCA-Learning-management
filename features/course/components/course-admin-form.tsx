@@ -40,14 +40,6 @@ import {
 import { deliveryModeLabel, EDIT_COURSE, NEW_COURSE, SAVE_COURSE } from "@/lib/product-vocabulary"
 import { DeliveryMode, type CreateCourseInput, type CourseFaqItem } from "@/types/api"
 
-function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-}
-
 interface CourseAdminFormProps {
   courseId?: string
 }
@@ -65,8 +57,6 @@ export function CourseAdminForm({ courseId }: CourseAdminFormProps) {
 
   const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>(DeliveryMode.RECORDED)
   const [title, setTitle] = useState("")
-  const [slug, setSlug] = useState("")
-  const [slugTouched, setSlugTouched] = useState(false)
   const [description, setDescription] = useState("")
   const [thumbnail, setThumbnail] = useState("")
   const [categoryId, setCategoryId] = useState<string>("")
@@ -113,8 +103,6 @@ export function CourseAdminForm({ courseId }: CourseAdminFormProps) {
     const c = data.data
     setDeliveryMode(c.deliveryMode)
     setTitle(c.title)
-    setSlug(c.slug)
-    setSlugTouched(true)
     setDescription(c.description ?? "")
     setThumbnail(c.thumbnail ?? "")
     setCategoryId(c.categoryId ?? "")
@@ -139,12 +127,6 @@ export function CourseAdminForm({ courseId }: CourseAdminFormProps) {
   }, [data, courseId, initialBatchId])
 
   useEffect(() => {
-    if (!slugTouched && title) {
-      setSlug(slugify(title))
-    }
-  }, [title, slugTouched])
-
-  useEffect(() => {
     if (!curriculumData?.data) return
     setSubjects(subjectsFromApi(curriculumData.data))
   }, [curriculumData])
@@ -167,7 +149,6 @@ export function CourseAdminForm({ courseId }: CourseAdminFormProps) {
 
     const base = {
       title: title.trim(),
-      slug: slug.trim(),
       description: description.trim() || null,
       thumbnail: thumbnail.trim() || null,
       categoryId: categoryId || null,
@@ -261,18 +242,6 @@ export function CourseAdminForm({ courseId }: CourseAdminFormProps) {
           <div className="space-y-2 sm:col-span-2">
             <Label htmlFor="title">Title</Label>
             <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} required />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="slug">Slug</Label>
-            <Input
-              id="slug"
-              value={slug}
-              onChange={(e) => {
-                setSlugTouched(true)
-                setSlug(e.target.value)
-              }}
-              required
-            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="category">Category</Label>

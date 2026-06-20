@@ -20,7 +20,7 @@ import {
   useGetProductQuery,
   useUpdateProductMutation,
 } from "@/features/shop/api"
-import { slugifyTitle, PRODUCT_TYPE_LABEL } from "@/features/shop/utils"
+import { PRODUCT_TYPE_LABEL } from "@/features/shop/utils"
 import { ProductType, type CreateProductInput } from "@/types/api"
 
 interface ProductAdminFormProps {
@@ -37,14 +37,13 @@ export function ProductAdminForm({ productId }: ProductAdminFormProps) {
   const [updateProduct, { isLoading: updating }] = useUpdateProductMutation()
 
   const [title, setTitle] = useState("")
-  const [slug, setSlug] = useState("")
-  const [slugTouched, setSlugTouched] = useState(false)
   const [description, setDescription] = useState("")
   const [thumbnail, setThumbnail] = useState("")
   const [type, setType] = useState<ProductType>(ProductType.BOOK)
   const [priceMajor, setPriceMajor] = useState("")
   const [stock, setStock] = useState("")
   const [digitalUrl, setDigitalUrl] = useState("")
+  const [freePreviewPages, setFreePreviewPages] = useState("0.5")
   const [isPublished, setIsPublished] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -52,22 +51,15 @@ export function ProductAdminForm({ productId }: ProductAdminFormProps) {
     if (!existing?.data) return
     const product = existing.data
     setTitle(product.title)
-    setSlug(product.slug)
-    setSlugTouched(true)
     setDescription(product.description ?? "")
     setThumbnail(product.thumbnail ?? "")
     setType(product.type)
     setPriceMajor(product.priceMinor === 0 ? "" : String(product.priceMinor / 100))
     setStock(product.stock != null ? String(product.stock) : "")
     setDigitalUrl(product.digitalUrl ?? "")
+    setFreePreviewPages(String(product.freePreviewPages ?? 0.5))
     setIsPublished(product.isPublished)
   }, [existing])
-
-  useEffect(() => {
-    if (!slugTouched && title) {
-      setSlug(slugifyTitle(title))
-    }
-  }, [title, slugTouched])
 
   const saving = creating || updating
 
@@ -81,15 +73,27 @@ export function ProductAdminForm({ productId }: ProductAdminFormProps) {
       return
     }
 
+    const previewPages = freePreviewPages.trim() ? parseFloat(freePreviewPages) : 0.5
+    if (Number.isNaN(previewPages) || previewPages < 0 || previewPages > 100) {
+      setError("Enter a valid free preview page count (0–100, e.g. 0.5 for half a page).")
+      return
+    }
+
+    const trimmedDigitalUrl = digitalUrl.trim()
+    if (isPublished && priceMinor > 0 && !trimmedDigitalUrl) {
+      setError("Upload a PDF or paste a link before publishing a paid product.")
+      return
+    }
+
     const payload: CreateProductInput = {
       title: title.trim(),
-      slug: slug.trim(),
       description: description.trim() || null,
       thumbnail: thumbnail.trim() || null,
       type,
       priceMinor,
       stock: stock.trim() ? parseInt(stock, 10) : null,
-      digitalUrl: digitalUrl.trim() || null,
+      digitalUrl: trimmedDigitalUrl || null,
+      freePreviewPages: previewPages,
       isPublished,
     }
 
@@ -101,8 +105,9 @@ export function ProductAdminForm({ productId }: ProductAdminFormProps) {
         await createProduct(payload).unwrap()
         router.push("/admin/products")
       }
-    } catch {
-      setError("Could not save product.")
+    } catch (err: unknown) {
+      const apiErr = err as { data?: { error?: { message?: string } } }
+      setError(apiErr.data?.error?.message ?? "Could not save product.")
     }
   }
 
@@ -120,19 +125,6 @@ export function ProductAdminForm({ productId }: ProductAdminFormProps) {
       <div className="space-y-2">
         <Label htmlFor="title">Title</Label>
         <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} required />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="slug">Slug</Label>
-        <Input
-          id="slug"
-          value={slug}
-          onChange={(e) => {
-            setSlugTouched(true)
-            setSlug(e.target.value)
-          }}
-          required
-        />
       </div>
 
       <div className="space-y-2">
@@ -189,15 +181,35 @@ export function ProductAdminForm({ productId }: ProductAdminFormProps) {
 
       <MediaSourceField label="Thumbnail" value={thumbnail} onChange={setThumbnail} />
 
+      <MediaSourceField
+        label="Digital PDF file"
+        value={digitalUrl}
+        onChange={setDigitalUrl}
+        folder="documents"
+        accept=".pdf,application/pdf"
+        placeholder="https://… or upload from your device"
+      />
+      <p className="-mt-3 text-xs text-muted-foreground">
+        Upload a PDF from your device or paste a link. Students read it in a secure in-browser viewer
+        only — copy and download are disabled. Screenshots cannot be fully blocked on the web.
+      </p>
+
       <div className="space-y-2">
-        <Label htmlFor="digitalUrl">Digital download URL (optional)</Label>
+        <Label htmlFor="freePreviewPages">Show free (pages)</Label>
         <Input
-          id="digitalUrl"
-          type="url"
-          value={digitalUrl}
-          onChange={(e) => setDigitalUrl(e.target.value)}
-          placeholder="https://…"
+          id="freePreviewPages"
+          type="number"
+          min="0"
+          max="100"
+          step="0.5"
+          value={freePreviewPages}
+          onChange={(e) => setFreePreviewPages(e.target.value)}
+          placeholder="0.5"
         />
+        <p className="text-xs text-muted-foreground">
+          How many pages visitors can read before purchase. Use 0.5 for half a page, 1 for one full
+          page, etc.
+        </p>
       </div>
 
       <div className="flex items-center gap-2">

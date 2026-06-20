@@ -1,7 +1,11 @@
 "use client"
 
+import { useState } from "react"
+import { BookOpen } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { useGetOrderQuery } from "@/features/shop/api"
+import { ProductReadModal } from "@/features/shop/components/product-read-modal"
 import { ORDER_STATUS_LABEL } from "@/features/shop/utils"
 import {
   formatOrderAmount,
@@ -15,9 +19,16 @@ interface StudentOrderDetailProps {
   orderId: string
 }
 
+interface ReadTarget {
+  productId: string
+  title: string
+  priceMinor: number
+}
+
 export function StudentOrderDetail({ orderId }: StudentOrderDetailProps) {
   const { data, isLoading, error } = useGetOrderQuery(orderId)
   const order = data?.data
+  const [readTarget, setReadTarget] = useState<ReadTarget | null>(null)
 
   if (isLoading) {
     return (
@@ -36,6 +47,7 @@ export function StudentOrderDetail({ orderId }: StudentOrderDetailProps) {
   }
 
   const { paidMinor, dueMinor } = orderPaymentSummary(order)
+  const canRead = order.status === OrderStatus.CONFIRMED
 
   return (
     <StudentPageShell title="Order Details">
@@ -74,15 +86,49 @@ export function StudentOrderDetail({ orderId }: StudentOrderDetailProps) {
       <h4 className="mb-3 font-semibold">Items</h4>
       <ul className="divide-y rounded-xl border">
         {order.items.map((item) => (
-          <li key={item.id} className="flex items-center justify-between gap-4 p-4 text-sm">
+          <li
+            key={item.id}
+            className="flex flex-wrap items-center justify-between gap-4 p-4 text-sm"
+          >
             <div>
               <p className="font-medium">{item.title}</p>
               <p className="text-muted-foreground">Qty: {item.quantity}</p>
             </div>
-            <span className="font-medium">{formatOrderAmount(item.lineTotalMinor)}</span>
+            <div className="flex items-center gap-3">
+              <span className="font-medium">{formatOrderAmount(item.lineTotalMinor)}</span>
+              {canRead ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="rounded-lg"
+                  onClick={() =>
+                    setReadTarget({
+                      productId: item.productId,
+                      title: item.title,
+                      priceMinor: item.unitPriceMinor,
+                    })
+                  }
+                >
+                  <BookOpen className="mr-1 h-4 w-4" />
+                  Read
+                </Button>
+              ) : null}
+            </div>
           </li>
         ))}
       </ul>
+
+      <ProductReadModal
+        open={readTarget != null}
+        onOpenChange={(open) => {
+          if (!open) setReadTarget(null)
+        }}
+        productId={readTarget?.productId ?? ""}
+        title={readTarget?.title ?? ""}
+        priceMinor={readTarget?.priceMinor ?? 0}
+        purchased
+      />
     </StudentPageShell>
   )
 }

@@ -32,6 +32,8 @@ export function getStudentBackLabel(pathname: string): string {
       return "Suggestion"
     case "certificates":
       return "Certificates"
+    case "reviews":
+      return "Review"
     case "details":
       return "Course"
     case "payment-history":
