@@ -2,13 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useDispatch, useSelector } from 'react-redux'
-import type { RootState, AppDispatch } from '@/store'
+import { useSelector } from 'react-redux'
+import type { RootState } from '@/store'
 import { Role } from '@/types/api'
 import { homePathForRole } from '@/lib/dashboard-nav'
 import { hasSessionCookie } from '@/lib/auth-session'
-import { clearCredentials } from '@/features/auth/authSlice'
-import { clearSessionCookie } from '@/lib/auth-session'
 
 interface RoleGuardProps {
   allow: Role[]
@@ -17,7 +15,6 @@ interface RoleGuardProps {
 
 export function RoleGuard({ allow, children }: RoleGuardProps) {
   const router = useRouter()
-  const dispatch = useDispatch<AppDispatch>()
   const user = useSelector((state: RootState) => state.auth.user)
   const accessToken = useSelector((state: RootState) => state.auth.accessToken)
   const authReady = useSelector((state: RootState) => state.auth.authReady)
@@ -35,18 +32,12 @@ export function RoleGuard({ allow, children }: RoleGuardProps) {
     if (!user) return
 
     if (!allow.includes(user.role)) {
-      if (user.role === Role.INSTRUCTOR) {
-        dispatch(clearCredentials())
-        clearSessionCookie()
-        router.replace('/login')
-        return
-      }
       router.replace(homePathForRole(user.role))
       return
     }
 
     setReady(true)
-  }, [authReady, accessToken, user, allow, router, dispatch])
+  }, [authReady, accessToken, user, allow, router])
 
   if (!ready) {
     return (

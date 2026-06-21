@@ -1,6 +1,5 @@
 export enum Role {
   STUDENT = 'STUDENT',
-  INSTRUCTOR = 'INSTRUCTOR',
   ADMIN = 'ADMIN',
   SUPER_ADMIN = 'SUPER_ADMIN',
 }
@@ -203,7 +202,6 @@ export interface EnrollmentListItem {
     title: string
     thumbnail: string | null
     course: { id: string; title: string }
-    instructors: { name: string }[]
   } | null
   course: {
     id: string
@@ -212,10 +210,6 @@ export interface EnrollmentListItem {
   } | null
   status: EnrollmentStatus
   rollNumber: string | null
-  progressPct: number
-  totalLessons: number
-  completedLessons: number
-  nextLesson: { id: string; title: string } | null
 }
 
 export interface EnrollmentLesson {
@@ -226,7 +220,6 @@ export interface EnrollmentLesson {
   durationS: number | null
   lectureDate: string | null
   order: number
-  completed: boolean
 }
 
 export interface EnrollmentModule {
@@ -249,7 +242,6 @@ export interface EnrollmentDetail {
   deliveryMode: DeliveryMode
   status: EnrollmentStatus
   rollNumber: string | null
-  progressPct: number
   batch: { id: string; title: string; courseId?: string } | null
   course: { id: string; title: string } | null
   subjects?: EnrollmentSubject[]
@@ -282,187 +274,6 @@ export interface ReviewEnrollmentInput {
   rollNumber?: string
 }
 
-export enum QuestionType {
-  MCQ = 'MCQ',
-  TRUE_FALSE = 'TRUE_FALSE',
-  SHORT_ANSWER = 'SHORT_ANSWER',
-  WRITTEN = 'WRITTEN',
-  PDF = 'PDF',
-}
-
-export enum ExamStatus {
-  DRAFT = 'DRAFT',
-  PUBLISHED = 'PUBLISHED',
-  ARCHIVED = 'ARCHIVED',
-}
-
-export enum AttemptStatus {
-  IN_PROGRESS = 'IN_PROGRESS',
-  SUBMITTED = 'SUBMITTED',
-}
-
-export interface Question {
-  id: string
-  stem: string
-  type: QuestionType
-  options: { key: string; text: string }[] | null
-  correct?: unknown
-  category: string | null
-  marks: number
-  fileUrl: string | null
-  batchId: string | null
-  batchTitle: string | null
-  subjectId: string | null
-  subjectTitle: string | null
-  courseId: string | null
-  courseTitle: string | null
-  moduleId: string | null
-  createdAt: string
-  updatedAt: string
-}
-
-export interface QuestionListResponse {
-  data: Question[]
-  meta: PaginationMeta
-}
-
-export interface CreateQuestionInput {
-  stem: string
-  type: QuestionType
-  options?: { key: string; text: string }[] | null
-  correct?: unknown
-  category?: string | null
-  marks?: number
-  fileUrl?: string | null
-  batchId?: string | null
-  subjectId?: string | null
-  moduleId?: string | null
-}
-
-export interface CreatePdfQuestionsBulkInput {
-  batchId: string
-  subjectId: string
-  moduleId?: string | null
-  questions: {
-    title: string
-    fileUrl: string
-    marks?: number
-  }[]
-}
-
-export interface ExamListItem {
-  id: string
-  title: string
-  status: ExamStatus
-  durationMin: number | null
-  totalMarks: number
-  moduleId: string | null
-  opensAt: string | null
-  closesAt: string | null
-  questionCount: number
-  attempt?: {
-    id: string
-    status: AttemptStatus
-    scoreMarks: number | null
-    scorePct: number | null
-    submittedAt: string | null
-  } | null
-}
-
-export interface ExamQuestion {
-  id: string
-  stem: string
-  type: QuestionType
-  options: { key: string; text: string }[] | null
-  marks: number
-  order: number
-}
-
-export interface ExamDetail extends ExamListItem {
-  questions: ExamQuestion[]
-}
-
-export interface ExamAttempt {
-  id: string
-  examId: string
-  status: AttemptStatus
-  answers: Record<string, unknown>
-  scoreMarks: number | null
-  scorePct: number | null
-  startedAt: string
-  submittedAt: string | null
-  expiresAt: string | null
-  exam: {
-    id: string
-    title: string
-    durationMin: number | null
-    totalMarks: number
-    questions: ExamQuestion[]
-  }
-}
-
-export interface CreateExamInput {
-  courseId: string
-  moduleId?: string | null
-  title: string
-  durationMin?: number | null
-  questionIds: string[]
-  status?: 'DRAFT' | 'PUBLISHED'
-}
-
-export interface AssignmentListItem {
-  id: string
-  title: string
-  description: string | null
-  totalMarks: number
-  moduleId: string | null
-  dueAt: string | null
-  submission?: {
-    id: string
-    scoreMarks: number | null
-    feedback: string | null
-    submittedAt: string
-    gradedAt: string | null
-  } | null
-}
-
-export interface CreateAssignmentInput {
-  courseId: string
-  moduleId?: string | null
-  title: string
-  description?: string | null
-  totalMarks?: number
-  dueAt?: string | null
-}
-
-export interface Submission {
-  id: string
-  assignmentId: string
-  studentId: string
-  studentName: string
-  fileUrl: string | null
-  text: string | null
-  scoreMarks: number | null
-  feedback: string | null
-  submittedAt: string
-  gradedAt: string | null
-}
-
-export interface CreateSubmissionInput {
-  fileUrl?: string | null
-  text?: string | null
-}
-
-export interface GradeSubmissionInput {
-  scoreMarks: number
-  feedback?: string | null
-}
-
-export interface UpdateAttemptInput {
-  answers: Record<string, unknown>
-  submit?: boolean
-}
-
 export interface ResourceItem {
   id: string
   title: string
@@ -475,6 +286,9 @@ export interface ResourceItem {
   moduleId: string | null
   lessonId: string | null
   deadlineAt: string | null
+  startsAt: string | null
+  marks: number | null
+  linkedQuestionIds: string[]
   createdAt: string
 }
 
@@ -485,7 +299,7 @@ export interface ResourceListResponse {
 
 export interface CreateResourceInput {
   title: string
-  fileUrl: string
+  fileUrl?: string
   fileType?: 'pdf' | 'slide' | 'link' | null
   category?: ResourceCategory
   courseId: string
@@ -494,6 +308,9 @@ export interface CreateResourceInput {
   moduleId?: string | null
   lessonId?: string | null
   deadlineAt?: string | null
+  startsAt?: string | null
+  marks?: number | null
+  linkedQuestionIds?: string[] | null
 }
 
 export interface UpdateResourceInput {
@@ -506,6 +323,9 @@ export interface UpdateResourceInput {
   moduleId?: string | null
   lessonId?: string | null
   deadlineAt?: string | null
+  startsAt?: string | null
+  marks?: number | null
+  linkedQuestionIds?: string[] | null
 }
 
 export interface ResourceListQuery {
@@ -519,6 +339,8 @@ export interface ResourceListQuery {
   moduleId?: string
   lessonId?: string
   category?: ResourceCategory
+  dateFrom?: string
+  dateTo?: string
 }
 
 export enum SessionStatus {
@@ -650,18 +472,6 @@ export interface MarkAttendanceInput {
   status: AttendanceStatus
 }
 
-export enum PaymentPurpose {
-  ORDER = 'ORDER',
-  ENROLLMENT = 'ENROLLMENT',
-}
-
-export enum PaymentStatus {
-  PENDING = 'PENDING',
-  PAID = 'PAID',
-  FAILED = 'FAILED',
-  CANCELLED = 'CANCELLED',
-}
-
 export enum MonthlyPaymentStatus {
   REQUESTED = 'REQUESTED',
   APPROVED = 'APPROVED',
@@ -746,45 +556,6 @@ export interface ListMonthlyPaymentsParams {
   pageSize?: number
 }
 
-export interface InitiatePaymentInput {
-  purpose: PaymentPurpose
-  refId: string
-  couponCode?: string
-}
-
-export interface PaymentRecord {
-  id: string
-  status: PaymentStatus
-  amountMinor: number
-  enrollmentId: string | null
-}
-
-export interface CertificateItem {
-  id: string
-  serial: string
-  pdfUrl: string | null
-  issuedAt: string
-  enrollmentId: string
-  kind: EnrollmentKind
-  productTitle: string
-  productId: string
-  studentName: string
-}
-
-export interface CertificateVerifyResult {
-  valid: true
-  serial: string
-  studentName: string
-  productTitle: string
-  kind: EnrollmentKind
-  issuedAt: string
-  pdfUrl: string | null
-}
-
-export interface IssueCertificateInput {
-  enrollmentId: string
-}
-
 export enum ProductType {
   BOOK = 'BOOK',
   NOTES = 'NOTES',
@@ -808,6 +579,72 @@ export enum ResourceCategory {
   THEORY_SUGGESTION = 'THEORY_SUGGESTION',
   EXAM = 'EXAM',
   ASSIGNMENT = 'ASSIGNMENT',
+  QUESTION_BANK = 'QUESTION_BANK',
+}
+
+export enum ResourceSubmissionStatus {
+  PENDING = 'PENDING',
+  ACCEPTED = 'ACCEPTED',
+  REJECTED = 'REJECTED',
+}
+
+export interface ResourceSubmissionRecord {
+  id: string
+  status: ResourceSubmissionStatus
+  submittedAt: string
+  reviewedAt: string | null
+  resultFileUrl: string | null
+  resultPublishedAt: string | null
+  student: {
+    id: string
+    name: string
+    phone: string
+    rollNumber: string | null
+  }
+  enrollment: {
+    id: string
+    rollNumber: string | null
+    courseTitle: string
+    batchTitle: string | null
+  }
+  resource: {
+    id: string
+    title: string
+    category: ResourceCategory
+    subjectId: string | null
+    subjectTitle: string | null
+    courseId: string
+    courseTitle: string
+    batchId: string | null
+    batchTitle: string | null
+  }
+}
+
+export interface StudentAssessmentResult {
+  id: string
+  resourceTitle: string
+  resourceCategory: ResourceCategory
+  subjectTitle: string | null
+  resultPublishedAt: string
+}
+
+export interface ListResourceSubmissionsParams {
+  category: ResourceCategory.EXAM | ResourceCategory.ASSIGNMENT
+  status?: ResourceSubmissionStatus
+  courseId?: string
+  batchId?: string
+  search?: string
+  hasResult?: boolean
+  page?: number
+  pageSize?: number
+}
+
+export interface ReviewResourceSubmissionInput {
+  action: 'accept' | 'reject'
+}
+
+export interface UploadResourceSubmissionResultInput {
+  resultFileUrl: string
 }
 
 export interface CategoryListItem {

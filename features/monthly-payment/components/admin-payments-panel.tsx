@@ -145,10 +145,10 @@ export function AdminPaymentsPanel({
     }
   }
 
-  const filterControls = (
-    <div className="grid gap-3 md:grid-cols-3">
+  const searchFilters = (
+    <div className="flex w-full flex-col gap-3 sm:flex-row lg:max-w-3xl lg:flex-1 lg:justify-end">
       <Select value={courseId || "all"} onValueChange={(v) => setCourseId(v === "all" ? "" : v)}>
-        <SelectTrigger>
+        <SelectTrigger className="w-full sm:flex-1">
           <SelectValue placeholder="Course" />
         </SelectTrigger>
         <SelectContent>
@@ -162,7 +162,7 @@ export function AdminPaymentsPanel({
       </Select>
 
       <Select value={batchId || "all"} onValueChange={(v) => setBatchId(v === "all" ? "" : v)}>
-        <SelectTrigger>
+        <SelectTrigger className="w-full sm:flex-1">
           <SelectValue placeholder="Batch" />
         </SelectTrigger>
         <SelectContent>
@@ -176,6 +176,7 @@ export function AdminPaymentsPanel({
       </Select>
 
       <Input
+        className="w-full sm:flex-1"
         placeholder="Search name, phone, roll, or ID"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
@@ -193,12 +194,12 @@ export function AdminPaymentsPanel({
       {actionError ? <p className="text-sm text-destructive">{actionError}</p> : null}
 
       <TabsContent value="requests" className="space-y-4">
-        <div className="grid gap-3 md:grid-cols-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <Select
             value={status}
             onValueChange={(value) => setStatus(value as MonthlyPaymentStatus | "ALL")}
           >
-            <SelectTrigger>
+            <SelectTrigger className="w-full lg:w-[220px]">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -208,7 +209,8 @@ export function AdminPaymentsPanel({
               <SelectItem value="ALL">All</SelectItem>
             </SelectContent>
           </Select>
-          {filterControls}
+
+          {searchFilters}
         </div>
 
         {isLoading ? (
@@ -294,7 +296,7 @@ export function AdminPaymentsPanel({
       </TabsContent>
 
       <TabsContent value="unpaid" className="space-y-4">
-        {filterControls}
+        {searchFilters}
         <p className="text-sm text-muted-foreground">
           Active batch students without an approved payment for{" "}
           {unpaidStudents[0]

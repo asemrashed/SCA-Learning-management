@@ -1,8 +1,7 @@
 "use client"
 
 import { use } from "react"
-import { CourseResourcePage } from "@/features/resource/components/course-resource-page"
-import { ResourceCategory } from "@/types/api"
+import { StudentAssessmentResults } from "@/features/resource-submission/components/student-assessment-results"
 
 export default function ResultSheetPage({
   params,
@@ -10,11 +9,5 @@ export default function ResultSheetPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = use(params)
-  return (
-    <CourseResourcePage
-      enrollmentId={id}
-      category={ResourceCategory.RESULT_SHEET}
-      pageTitle="Result Sheet"
-    />
-  )
+  return <StudentAssessmentResults enrollmentId={id} />
 }

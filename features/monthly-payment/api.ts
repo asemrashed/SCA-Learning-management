@@ -67,21 +67,10 @@ export const monthlyPaymentApi = createApi({
       invalidatesTags: (result) => [
         { type: 'MonthlyPayment', id: 'LIST' },
         { type: 'MonthlyPayment', id: 'UNPAID' },
-        { type: 'MonthlyPayment', id: 'INSTRUCTOR' },
         ...(result
           ? [{ type: 'EnrollmentPaymentHistory' as const, id: result.data.enrollment.id }]
           : []),
       ],
-    }),
-    listInstructorMonthlyPayments: builder.query<
-      { data: MonthlyPaymentRecord[]; meta: { total: number; page: number; pageSize: number } },
-      ListMonthlyPaymentsParams | void
-    >({
-      query: (params) => ({
-        url: '/instructor/monthly-payments',
-        params: params ?? {},
-      }),
-      providesTags: [{ type: 'MonthlyPayment', id: 'INSTRUCTOR' }],
     }),
   }),
 })
@@ -92,5 +81,4 @@ export const {
   useListAdminMonthlyPaymentsQuery,
   useListUnpaidStudentsQuery,
   useReviewMonthlyPaymentMutation,
-  useListInstructorMonthlyPaymentsQuery,
 } = monthlyPaymentApi

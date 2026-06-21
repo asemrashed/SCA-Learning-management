@@ -9,7 +9,7 @@ export function isAdminStaff(role: Role): boolean {
 }
 
 export function isStaff(role: Role): boolean {
-  return isAdminStaff(role) || role === Role.INSTRUCTOR
+  return isAdminStaff(role)
 }
 
 export function isLoginAllowed(role: Role): boolean {

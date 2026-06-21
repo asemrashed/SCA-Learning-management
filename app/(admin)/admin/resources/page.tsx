@@ -7,7 +7,7 @@ export default function AdminResourcesPage() {
         <h1 className="text-2xl font-bold md:text-3xl">Resources</h1>
         <p className="text-muted-foreground">
           Upload lecture sheets, solution PDFs, notices, and result sheets. Use the separate
-          Exams and Assignments pages for those PDFs.
+          Exams, Assignments, and Question bank pages for assessment PDFs.
         </p>
       </div>
       <ResourceManagePanel />

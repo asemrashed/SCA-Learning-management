@@ -10,6 +10,7 @@ export const RESOURCE_CATEGORY_LABELS: Record<ResourceCategory, string> = {
   [ResourceCategory.THEORY_SUGGESTION]: 'Theory suggestion',
   [ResourceCategory.EXAM]: 'Exam',
   [ResourceCategory.ASSIGNMENT]: 'Assignment',
+  [ResourceCategory.QUESTION_BANK]: 'Question bank',
 }
 
 export const PDF_RESOURCE_CATEGORIES = new Set<ResourceCategory>([
@@ -21,6 +22,7 @@ export const PDF_RESOURCE_CATEGORIES = new Set<ResourceCategory>([
   ResourceCategory.THEORY_SUGGESTION,
   ResourceCategory.EXAM,
   ResourceCategory.ASSIGNMENT,
+  ResourceCategory.QUESTION_BANK,
 ])
 
 export const SUBJECT_REQUIRED_CATEGORIES = new Set<ResourceCategory>([
@@ -28,6 +30,7 @@ export const SUBJECT_REQUIRED_CATEGORIES = new Set<ResourceCategory>([
   ResourceCategory.SOLUTION_PDF,
   ResourceCategory.EXAM,
   ResourceCategory.ASSIGNMENT,
+  ResourceCategory.QUESTION_BANK,
 ])
 
 export const DEADLINE_CATEGORIES = new Set<ResourceCategory>([
@@ -44,9 +47,10 @@ export const BATCH_SCOPED_CATEGORIES = new Set<ResourceCategory>([
   ResourceCategory.THEORY_SUGGESTION,
   ResourceCategory.EXAM,
   ResourceCategory.ASSIGNMENT,
+  ResourceCategory.QUESTION_BANK,
 ])
 
-/** Shown on Admin → Resources only (not Exams / Assignments pages). */
+/** Shown on Admin → Resources only (not Exams / Assignments / Question bank pages). */
 export const CONTENT_RESOURCE_CATEGORIES = new Set<ResourceCategory>([
   ResourceCategory.GENERAL,
   ResourceCategory.LECTURE_SHEET,
@@ -60,7 +64,10 @@ export const CONTENT_RESOURCE_CATEGORIES = new Set<ResourceCategory>([
 export const ASSESSMENT_RESOURCE_CATEGORIES = new Set<ResourceCategory>([
   ResourceCategory.EXAM,
   ResourceCategory.ASSIGNMENT,
+  ResourceCategory.QUESTION_BANK,
 ])
+
+export const QUESTION_BANK_CATEGORY = ResourceCategory.QUESTION_BANK
 
 export function isPdfResourceCategory(category: ResourceCategory): boolean {
   return PDF_RESOURCE_CATEGORIES.has(category)

@@ -135,6 +135,7 @@ export const {
   useCreateContentGrantMutation,
   useDeleteContentGrantMutation,
   useGetBatchCurriculumQuery,
+  useLazyGetBatchCurriculumQuery,
 } = batchApi
 
 /** @deprecated use useCreateBatchUnderCourseMutation */

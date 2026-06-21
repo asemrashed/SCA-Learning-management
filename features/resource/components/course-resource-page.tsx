@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { ArrowLeft, Send } from "lucide-react"
 import { useSelector } from "react-redux"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { useGetEnrollmentQuery } from "@/features/enrollment/api"
 import {
@@ -13,16 +14,25 @@ import {
   getEnrollmentSubjects,
 } from "@/features/enrollment/curriculum"
 import { useListResourcesQuery } from "@/features/resource/api"
+import {
+  useListEnrollmentSubmissionsQuery,
+  useSubmitResourceMutation,
+} from "@/features/resource-submission/api"
 import { SecurePdfViewer } from "@/components/secure-pdf-viewer"
 import { StudentPageShell } from "@/components/student/student-page-shell"
-import {
-  assignmentSubmitMessage,
-  examSubmitMessage,
-  whatsappUrl,
-} from "@/lib/whatsapp"
+import { getApiErrorMessage } from "@/lib/get-api-error-message"
 import type { RootState } from "@/store/rootReducer"
-import { ResourceCategory } from "@/types/api"
-import type { ResourceCategory as ResourceCategoryType } from "@/types/api"
+import { ResourceCategory, ResourceSubmissionStatus } from "@/types/api"
+import type {
+  ResourceCategory as ResourceCategoryType,
+  ResourceSubmissionRecord,
+} from "@/types/api"
+
+const submissionStatusLabel: Record<ResourceSubmissionStatus, string> = {
+  [ResourceSubmissionStatus.PENDING]: "Pending review",
+  [ResourceSubmissionStatus.ACCEPTED]: "Accepted",
+  [ResourceSubmissionStatus.REJECTED]: "Rejected",
+}
 
 interface CourseResourcePageProps {
   enrollmentId: string
@@ -37,6 +47,7 @@ export function CourseResourcePage({
 }: CourseResourcePageProps) {
   const user = useSelector((state: RootState) => state.auth.user)
   const [activeId, setActiveId] = useState<string | null>(null)
+  const [submitError, setSubmitError] = useState<string | null>(null)
   const { data, isLoading, error } = useGetEnrollmentQuery(enrollmentId)
   const enrollment = data?.data
   const courseId = enrollment ? enrollmentCourseId(enrollment) : ""
@@ -53,6 +64,38 @@ export function CourseResourcePage({
     { skip: !courseId },
   )
 
+  const questionBankQuery = useListResourcesQuery(
+    {
+      courseId,
+      ...(batchId ? { batchId } : {}),
+      category: ResourceCategory.QUESTION_BANK,
+      pageSize: 100,
+    },
+    { skip: !courseId || category !== ResourceCategory.EXAM },
+  )
+
+  const submissionsQuery = useListEnrollmentSubmissionsQuery(
+    {
+      enrollmentId,
+      category: category as ResourceCategory.EXAM | ResourceCategory.ASSIGNMENT,
+    },
+    {
+      skip:
+        !enrollmentId ||
+        (category !== ResourceCategory.EXAM && category !== ResourceCategory.ASSIGNMENT),
+    },
+  )
+
+  const [submitResource, { isLoading: submitting }] = useSubmitResourceMutation()
+
+  const submissionByResourceId = useMemo(() => {
+    const map = new Map<string, ResourceSubmissionRecord>()
+    for (const item of submissionsQuery.data?.data ?? []) {
+      map.set(item.resource.id, item)
+    }
+    return map
+  }, [submissionsQuery.data?.data])
+
   const subjectIds = useMemo(() => {
     if (!enrollment) return new Set<string>()
     return new Set(getEnrollmentSubjects(enrollment).map((s) => s.id))
@@ -67,23 +110,55 @@ export function CourseResourcePage({
   }, [resourcesQuery.data?.data, enrollment, subjectIds])
 
   const active = items.find((r) => r.id === activeId) ?? null
+  const activeSubmission = active ? submissionByResourceId.get(active.id) : undefined
+  const questionBankById = useMemo(() => {
+    const map = new Map<string, (typeof items)[number]>()
+    for (const question of questionBankQuery.data?.data ?? []) {
+      map.set(question.id, question)
+    }
+    return map
+  }, [questionBankQuery.data?.data])
+
+  const viewerItems = useMemo(() => {
+    if (!active?.linkedQuestionIds?.length) return active ? [active] : []
+    return active.linkedQuestionIds
+      .map((id) => questionBankById.get(id))
+      .filter((item): item is NonNullable<typeof item> => Boolean(item))
+  }, [active, questionBankById])
+
+  const [viewerId, setViewerId] = useState<string | null>(null)
+  const activeViewer = viewerItems.find((r) => r.id === viewerId) ?? viewerItems[0] ?? null
   const courseTitle = enrollment ? enrollmentProductTitle(enrollment) : pageTitle
   const showSubmit =
     category === ResourceCategory.EXAM || category === ResourceCategory.ASSIGNMENT
-  const submitHref =
-    showSubmit && enrollment
-      ? whatsappUrl(
-          category === ResourceCategory.EXAM
-            ? examSubmitMessage(courseTitle, user?.name ?? "Student")
-            : assignmentSubmitMessage(courseTitle, user?.name ?? "Student"),
-        )
-      : null
 
   useEffect(() => {
     if (items.length > 0 && !activeId) {
       setActiveId(items[0].id)
     }
   }, [items, activeId])
+
+  useEffect(() => {
+    if (viewerItems.length > 0) {
+      setViewerId(viewerItems[0].id)
+    } else {
+      setViewerId(null)
+    }
+  }, [activeId, viewerItems])
+
+  async function handleSubmit() {
+    if (!active || !enrollment) return
+    setSubmitError(null)
+    try {
+      const result = await submitResource({
+        enrollmentId,
+        resourceId: active.id,
+      }).unwrap()
+      window.open(result.data.whatsappUrl, "_blank", "noopener,noreferrer")
+    } catch (err) {
+      setSubmitError(getApiErrorMessage(err, "Could not record submission. Please try again."))
+    }
+  }
 
   if (isLoading) {
     return (
@@ -111,15 +186,19 @@ export function CourseResourcePage({
           </Link>
         </Button>
         <h1 className="text-2xl font-bold">{pageTitle}</h1>
-        {submitHref ? (
-          <Button asChild className="ml-auto rounded-xl">
-            <a href={submitHref} target="_blank" rel="noopener noreferrer">
-              <Send className="mr-2 h-4 w-4" />
-              Submit
-            </a>
+        {showSubmit && active ? (
+          <Button
+            className="ml-auto rounded-xl"
+            disabled={submitting || activeSubmission?.status === ResourceSubmissionStatus.ACCEPTED}
+            onClick={() => void handleSubmit()}
+          >
+            <Send className="mr-2 h-4 w-4" />
+            Submit
           </Button>
         ) : null}
       </div>
+
+      {submitError ? <p className="mb-3 text-sm text-destructive">{submitError}</p> : null}
 
       {resourcesQuery.isLoading ? (
         <p className="text-sm text-muted-foreground">Loading documents…</p>
@@ -132,33 +211,69 @@ export function CourseResourcePage({
       ) : (
         <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
           <ul className="divide-y rounded-xl border bg-card">
-            {items.map((resource) => (
-              <li key={resource.id}>
-                <button
-                  type="button"
-                  onClick={() => setActiveId(resource.id)}
-                  className={`w-full px-4 py-3 text-left text-sm transition-colors hover:bg-muted/50 ${
-                    activeId === resource.id ? "bg-muted font-medium" : ""
-                  }`}
-                >
-                  <span className="line-clamp-2">{resource.title}</span>
-                  {resource.deadlineAt ? (
-                    <span className="mt-1 block text-xs text-muted-foreground">
-                      Deadline:{" "}
-                      {new Date(resource.deadlineAt).toLocaleString(undefined, {
-                        dateStyle: "medium",
-                        timeStyle: "short",
-                      })}
-                    </span>
-                  ) : null}
-                </button>
-              </li>
-            ))}
+            {items.map((resource) => {
+              const submission = submissionByResourceId.get(resource.id)
+              return (
+                <li key={resource.id}>
+                  <button
+                    type="button"
+                    onClick={() => setActiveId(resource.id)}
+                    className={`w-full px-4 py-3 text-left text-sm transition-colors hover:bg-muted/50 ${
+                      activeId === resource.id ? "bg-muted font-medium" : ""
+                    }`}
+                  >
+                    <span className="line-clamp-2">{resource.title}</span>
+                    {resource.deadlineAt ? (
+                      <span className="mt-1 block text-xs text-muted-foreground">
+                        Deadline:{" "}
+                        {new Date(resource.deadlineAt).toLocaleString(undefined, {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                        })}
+                      </span>
+                    ) : null}
+                    {submission ? (
+                      <Badge variant="secondary" className="mt-2">
+                        {submissionStatusLabel[submission.status]}
+                      </Badge>
+                    ) : null}
+                  </button>
+                </li>
+              )
+            })}
           </ul>
 
           <div className="min-h-[70vh]">
-            {active ? (
-              <SecurePdfViewer resourceId={active.id} title={active.title} />
+            {activeSubmission ? (
+              <p className="mb-3 text-sm text-muted-foreground">
+                Submission recorded for {user?.name ?? "you"}. Status:{" "}
+                {submissionStatusLabel[activeSubmission.status]}.
+              </p>
+            ) : null}
+            {activeViewer ? (
+              <div className="space-y-4">
+                {viewerItems.length > 1 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {viewerItems.map((item) => (
+                      <Button
+                        key={item.id}
+                        type="button"
+                        size="sm"
+                        variant={viewerId === item.id ? "default" : "outline"}
+                        className="rounded-xl"
+                        onClick={() => setViewerId(item.id)}
+                      >
+                        {item.title}
+                      </Button>
+                    ))}
+                  </div>
+                ) : null}
+                <SecurePdfViewer resourceId={activeViewer.id} title={activeViewer.title} />
+              </div>
+            ) : active?.linkedQuestionIds?.length ? (
+              <div className="flex h-full min-h-[50vh] items-center justify-center rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
+                Exam questions are not available yet.
+              </div>
             ) : (
               <div className="flex h-full min-h-[50vh] items-center justify-center rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
                 Select a document from the list to view.

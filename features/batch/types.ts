@@ -16,12 +16,6 @@ export interface BatchListItem {
   thumbnail: string | null
 }
 
-export interface BatchInstructor {
-  id: string
-  name: string
-  avatarUrl: string | null
-}
-
 export interface BatchCourseSummary {
   id: string
   title: string
@@ -44,7 +38,6 @@ export interface BatchDetail {
   startDate: string | null
   endDate: string | null
   thumbnail: string | null
-  instructors: BatchInstructor[]
 }
 
 export interface PaginationMeta {
@@ -74,7 +67,6 @@ export interface CreateBatchBodyInput {
   startDate?: string | null
   endDate?: string | null
   thumbnail?: string | null
-  instructorIds?: string[]
 }
 
 export type UpdateBatchInput = Partial<CreateBatchBodyInput>

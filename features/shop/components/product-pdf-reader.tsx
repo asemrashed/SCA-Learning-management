@@ -15,6 +15,11 @@ import {
   QuantityStepper,
 } from "@/features/shop/components/buy-now-button"
 
+const PDF_RENDER_SCALE = 1.35
+const ZOOM_MIN = 0.8
+const ZOOM_MAX = 2.5
+const ZOOM_STEP = 0.15
+
 export interface ProductPdfReaderProps {
   idOrSlug: string
   productId: string
@@ -40,7 +45,7 @@ export function ProductPdfReader({
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [totalPages, setTotalPages] = useState(0)
-  const [scale, setScale] = useState(1.35)
+  const [zoom, setZoom] = useState(1)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [quantity, setQuantity] = useState(1)
 
@@ -51,10 +56,10 @@ export function ProductPdfReader({
     !hideBuySection && !access?.hasFullAccess && (access?.freePreviewPages ?? 0) > 0
 
   const renderPages = useCallback(
-    async (data: ArrayBuffer, nextScale: number) => {
+    async (data: ArrayBuffer) => {
       if (!pagesRef.current) return
       const maxPreviewPages = hasFullAccess ? undefined : access?.freePreviewPages
-      const result = await renderPdfToCanvases(data, pagesRef.current, nextScale, {
+      const result = await renderPdfToCanvases(data, pagesRef.current, PDF_RENDER_SCALE, {
         maxPreviewPages,
       })
       setTotalPages(result.totalPages)
@@ -76,7 +81,7 @@ export function ProductPdfReader({
         const buffer = await blob.arrayBuffer()
         if (cancelled) return
         pdfDataRef.current = buffer
-        await renderPages(buffer, scale)
+        await renderPages(buffer)
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : "Could not load document")
@@ -100,16 +105,14 @@ export function ProductPdfReader({
     access?.hasDigitalFile,
     access?.hasFullAccess,
     hideBuySection,
+    renderPages,
   ])
 
   useEffect(() => {
-    if (!pdfDataRef.current || loading) return
-    void renderPages(pdfDataRef.current, scale)
-  }, [scale, loading, renderPages])
-
-  useEffect(() => {
     function onFullscreenChange() {
-      setIsFullscreen(document.fullscreenElement === shellRef.current)
+      const fullscreen = document.fullscreenElement === shellRef.current
+      setIsFullscreen(fullscreen)
+      if (!fullscreen) setZoom(1)
     }
     document.addEventListener("fullscreenchange", onFullscreenChange)
     return () => document.removeEventListener("fullscreenchange", onFullscreenChange)
@@ -188,7 +191,7 @@ export function ProductPdfReader({
               variant="ghost"
               size="icon"
               aria-label="Zoom out"
-              onClick={() => setScale((s) => Math.max(0.8, s - 0.15))}
+              onClick={() => setZoom((z) => Math.max(ZOOM_MIN, z - ZOOM_STEP))}
             >
               <ZoomOut className="h-4 w-4" />
             </Button>
@@ -197,7 +200,7 @@ export function ProductPdfReader({
               variant="ghost"
               size="icon"
               aria-label="Zoom in"
-              onClick={() => setScale((s) => Math.min(2.5, s + 0.15))}
+              onClick={() => setZoom((z) => Math.min(ZOOM_MAX, z + ZOOM_STEP))}
             >
               <ZoomIn className="h-4 w-4" />
             </Button>
@@ -233,6 +236,7 @@ export function ProductPdfReader({
           <div
             ref={pagesRef}
             className="relative mx-auto max-w-4xl px-2 py-4"
+            style={{ zoom }}
             onDragStart={(e) => e.preventDefault()}
           />
 

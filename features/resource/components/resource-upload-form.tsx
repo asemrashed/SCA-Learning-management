@@ -82,6 +82,10 @@ export function ResourceForm({
     resource?.category ?? defaultCategory,
   )
   const [deadlineAt, setDeadlineAt] = useState(toDeadlineInputValue(resource?.deadlineAt))
+  const [startsAt, setStartsAt] = useState(toDeadlineInputValue(resource?.startsAt))
+  const [marks, setMarks] = useState(
+    resource?.marks != null ? String(resource.marks) : "",
+  )
   const [placement, setPlacement] = useState<CurriculumPlacement>({
     ...initialPlacement,
     courseId: fixedCourseId ?? resource?.courseId ?? undefined,
@@ -110,6 +114,7 @@ export function ResourceForm({
   const subjectRequired = isSubjectRequiredCategory(category)
   const requireBatch = isLive && isBatchScopedCategory(category)
   const showDeadline = isDeadlineCategory(category)
+  const showMarks = category === ResourceCategory.QUESTION_BANK
 
   const categoryOptions = useMemo(() => {
     if (lockCategory) {
@@ -172,8 +177,23 @@ export function ResourceForm({
       return
     }
 
+    if (showDeadline && !startsAt.trim()) {
+      setError("Please set a start time.")
+      return
+    }
+
+    if (showDeadline && startsAt && deadlineAt && new Date(startsAt) > new Date(deadlineAt)) {
+      setError("Start time must be before the deadline.")
+      return
+    }
+
     if (!fileUrl.trim()) {
       setError("Upload a PDF or paste a file link.")
+      return
+    }
+
+    if (showMarks && (!marks.trim() || Number(marks) < 1)) {
+      setError("Please enter marks (minimum 1).")
       return
     }
 
@@ -188,6 +208,8 @@ export function ResourceForm({
       moduleId: placement.moduleId ?? null,
       lessonId: placement.lessonId ?? null,
       deadlineAt: showDeadline && deadlineAt ? new Date(deadlineAt).toISOString() : null,
+      startsAt: showDeadline && startsAt ? new Date(startsAt).toISOString() : null,
+      marks: showMarks ? Number(marks) : null,
     }
 
     try {
@@ -204,6 +226,8 @@ export function ResourceForm({
             moduleId: payload.moduleId,
             lessonId: payload.lessonId,
             deadlineAt: payload.deadlineAt,
+            startsAt: payload.startsAt,
+            marks: payload.marks,
           },
         }).unwrap()
         setSuccess("Resource updated.")
@@ -212,6 +236,7 @@ export function ResourceForm({
         setTitle("")
         setFileUrl("")
         setDeadlineAt("")
+        setStartsAt("")
         setPlacement({
           ...initialPlacement,
           courseId: fixedCourseId ?? courseId,
@@ -284,13 +309,39 @@ export function ResourceForm({
         )}
 
         {showDeadline ? (
+          <>
+            <div className="space-y-2">
+              <Label htmlFor="resource-starts-at">Start time</Label>
+              <Input
+                id="resource-starts-at"
+                type="datetime-local"
+                value={startsAt}
+                onChange={(e) => setStartsAt(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="resource-deadline">Deadline</Label>
+              <Input
+                id="resource-deadline"
+                type="datetime-local"
+                value={deadlineAt}
+                onChange={(e) => setDeadlineAt(e.target.value)}
+                required
+              />
+            </div>
+          </>
+        ) : null}
+
+        {showMarks ? (
           <div className="space-y-2">
-            <Label htmlFor="resource-deadline">Deadline</Label>
+            <Label htmlFor="resource-marks">Marks</Label>
             <Input
-              id="resource-deadline"
-              type="datetime-local"
-              value={deadlineAt}
-              onChange={(e) => setDeadlineAt(e.target.value)}
+              id="resource-marks"
+              type="number"
+              min={1}
+              value={marks}
+              onChange={(e) => setMarks(e.target.value)}
               required
             />
           </div>

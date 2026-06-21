@@ -17,7 +17,7 @@ import {
 import { ResourceForm } from "@/features/resource/components/resource-upload-form"
 import { ResourceViewButton } from "@/features/resource/components/resource-view-button"
 import { useGetBatchQuery } from "@/features/batch/api"
-import { useTeachingProducts } from "@/features/assessment/hooks/use-teaching-products"
+import { useTeachingProducts } from "@/features/resource/hooks/use-teaching-products"
 import { getApiErrorMessage } from "@/lib/get-api-error-message"
 import {
   ASSESSMENT_RESOURCE_CATEGORIES,

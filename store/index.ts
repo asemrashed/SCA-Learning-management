@@ -4,15 +4,13 @@ import { batchApi } from '@/features/batch/api'
 import { courseApi } from '@/features/course/api'
 import { enrollmentApi } from '@/features/enrollment/api'
 import { resourceApi } from '@/features/resource/api'
-import { assessmentApi } from '@/features/assessment/api'
 import { liveclassApi } from '@/features/liveclass/api'
-import { paymentApi } from '@/features/payment/api'
 import { uploadApi } from '@/features/upload/api'
-import { certificateApi } from '@/features/certificate/api'
 import { adminUserApi } from '@/features/admin-user/api'
 import { shopApi } from '@/features/shop/api'
 import { categoryApi } from '@/features/category/api'
 import { monthlyPaymentApi } from '@/features/monthly-payment/api'
+import { resourceSubmissionApi } from '@/features/resource-submission/api'
 import { reviewApi } from '@/features/review/api'
 import { rootReducer } from './rootReducer'
 
@@ -26,15 +24,13 @@ export const makeStore = () =>
         courseApi.middleware,
         enrollmentApi.middleware,
         resourceApi.middleware,
-        assessmentApi.middleware,
         liveclassApi.middleware,
-        paymentApi.middleware,
         uploadApi.middleware,
-        certificateApi.middleware,
         adminUserApi.middleware,
         shopApi.middleware,
         categoryApi.middleware,
         monthlyPaymentApi.middleware,
+        resourceSubmissionApi.middleware,
         reviewApi.middleware,
       ),
   })

@@ -53,7 +53,7 @@ export function ResourceViewButton({
         View
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-h-[95vh] max-w-5xl gap-0 overflow-hidden p-0">
+        <DialogContent showCloseButton={false} className="max-h-[95vh] max-w-5xl gap-0 overflow-hidden p-0">
           <DialogHeader className="sr-only">
             <DialogTitle>{resource.title}</DialogTitle>
           </DialogHeader>

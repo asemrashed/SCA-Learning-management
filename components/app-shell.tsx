@@ -8,23 +8,20 @@ import { StudentSidebar } from "@/components/student/student-sidebar"
 import { StudentShellProvider } from "@/components/student/student-shell-context"
 import {
   adminShellNav,
-  instructorShellNav,
   superAdminShellNav,
   type ShellNavGroup,
 } from "@/lib/dashboard-nav"
 
-export type AppShellVariant = "student" | "admin" | "super-admin" | "instructor"
+export type AppShellVariant = "student" | "admin" | "super-admin"
 
 const navByVariant: Record<Exclude<AppShellVariant, "student">, ShellNavGroup[]> = {
   admin: adminShellNav,
   "super-admin": superAdminShellNav,
-  instructor: instructorShellNav,
 }
 
 const overviewHrefByVariant: Record<Exclude<AppShellVariant, "student">, string> = {
   admin: "/admin",
   "super-admin": "/super-admin",
-  instructor: "/instructor",
 }
 
 interface AppShellProps {

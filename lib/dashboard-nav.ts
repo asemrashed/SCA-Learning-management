@@ -42,7 +42,6 @@ export const studentShellNav: ShellNavGroup[] = [
       { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
       { href: '/dashboard/courses', label: MY_COURSES, icon: Layers },
       { href: '/dashboard/suggestions', label: 'Suggestion', icon: Lightbulb },
-      { href: '/dashboard/resources', label: 'Resources', icon: FileText },
       { href: '/dashboard/reviews', label: 'Review', icon: MessageSquareQuote },
     ],
   },
@@ -51,7 +50,6 @@ export const studentShellNav: ShellNavGroup[] = [
     items: [
       { href: '/dashboard/profile', label: 'Profile', icon: User },
       { href: '/dashboard/orders', label: 'My orders', icon: Package },
-      { href: '/dashboard/certificates', label: 'Certificates', icon: GraduationCap },
     ],
   },
 ]
@@ -68,7 +66,6 @@ const adminOperationsNav: ShellNavItem[] = [
   { href: '/admin/exams', label: 'Exams', icon: ClipboardList },
   { href: '/admin/assignments', label: 'Assignments', icon: PenLine },
   { href: '/admin/questions', label: 'Question bank', icon: ClipboardList },
-  { href: '/admin/certificates', label: 'Certificates', icon: GraduationCap },
   { href: '/admin/reviews', label: 'Reviews', icon: MessageSquareQuote },
 ]
 
@@ -110,36 +107,12 @@ export const superAdminShellNav: ShellNavGroup[] = [
   },
 ]
 
-export const instructorShellNav: ShellNavGroup[] = [
-  {
-    group: 'Teaching',
-    items: [
-      { href: '/instructor', label: 'Overview', icon: LayoutDashboard },
-      { href: '/instructor/batches', label: MY_COURSES, icon: Layers },
-      { href: '/instructor/payments', label: 'Payments', icon: CreditCard },
-      { href: '/instructor/resources', label: 'Resources', icon: FileText },
-      { href: '/instructor/exams', label: 'Exams', icon: ClipboardList },
-      { href: '/instructor/assignments', label: 'Assignments', icon: PenLine },
-      { href: '/instructor/certificates', label: 'Certificates', icon: GraduationCap },
-    ],
-  },
-  {
-    group: 'Account',
-    items: [
-      { href: '/profile', label: 'Profile', icon: User },
-      { href: '/dashboard', label: 'Student view', icon: GraduationCap },
-    ],
-  },
-]
-
 export function homePathForRole(role: Role): string {
   switch (role) {
     case Role.SUPER_ADMIN:
       return '/super-admin'
     case Role.ADMIN:
       return '/admin'
-    case Role.INSTRUCTOR:
-      return '/instructor'
     default:
       return '/dashboard'
   }

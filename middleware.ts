@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { SESSION_COOKIE_NAME } from '@/lib/auth-session'
 
-const protectedPrefixes = ['/dashboard', '/admin', '/super-admin', '/instructor']
+const protectedPrefixes = ['/dashboard', '/admin', '/super-admin']
 const authPaths = ['/login', '/register']
 
 export function middleware(request: NextRequest) {
@@ -27,7 +27,6 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     '/dashboard/:path*',
-    '/instructor/:path*',
     '/admin/:path*',
     '/super-admin/:path*',
     '/login',

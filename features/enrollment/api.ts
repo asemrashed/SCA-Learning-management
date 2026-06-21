@@ -55,14 +55,6 @@ export const enrollmentApi = createApi({
         { type: 'EnrollmentList', id: 'LIST' },
       ],
     }),
-    markLessonComplete: builder.mutation<{ data: { progressPct: number } }, string>({
-      query: (lessonId) => ({
-        url: `/me/lessons/${lessonId}/progress`,
-        method: 'PATCH',
-        body: { completed: true },
-      }),
-      invalidatesTags: [{ type: 'EnrollmentList', id: 'LIST' }],
-    }),
   }),
 })
 
@@ -72,5 +64,4 @@ export const {
   useCreateEnrollmentMutation,
   useListAdminEnrollmentRequestsQuery,
   useReviewEnrollmentRequestMutation,
-  useMarkLessonCompleteMutation,
 } = enrollmentApi

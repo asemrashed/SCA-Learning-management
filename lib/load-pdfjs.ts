@@ -102,7 +102,8 @@ export async function renderPdfToCanvases(
   options?: RenderPdfOptions,
 ): Promise<{ totalPages: number }> {
   const pdfjs = await loadPdfJs()
-  const pdf = await pdfjs.getDocument({ data }).promise
+  // PDF.js transfers the buffer to its worker, detaching it — clone for re-renders (zoom).
+  const pdf = await pdfjs.getDocument({ data: data.slice(0) }).promise
   container.replaceChildren()
 
   const maxPreview = options?.maxPreviewPages
