@@ -35,7 +35,7 @@ function LessonRow({
   isActive: boolean
   onSelect: (lesson: EnrollmentLesson) => void
 }) {
-  const hasVideo = !!lesson.videoUrl
+  const hasVideo = !!lesson.hasVideo
 
   return (
     <div
@@ -130,7 +130,7 @@ export function EnrollmentPlayer({ enrollmentId }: { enrollmentId: string }) {
 
   useEffect(() => {
     if (!detail || activeLesson) return
-    const firstPlayable = allLessons.find((l) => l.videoUrl)
+    const firstPlayable = allLessons.find((l) => l.hasVideo)
     if (firstPlayable) setActiveLesson(firstPlayable)
   }, [detail, allLessons, activeLesson])
 
@@ -177,11 +177,11 @@ export function EnrollmentPlayer({ enrollmentId }: { enrollmentId: string }) {
         <>
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_min(380px,34%)] lg:items-start">
             <div className="min-w-0">
-              {activeLesson?.videoUrl ? (
+              {activeLesson?.hasVideo ? (
                 <div className="overflow-hidden rounded-xl border bg-black shadow-sm">
                   <LessonVideoPlayer
                     key={activeLesson.id}
-                    videoUrl={activeLesson.videoUrl}
+                    lessonId={activeLesson.id}
                     title={activeLesson.title}
                   />
                 </div>

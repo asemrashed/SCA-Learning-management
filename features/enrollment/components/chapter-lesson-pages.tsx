@@ -57,11 +57,11 @@ export function PreRecordedModuleLessons({
     if (fromRecordings.length > 0) return fromRecordings
 
     return mod.lessons
-      .filter((l) => l.type === LessonType.RECORDED || l.videoUrl)
+      .filter((l) => l.type === LessonType.RECORDED || l.hasVideo)
       .map((l) => ({
         id: l.id,
         title: l.title,
-        videoUrl: l.videoUrl,
+        hasVideo: l.hasVideo,
         durationS: l.durationS,
         lectureDate: l.lectureDate,
       }))
@@ -150,11 +150,11 @@ export function RecordedModuleLessons({
     if (fromRecordings.length > 0) return fromRecordings
 
     return mod.lessons
-      .filter((l) => l.videoUrl)
+      .filter((l) => l.hasVideo)
       .map((l) => ({
         id: l.id,
         title: l.title,
-        videoUrl: l.videoUrl,
+        hasVideo: l.hasVideo,
         durationS: l.durationS,
         lectureDate: l.lectureDate,
       }))

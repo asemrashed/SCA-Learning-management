@@ -20,7 +20,7 @@ interface CurriculumTreeProps {
 export function CurriculumTree({ modules, initialVisible = 4 }: CurriculumTreeProps) {
   const [expanded, setExpanded] = useState(false)
   const [preview, setPreview] = useState<{
-    videoUrl: string
+    lessonId: string
     title: string
     duration: string
   } | null>(null)
@@ -43,7 +43,7 @@ export function CurriculumTree({ modules, initialVisible = 4 }: CurriculumTreePr
             </p>
             <ul className="space-y-2">
               {mod.lessons.map((lesson) => {
-                const playable = lesson.isPreview && lesson.videoUrl
+                const playable = lesson.isPreview && lesson.hasVideo
                 return (
                   <li
                     key={lesson.id}
@@ -59,7 +59,7 @@ export function CurriculumTree({ modules, initialVisible = 4 }: CurriculumTreePr
                           type="button"
                           onClick={() =>
                             setPreview({
-                              videoUrl: lesson.videoUrl!,
+                              lessonId: lesson.id,
                               title: lesson.title,
                               duration: formatDuration(lesson.durationS),
                             })
@@ -103,7 +103,7 @@ export function CurriculumTree({ modules, initialVisible = 4 }: CurriculumTreePr
         <VideoModal
           isOpen
           onClose={() => setPreview(null)}
-          videoUrl={preview.videoUrl}
+          lessonId={preview.lessonId}
           title={preview.title}
           duration={preview.duration}
         />

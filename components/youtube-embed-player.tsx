@@ -1,9 +1,9 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { cn } from "@/lib/utils"
-import { loadYoutubeIframeApi } from "@/lib/load-video-apis"
+import { toYoutubeNoCookieSrc } from "@/lib/youtube"
 import { VideoPlayerShell } from "@/components/video-player-shell"
+import { VideoPrePlayOverlay } from "@/components/video-pre-play-overlay"
 
 interface YoutubeEmbedPlayerProps {
   videoId: string
@@ -12,9 +12,10 @@ interface YoutubeEmbedPlayerProps {
   flexible?: boolean
   variant?: "default" | "modal"
   className?: string
+  watermarkText?: string | null
 }
 
-/** YouTube player with iframe click-shield — users cannot reach YouTube UI or outbound links. */
+/** Direct YouTube embed — used for recordings/fallback paths where only a video ID is available. */
 export function YoutubeEmbedPlayer({
   videoId,
   title,
@@ -22,11 +23,14 @@ export function YoutubeEmbedPlayer({
   flexible = false,
   variant = "default",
   className,
+  watermarkText,
 }: YoutubeEmbedPlayerProps) {
-  const mountRef = useRef<HTMLDivElement>(null)
-  const playerRef = useRef<YT.Player | null>(null)
+  const iframeRef = useRef<HTMLIFrameElement>(null)
+
+  const [started, setStarted] = useState(autoPlay)
+  const [playerReady, setPlayerReady] = useState(false)
   const [ready, setReady] = useState(false)
-  const [playing, setPlaying] = useState(autoPlay)
+  const [playing, setPlaying] = useState(false)
   const [muted, setMuted] = useState(false)
   const [volume, setVolume] = useState(100)
   const [progress, setProgress] = useState(0)
@@ -34,126 +38,157 @@ export function YoutubeEmbedPlayer({
   const [duration, setDuration] = useState(0)
   const [ended, setEnded] = useState(false)
   const [playbackRate, setPlaybackRate] = useState(1)
+  const [seeking, setSeeking] = useState(false)
+  const pendingPlayRef = useRef(false)
 
-  const syncTime = useCallback(() => {
-    const player = playerRef.current
-    if (!player?.getCurrentTime || !player.getDuration) return
-    const cur = player.getCurrentTime()
-    const dur = player.getDuration()
-    setCurrent(cur)
-    setDuration(dur)
-    if (dur > 0) setProgress((cur / dur) * 100)
+  const sendPlayerCommand = useCallback(
+    (func: string, args: unknown[] = []) => {
+      if (!started) return
+      iframeRef.current?.contentWindow?.postMessage(
+        JSON.stringify({ event: "command", func, args }),
+        "https://www.youtube-nocookie.com",
+      )
+    },
+    [started],
+  )
+
+  const syncFromPlayer = useCallback(() => {
+    sendPlayerCommand("getCurrentTime")
+    sendPlayerCommand("getDuration")
+  }, [sendPlayerCommand])
+
+  const initializePlayerBridge = useCallback(() => {
+    iframeRef.current?.contentWindow?.postMessage(
+      JSON.stringify({ event: "listening", id: videoId }),
+      "https://www.youtube-nocookie.com",
+    )
+    sendPlayerCommand("addEventListener", ["onReady"])
+    sendPlayerCommand("addEventListener", ["onStateChange"])
+    syncFromPlayer()
+  }, [sendPlayerCommand, syncFromPlayer, videoId])
+
+  useEffect(() => {
+    if (!started) return
+
+    function handleMessage(event: MessageEvent) {
+      if (!event.origin.includes("youtube")) return
+
+      try {
+        const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data
+        if (data?.event === "onReady") {
+          setPlayerReady(true)
+          setReady(true)
+          syncFromPlayer()
+          return
+        }
+        if (data?.event !== "infoDelivery") return
+
+        const state = data?.info?.playerState
+        if (state === 1) setPlaying(true)
+        if (state === 0 || state === 2) setPlaying(false)
+        if (state === 0) setEnded(true)
+
+        const nextDuration = Number(data?.info?.duration)
+        if (Number.isFinite(nextDuration) && nextDuration > 0) setDuration(nextDuration)
+
+        const nextCurrentTime = Number(data?.info?.currentTime)
+        if (!seeking && Number.isFinite(nextCurrentTime) && nextCurrentTime >= 0) {
+          setCurrent(nextCurrentTime)
+          if (nextDuration > 0) setProgress((nextCurrentTime / nextDuration) * 100)
+        }
+      } catch {
+        // ignore non-JSON messages
+      }
+    }
+
+    window.addEventListener("message", handleMessage)
+    return () => window.removeEventListener("message", handleMessage)
+  }, [started, seeking, syncFromPlayer])
+
+  useEffect(() => {
+    if (!started || !playerReady) return
+    const tick = setInterval(syncFromPlayer, 400)
+    return () => clearInterval(tick)
+  }, [started, playerReady, syncFromPlayer])
+
+  const beginPlayback = useCallback(() => {
+    pendingPlayRef.current = true
+    setStarted(true)
+    setPlaying(true)
+    setEnded(false)
   }, [])
 
   useEffect(() => {
-    let destroyed = false
-    let tick: ReturnType<typeof setInterval> | undefined
-
-    void loadYoutubeIframeApi().then(() => {
-      if (destroyed || !mountRef.current) return
-
-      playerRef.current = new window.YT.Player(mountRef.current, {
-        videoId,
-        width: "100%",
-        height: "100%",
-        playerVars: {
-          autoplay: autoPlay ? 1 : 0,
-          modestbranding: 1,
-          rel: 0,
-          fs: 0,
-          disablekb: 1,
-          controls: 0,
-          iv_load_policy: 3,
-          playsinline: 1,
-          enablejsapi: 1,
-          origin: window.location.origin,
-          widget_referrer: window.location.origin,
-        },
-        events: {
-          onReady: () => {
-            if (destroyed) return
-            setReady(true)
-            syncTime()
-            const vol = playerRef.current?.getVolume?.()
-            if (typeof vol === "number") setVolume(vol)
-            mountRef.current?.querySelector("iframe")?.setAttribute("tabindex", "-1")
-          },
-          onStateChange: (event) => {
-            if (event.data === window.YT.PlayerState.PLAYING) {
-              setPlaying(true)
-              setEnded(false)
-            } else if (event.data === window.YT.PlayerState.PAUSED) {
-              setPlaying(false)
-            } else if (event.data === window.YT.PlayerState.ENDED) {
-              setPlaying(false)
-              setEnded(true)
-            }
-          },
-        },
-      })
-
-      tick = setInterval(syncTime, 400)
-    })
-
-    return () => {
-      destroyed = true
-      if (tick) clearInterval(tick)
-      playerRef.current?.destroy()
-      playerRef.current = null
+    if (!started || !playerReady) return
+    if (pendingPlayRef.current || autoPlay) {
+      sendPlayerCommand("playVideo")
+      pendingPlayRef.current = false
     }
-  }, [videoId, autoPlay, syncTime])
+  }, [started, playerReady, autoPlay, sendPlayerCommand])
 
   const togglePlay = () => {
-    const player = playerRef.current
-    if (!player?.playVideo) return
-    if (ended) {
-      player.seekTo(0, true)
-      player.playVideo()
-      setEnded(false)
+    if (!started) {
+      beginPlayback()
       return
     }
-    if (playing) player.pauseVideo()
-    else player.playVideo()
+    if (ended) {
+      sendPlayerCommand("seekTo", [0, true])
+      sendPlayerCommand("playVideo")
+      setEnded(false)
+      setPlaying(true)
+      return
+    }
+    if (playing) {
+      sendPlayerCommand("pauseVideo")
+      setPlaying(false)
+    } else {
+      sendPlayerCommand("playVideo")
+      setPlaying(true)
+    }
   }
 
   const toggleMute = () => {
-    const player = playerRef.current
-    if (!player) return
+    if (!started) return
     if (muted) {
-      player.unMute()
+      sendPlayerCommand("unMute")
       setMuted(false)
     } else {
-      player.mute()
+      sendPlayerCommand("mute")
       setMuted(true)
     }
   }
 
   const changeVolume = (v: number) => {
-    const player = playerRef.current
-    if (!player?.setVolume) return
-    player.setVolume(v)
-    if (v === 0) player.mute()
-    else if (muted) player.unMute()
+    if (!started) return
+    sendPlayerCommand("setVolume", [v])
+    if (v === 0) sendPlayerCommand("mute")
+    else if (muted) sendPlayerCommand("unMute")
     setVolume(v)
     setMuted(v === 0)
   }
 
   const seek = (value: number[]) => {
-    const player = playerRef.current
-    if (!player?.getDuration) return
-    const dur = player.getDuration()
-    const t = (value[0] / 100) * dur
-    player.seekTo(t, true)
+    if (!started) return
+    const t = duration > 0 ? (value[0] / 100) * duration : 0
+    setSeeking(true)
+    sendPlayerCommand("seekTo", [t, true])
     setProgress(value[0])
     setCurrent(t)
+    window.setTimeout(() => setSeeking(false), 300)
   }
 
   const changePlaybackRate = (rate: number) => {
-    const player = playerRef.current
-    if (!player?.setPlaybackRate) return
-    player.setPlaybackRate(rate)
+    if (!started) return
+    sendPlayerCommand("setPlaybackRate", [rate])
     setPlaybackRate(rate)
   }
+
+  const pauseOnHidden = useCallback(() => {
+    sendPlayerCommand("pauseVideo")
+    setPlaying(false)
+  }, [sendPlayerCommand])
+
+  const src = started ? toYoutubeNoCookieSrc(videoId, autoPlay) : undefined
 
   return (
     <VideoPlayerShell
@@ -171,21 +206,36 @@ export function YoutubeEmbedPlayer({
       flexible={flexible}
       variant={variant}
       className={className}
+      watermarkText={watermarkText}
       onTogglePlay={togglePlay}
       onToggleMute={toggleMute}
       onVolumeChange={changeVolume}
       onSeek={seek}
       onPlaybackRateChange={changePlaybackRate}
+      onVisibilityHidden={started ? pauseOnHidden : undefined}
       videoArea={
         <>
-          <div
-            ref={mountRef}
-            className={cn(
-              "absolute inset-0 scale-[1.06] [&_iframe]:pointer-events-none [&_iframe]:h-full [&_iframe]:w-full",
-            )}
-            aria-hidden
-          />
-          <div className="absolute inset-0 z-10" aria-hidden />
+          {!started ? (
+            <VideoPrePlayOverlay title={title} onStart={beginPlayback} />
+          ) : src ? (
+            <>
+              <iframe
+                ref={iframeRef}
+                key={videoId}
+                title={title}
+                src={src}
+                className="pointer-events-none absolute inset-0 h-full w-full scale-[1.06] border-0"
+                onLoad={() => {
+                  window.setTimeout(initializePlayerBridge, 50)
+                }}
+                allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+                sandbox="allow-scripts allow-same-origin allow-presentation"
+                referrerPolicy="strict-origin-when-cross-origin"
+                tabIndex={-1}
+              />
+              <div className="absolute inset-0 z-10" aria-hidden />
+            </>
+          ) : null}
         </>
       }
     />

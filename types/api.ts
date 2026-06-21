@@ -67,6 +67,7 @@ export interface CourseLesson {
   lectureDate?: string | null
   order: number
   isPreview: boolean
+  hasVideo: boolean
   videoUrl?: string | null
   content?: string | null
 }
@@ -216,7 +217,7 @@ export interface EnrollmentLesson {
   id: string
   title: string
   type: LessonType
-  videoUrl: string | null
+  hasVideo: boolean
   durationS: number | null
   lectureDate: string | null
   order: number

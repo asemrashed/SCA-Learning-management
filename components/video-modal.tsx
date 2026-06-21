@@ -11,19 +11,22 @@ import { LessonVideoPlayer } from "@/components/lesson-video-player"
 interface VideoModalProps {
   isOpen: boolean
   onClose: () => void
-  videoUrl: string
   title: string
   duration?: string
+  lessonId?: string
+  videoUrl?: string
 }
 
-/** Modal wrapper — same LessonVideoPlayer as dashboard, sized to fit the viewport without scrolling. */
 export function VideoModal({
   isOpen,
   onClose,
-  videoUrl,
   title,
   duration,
+  lessonId,
+  videoUrl,
 }: VideoModalProps) {
+  const playerKey = lessonId ?? videoUrl ?? title
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
@@ -42,7 +45,8 @@ export function VideoModal({
 
         {isOpen ? (
           <LessonVideoPlayer
-            key={videoUrl}
+            key={playerKey}
+            lessonId={lessonId}
             videoUrl={videoUrl}
             title={title}
             autoPlay

@@ -26,6 +26,7 @@ import {
   useUpdateBatchMutation,
 } from "@/features/batch/api"
 import type { BatchStatus, CreateBatchBodyInput } from "@/features/batch/types"
+import { fromDatetimeLocal, toDatetimeLocal } from "@/features/batch/datetime-local"
 import { BATCH_STATUS_LABEL } from "@/features/batch/utils"
 import { BATCH, EDIT_BATCH, NEW_BATCH, SAVE_BATCH } from "@/lib/product-vocabulary"
 
@@ -36,18 +37,6 @@ const BATCH_STATUSES: BatchStatus[] = [
   "COMPLETED",
   "CANCELLED",
 ]
-
-function toDatetimeLocal(iso: string | null): string {
-  if (!iso) return ""
-  const d = new Date(iso)
-  const pad = (n: number) => String(n).padStart(2, "0")
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
-
-function fromDatetimeLocal(value: string): string | null {
-  if (!value.trim()) return null
-  return new Date(value).toISOString()
-}
 
 interface BatchAdminFormProps {
   batchId?: string

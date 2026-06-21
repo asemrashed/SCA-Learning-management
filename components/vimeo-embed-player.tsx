@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { loadVimeoPlayerApi } from "@/lib/load-video-apis"
 import { VideoPlayerShell } from "@/components/video-player-shell"
+import { VideoPrePlayOverlay } from "@/components/video-pre-play-overlay"
 
 interface VimeoEmbedPlayerProps {
   videoId: string
@@ -11,9 +12,10 @@ interface VimeoEmbedPlayerProps {
   flexible?: boolean
   variant?: "default" | "modal"
   className?: string
+  watermarkText?: string | null
 }
 
-/** Vimeo player with iframe click-shield — no outbound clicks to vimeo.com. */
+/** Vimeo player with iframe click-shield — accepts full vimeo.com URLs parsed to videoId upstream. */
 export function VimeoEmbedPlayer({
   videoId,
   title,
@@ -21,11 +23,13 @@ export function VimeoEmbedPlayer({
   flexible = false,
   variant = "default",
   className,
+  watermarkText,
 }: VimeoEmbedPlayerProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const playerRef = useRef<VimeoPlayer | null>(null)
+  const [started, setStarted] = useState(autoPlay)
   const [ready, setReady] = useState(false)
-  const [playing, setPlaying] = useState(autoPlay)
+  const [playing, setPlaying] = useState(false)
   const [muted, setMuted] = useState(false)
   const [volume, setVolume] = useState(100)
   const [progress, setProgress] = useState(0)
@@ -33,6 +37,7 @@ export function VimeoEmbedPlayer({
   const [duration, setDuration] = useState(0)
   const [ended, setEnded] = useState(false)
   const [playbackRate, setPlaybackRate] = useState(1)
+  const pendingPlayRef = useRef(false)
 
   const syncTime = useCallback(async () => {
     const player = playerRef.current
@@ -44,6 +49,8 @@ export function VimeoEmbedPlayer({
   }, [])
 
   useEffect(() => {
+    if (!started) return
+
     let destroyed = false
     let tick: ReturnType<typeof setInterval> | undefined
 
@@ -61,7 +68,11 @@ export function VimeoEmbedPlayer({
         void syncTime()
         const vol = await player.getVolume()
         setVolume(Math.round(vol * 100))
-        if (autoPlay) void player.play()
+        if (pendingPlayRef.current || autoPlay) {
+          pendingPlayRef.current = false
+          void player.play()
+          setPlaying(true)
+        }
       })
 
       player.on("play", () => {
@@ -83,9 +94,20 @@ export function VimeoEmbedPlayer({
       void playerRef.current?.destroy()
       playerRef.current = null
     }
-  }, [videoId, autoPlay, syncTime])
+  }, [videoId, autoPlay, syncTime, started])
+
+  const beginPlayback = useCallback(() => {
+    pendingPlayRef.current = true
+    setStarted(true)
+    setPlaying(true)
+    setEnded(false)
+  }, [])
 
   const togglePlay = async () => {
+    if (!started) {
+      beginPlayback()
+      return
+    }
     const player = playerRef.current
     if (!player) return
     if (ended) {
@@ -137,6 +159,11 @@ export function VimeoEmbedPlayer({
     setPlaybackRate(rate)
   }
 
+  const pauseOnHidden = useCallback(async () => {
+    await playerRef.current?.pause()
+    setPlaying(false)
+  }, [])
+
   return (
     <VideoPlayerShell
       title={title}
@@ -153,22 +180,30 @@ export function VimeoEmbedPlayer({
       flexible={flexible}
       variant={variant}
       className={className}
+      watermarkText={watermarkText}
       onTogglePlay={() => void togglePlay()}
       onToggleMute={() => void toggleMute()}
       onVolumeChange={(v) => void changeVolume(v)}
       onSeek={(v) => void seek(v)}
       onPlaybackRateChange={(r) => void changePlaybackRate(r)}
+      onVisibilityHidden={started ? () => void pauseOnHidden() : undefined}
       videoArea={
         <>
-          <iframe
-            ref={iframeRef}
-            title={title}
-            className="pointer-events-none absolute inset-0 h-full w-full border-0"
-            allow="autoplay; encrypted-media"
-            referrerPolicy="strict-origin-when-cross-origin"
-            tabIndex={-1}
-          />
-          <div className="absolute inset-0 z-10" aria-hidden />
+          {!started ? (
+            <VideoPrePlayOverlay title={title} onStart={beginPlayback} />
+          ) : (
+            <>
+              <iframe
+                ref={iframeRef}
+                title={title}
+                className="pointer-events-none absolute inset-0 h-full w-full border-0"
+                allow="autoplay; encrypted-media"
+                referrerPolicy="strict-origin-when-cross-origin"
+                tabIndex={-1}
+              />
+              <div className="absolute inset-0 z-10" aria-hidden />
+            </>
+          )}
         </>
       }
     />

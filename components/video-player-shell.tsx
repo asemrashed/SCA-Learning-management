@@ -5,6 +5,7 @@ import { Play } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useFullscreen } from "@/lib/use-fullscreen"
 import { VideoPlayerControls, type PLAYBACK_RATES } from "@/components/video-player-controls"
+import { VideoPlayerWatermark } from "@/components/video-player-watermark"
 
 interface VideoPlayerShellProps {
   title: string
@@ -23,12 +24,16 @@ interface VideoPlayerShellProps {
   /** Modal: caps video height so controls fit without scrolling. */
   variant?: "default" | "modal"
   className?: string
+  /** Combined name + phone watermark for enrolled students. */
+  watermarkText?: string | null
   videoArea: ReactNode
   onTogglePlay: () => void
   onToggleMute: () => void
   onVolumeChange: (volume: number) => void
   onSeek: (value: number[]) => void
   onPlaybackRateChange: (rate: number) => void
+  /** Called when the tab becomes hidden while playing (embed players should pause). */
+  onVisibilityHidden?: () => void
 }
 
 export function VideoPlayerShell({
@@ -46,36 +51,64 @@ export function VideoPlayerShell({
   flexible = false,
   variant = "default",
   className,
+  watermarkText,
   videoArea,
   onTogglePlay,
   onToggleMute,
   onVolumeChange,
   onSeek,
   onPlaybackRateChange,
+  onVisibilityHidden,
 }: VideoPlayerShellProps) {
-  const { ref: fullscreenRef, isFullscreen, toggleFullscreen } = useFullscreen<HTMLDivElement>()
+  const { ref: fullscreenRef, element: fullscreenElement, isFullscreen, toggleFullscreen } =
+    useFullscreen<HTMLDivElement>()
   const hideTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const hoveringControlsRef = useRef(false)
+  const settingsMenuOpenRef = useRef(false)
   const [controlsVisible, setControlsVisible] = useState(true)
+
+  const clearHideTimer = useCallback(() => {
+    if (hideTimer.current) {
+      clearTimeout(hideTimer.current)
+      hideTimer.current = undefined
+    }
+  }, [])
+
+  const scheduleHideControls = useCallback(() => {
+    clearHideTimer()
+    if (!playing || flexible || variant === "modal") return
+    if (hoveringControlsRef.current || settingsMenuOpenRef.current) return
+    hideTimer.current = setTimeout(() => {
+      if (!hoveringControlsRef.current && !settingsMenuOpenRef.current) {
+        setControlsVisible(false)
+      }
+    }, 3000)
+  }, [playing, flexible, variant, clearHideTimer])
 
   const revealControls = useCallback(() => {
     setControlsVisible(true)
-    if (hideTimer.current) clearTimeout(hideTimer.current)
-    if (playing && !flexible && variant !== "modal") {
-      hideTimer.current = setTimeout(() => setControlsVisible(false), 3000)
-    }
-  }, [playing, flexible, variant])
+    clearHideTimer()
+    scheduleHideControls()
+  }, [clearHideTimer, scheduleHideControls])
 
   useEffect(() => {
     if (!playing) {
       setControlsVisible(true)
-      if (hideTimer.current) clearTimeout(hideTimer.current)
+      clearHideTimer()
     } else {
       revealControls()
     }
-    return () => {
-      if (hideTimer.current) clearTimeout(hideTimer.current)
+    return clearHideTimer
+  }, [playing, revealControls, clearHideTimer])
+
+  useEffect(() => {
+    if (!playing || !onVisibilityHidden) return
+    function handleVisibilityChange() {
+      if (document.hidden) onVisibilityHidden?.()
     }
-  }, [playing, revealControls])
+    document.addEventListener("visibilitychange", handleVisibilityChange)
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange)
+  }, [playing, onVisibilityHidden])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
@@ -121,9 +154,11 @@ export function VideoPlayerShell({
       )}
       onContextMenu={(e) => e.preventDefault()}
       onMouseMove={revealControls}
-      onMouseLeave={() =>
-        playing && variant !== "modal" && !flexible && setControlsVisible(false)
-      }
+      onMouseLeave={() => {
+        if (playing && variant !== "modal" && !flexible && !settingsMenuOpenRef.current) {
+          setControlsVisible(false)
+        }
+      }}
       onKeyDown={handleKeyDown}
     >
       <div
@@ -137,7 +172,8 @@ export function VideoPlayerShell({
         )}
       >
         {videoArea}
-        {!playing && showOverlay && (
+        {watermarkText ? <VideoPlayerWatermark label={watermarkText} /> : null}
+        {showOverlay && (
           <button
             type="button"
             onClick={onTogglePlay}
@@ -172,12 +208,32 @@ export function VideoPlayerShell({
         playbackRate={playbackRate}
         isFullscreen={isFullscreen}
         visible={controlsVisible || !playing}
+        variant={variant}
+        menuPortalContainer={fullscreenElement}
         onTogglePlay={onTogglePlay}
         onToggleMute={onToggleMute}
         onVolumeChange={onVolumeChange}
         onSeek={onSeek}
         onPlaybackRateChange={onPlaybackRateChange}
         onToggleFullscreen={() => void toggleFullscreen()}
+        onMenuOpenChange={(open) => {
+          settingsMenuOpenRef.current = open
+          if (open) {
+            setControlsVisible(true)
+            clearHideTimer()
+          } else {
+            scheduleHideControls()
+          }
+        }}
+        onMouseEnterControls={() => {
+          hoveringControlsRef.current = true
+          setControlsVisible(true)
+          clearHideTimer()
+        }}
+        onMouseLeaveControls={() => {
+          hoveringControlsRef.current = false
+          scheduleHideControls()
+        }}
       />
     </div>
   )

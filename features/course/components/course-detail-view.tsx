@@ -58,7 +58,7 @@ export function CourseDetailView({ course }: CourseDetailViewProps) {
     : sortedBatches.find((b) => b.status === "ACTIVE" || b.status === "UPCOMING") || sortedBatches[0]
 
   const previewLesson = isRecorded
-    ? modules.flatMap((m) => m.lessons).find((l) => l.isPreview && l.videoUrl)
+    ? modules.flatMap((m) => m.lessons).find((l) => l.isPreview && l.hasVideo)
     : undefined
   const [previewOpen, setPreviewOpen] = useState(false)
   const lessonCount = isRecorded
@@ -262,7 +262,7 @@ export function CourseDetailView({ course }: CourseDetailViewProps) {
         <VideoModal
           isOpen={previewOpen}
           onClose={() => setPreviewOpen(false)}
-          videoUrl={previewLesson.videoUrl!}
+          lessonId={previewLesson.id}
           title={previewLesson.title}
           duration={formatLessonDuration(previewLesson.durationS)}
         />

@@ -1,8 +1,11 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Plus, Trash2 } from "lucide-react"
+import { useSelector } from "react-redux"
+import type { RootState } from "@/store"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -24,20 +27,27 @@ import {
   useGetCourseQuery,
   useUpdateCourseMutation,
 } from "@/features/course/api"
-import { useGetBatchCurriculumQuery } from "@/features/batch/api"
+import { useCreateBatchUnderCourseMutation, useGetBatchCurriculumQuery } from "@/features/batch/api"
+import { fromDatetimeLocal } from "@/features/batch/datetime-local"
 import { useListCategoriesQuery } from "@/features/category/api"
+import {
+  InitialBatchFields,
+  emptyInitialBatchState,
+} from "@/features/course/components/initial-batch-fields"
 import {
   ModulesEditor,
   SubjectsEditor,
   modulesFromApi,
   modulesToPayload,
   newModule,
+  newSubject,
   subjectsFromApi,
   subjectsToPayload,
   type ModuleForm,
   type SubjectForm,
 } from "@/features/course/components/curriculum-editor"
-import { deliveryModeLabel, EDIT_COURSE, NEW_COURSE, SAVE_COURSE } from "@/lib/product-vocabulary"
+import { deliveryModeLabel, EDIT_COURSE, NEW_BATCH, NEW_COURSE, SAVE_COURSE } from "@/lib/product-vocabulary"
+import { isSuperAdmin } from "@/lib/roles"
 import { DeliveryMode, type CreateCourseInput, type CourseFaqItem } from "@/types/api"
 
 interface CourseAdminFormProps {
@@ -47,11 +57,14 @@ interface CourseAdminFormProps {
 export function CourseAdminForm({ courseId }: CourseAdminFormProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const user = useSelector((state: RootState) => state.auth.user)
+  const canCreateDelete = user?.role !== undefined && isSuperAdmin(user.role)
   const initialBatchId = searchParams.get("batchId") ?? ""
   const isEdit = Boolean(courseId)
   const { data, isLoading } = useGetCourseQuery(courseId!, { skip: !courseId })
   const [createCourse, { isLoading: creating }] = useCreateCourseMutation()
   const [updateCourse, { isLoading: updating }] = useUpdateCourseMutation()
+  const [createBatch, { isLoading: creatingBatch }] = useCreateBatchUnderCourseMutation()
   const [applyBatchCurriculum, { isLoading: applyingCurriculum }] =
     useApplyBatchCurriculumMutation()
 
@@ -64,6 +77,7 @@ export function CourseAdminForm({ courseId }: CourseAdminFormProps) {
   const [isPublished, setIsPublished] = useState(false)
   const [modules, setModules] = useState<ModuleForm[]>([])
   const [subjects, setSubjects] = useState<SubjectForm[]>([])
+  const [initialBatch, setInitialBatch] = useState(emptyInitialBatchState)
   const [primaryBatchId, setPrimaryBatchId] = useState("")
   const [applyBatchIds, setApplyBatchIds] = useState<string[]>([])
   const [showPreBatchCurriculum, setShowPreBatchCurriculum] = useState(false)
@@ -90,8 +104,11 @@ export function CourseAdminForm({ courseId }: CourseAdminFormProps) {
       if (deliveryMode === DeliveryMode.RECORDED && modules.length === 0) {
         setModules([newModule(0)])
       }
+      if (deliveryMode === DeliveryMode.LIVE && subjects.length === 0) {
+        setSubjects([newSubject(0)])
+      }
     }
-  }, [isEdit, deliveryMode, modules.length])
+  }, [isEdit, deliveryMode, modules.length, subjects.length])
 
   useEffect(() => {
     if (!courseId) return
@@ -179,11 +196,49 @@ export function CourseAdminForm({ courseId }: CourseAdminFormProps) {
         }
         router.refresh()
       } else {
+        if (deliveryMode === DeliveryMode.LIVE && !initialBatch.title.trim()) {
+          setError("First batch title is required for live courses.")
+          return
+        }
+
         const body: CreateCourseInput =
           deliveryMode === DeliveryMode.RECORDED
             ? { deliveryMode: DeliveryMode.RECORDED, ...base, modules: modulesToPayload(modules) }
             : { deliveryMode: DeliveryMode.LIVE, ...base }
         const result = await createCourse(body).unwrap()
+
+        if (deliveryMode === DeliveryMode.LIVE) {
+          const batchResult = await createBatch({
+            courseId: result.data.id,
+            body: {
+              title: initialBatch.title.trim(),
+              status: initialBatch.status,
+              thumbnail: initialBatch.thumbnail.trim() || null,
+              priceMinor: Math.round(parseFloat(initialBatch.priceMajor || "0") * 100),
+              capacity: initialBatch.capacity.trim() ? Number(initialBatch.capacity) : null,
+              registrationDeadline: fromDatetimeLocal(initialBatch.registrationDeadline),
+              startDate: fromDatetimeLocal(initialBatch.startDate),
+              endDate: fromDatetimeLocal(initialBatch.endDate),
+            },
+          }).unwrap()
+
+          const subjectPayload = subjectsToPayload(
+            subjects.filter((subject) => subject.title.trim()),
+          )
+          if (subjectPayload.length > 0) {
+            await applyBatchCurriculum({
+              courseId: result.data.id,
+              body: {
+                batchIds: [batchResult.data.id],
+                subjects: subjectPayload,
+              },
+            }).unwrap()
+          }
+
+          router.push(`/admin/courses/${result.data.id}/edit?batchId=${batchResult.data.id}`)
+          return
+        }
+
         router.push(`/admin/courses/${result.data.id}/edit`)
       }
     } catch (err: unknown) {
@@ -206,7 +261,7 @@ export function CourseAdminForm({ courseId }: CourseAdminFormProps) {
     return <p className="text-muted-foreground">Loading course…</p>
   }
 
-  const saving = creating || updating || applyingCurriculum
+  const saving = creating || updating || creatingBatch || applyingCurriculum
 
   return (
     <form onSubmit={handleSubmit} className="mx-auto max-w-3xl space-y-8">
@@ -362,10 +417,29 @@ export function CourseAdminForm({ courseId }: CourseAdminFormProps) {
 
       {deliveryMode === DeliveryMode.LIVE ? (
         <div className="space-y-4">
-          {courseBatches.length === 0 ? (
-            <p className="rounded-xl border border-dashed p-6 text-sm text-muted-foreground">
-              Create a batch under this course before adding subjects, chapters, and lessons.
-            </p>
+          {!isEdit ? (
+            canCreateDelete ? (
+              <>
+                <InitialBatchFields value={initialBatch} onChange={setInitialBatch} />
+                <SubjectsEditor subjects={subjects} onChange={setSubjects} />
+              </>
+            ) : null
+          ) : courseBatches.length === 0 ? (
+            <div className="space-y-4 rounded-xl border border-dashed p-6">
+              <p className="text-sm text-muted-foreground">
+                {canCreateDelete
+                  ? "Create a batch under this course before adding subjects, chapters, and lessons."
+                  : "No batch yet. A super admin must create one before curriculum can be added."}
+              </p>
+              {canCreateDelete && courseId ? (
+                <Button type="button" variant="outline" size="sm" asChild>
+                  <Link href={`/admin/courses/${courseId}/batches/new`}>
+                    <Plus className="mr-1 h-4 w-4" />
+                    {NEW_BATCH}
+                  </Link>
+                </Button>
+              ) : null}
+            </div>
           ) : (
             <>
               <div className="space-y-4 rounded-xl border bg-card p-6">
@@ -377,7 +451,16 @@ export function CourseAdminForm({ courseId }: CourseAdminFormProps) {
                       below.
                     </p>
                   </div>
-                  {sourceBatchOptions.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {canCreateDelete && courseId ? (
+                      <Button type="button" variant="outline" size="sm" asChild>
+                        <Link href={`/admin/courses/${courseId}/batches/new`}>
+                          <Plus className="mr-1 h-4 w-4" />
+                          {NEW_BATCH}
+                        </Link>
+                      </Button>
+                    ) : null}
+                    {sourceBatchOptions.length > 0 ? (
                     <Button
                       type="button"
                       variant={showPreBatchCurriculum ? "default" : "outline"}
@@ -393,6 +476,7 @@ export function CourseAdminForm({ courseId }: CourseAdminFormProps) {
                       Show pre-batch curriculum
                     </Button>
                   ) : null}
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label>Edit curriculum for batch</Label>

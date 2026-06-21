@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { cn } from "@/lib/utils"
 import { VideoPlayerShell } from "@/components/video-player-shell"
+import { VideoPrePlayOverlay } from "@/components/video-pre-play-overlay"
 
 interface NativeFileVideoPlayerProps {
   src: string
@@ -11,9 +12,10 @@ interface NativeFileVideoPlayerProps {
   flexible?: boolean
   variant?: "default" | "modal"
   className?: string
+  watermarkText?: string | null
 }
 
-/** Self-hosted file player with custom controls — no native controls bar or download affordances. */
+/** Self-hosted file player — accepts full file URLs from admin. */
 export function NativeFileVideoPlayer({
   src,
   title,
@@ -21,8 +23,11 @@ export function NativeFileVideoPlayer({
   flexible = false,
   variant = "default",
   className,
+  watermarkText,
 }: NativeFileVideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
+  const pendingPlayRef = useRef(false)
+  const [started, setStarted] = useState(autoPlay)
   const [ready, setReady] = useState(false)
   const [playing, setPlaying] = useState(autoPlay)
   const [ended, setEnded] = useState(false)
@@ -47,11 +52,15 @@ export function NativeFileVideoPlayer({
 
   useEffect(() => {
     const video = videoRef.current
-    if (!video) return
+    if (!video || !started) return
 
     const onLoaded = () => {
       setReady(true)
       syncTime()
+      if (pendingPlayRef.current) {
+        pendingPlayRef.current = false
+        void video.play()
+      }
     }
     const onPlay = () => {
       setPlaying(true)
@@ -77,9 +86,30 @@ export function NativeFileVideoPlayer({
       video.removeEventListener("ended", onEnded)
       video.removeEventListener("timeupdate", onTimeUpdate)
     }
-  }, [syncTime])
+  }, [syncTime, started])
+
+  const beginPlayback = useCallback(() => {
+    pendingPlayRef.current = true
+    setStarted(true)
+    setPlaying(true)
+    setEnded(false)
+  }, [])
+
+  useEffect(() => {
+    if (!started || !autoPlay) return
+    pendingPlayRef.current = true
+    const video = videoRef.current
+    if (video && video.readyState >= 1) {
+      pendingPlayRef.current = false
+      void video.play()
+    }
+  }, [started, autoPlay])
 
   const togglePlay = () => {
+    if (!started) {
+      beginPlayback()
+      return
+    }
     const video = videoRef.current
     if (!video) return
     if (ended) {
@@ -124,6 +154,11 @@ export function NativeFileVideoPlayer({
     setPlaybackRate(rate)
   }
 
+  const pauseOnHidden = useCallback(() => {
+    videoRef.current?.pause()
+    setPlaying(false)
+  }, [])
+
   return (
     <VideoPlayerShell
       title={title}
@@ -140,25 +175,33 @@ export function NativeFileVideoPlayer({
       flexible={flexible}
       variant={variant}
       className={className}
+      watermarkText={watermarkText}
       onTogglePlay={togglePlay}
       onToggleMute={toggleMute}
       onVolumeChange={changeVolume}
       onSeek={seek}
       onPlaybackRateChange={changePlaybackRate}
+      onVisibilityHidden={started ? pauseOnHidden : undefined}
       videoArea={
-        <video
-          ref={videoRef}
-          src={src}
-          className={cn("h-full w-full bg-black object-contain")}
-          playsInline
-          autoPlay={autoPlay}
-          preload="metadata"
-          controls={false}
-          controlsList="nodownload noremoteplayback"
-          disablePictureInPicture
-          onContextMenu={(e) => e.preventDefault()}
-          aria-label={title}
-        />
+        <>
+          {!started ? (
+            <VideoPrePlayOverlay title={title} onStart={beginPlayback} />
+          ) : (
+            <video
+              ref={videoRef}
+              src={src}
+              className={cn("h-full w-full bg-black object-contain")}
+              playsInline
+              autoPlay={autoPlay}
+              preload="metadata"
+              controls={false}
+              controlsList="nodownload noremoteplayback"
+              disablePictureInPicture
+              onContextMenu={(e) => e.preventDefault()}
+              aria-label={title}
+            />
+          )}
+        </>
       }
     />
   )

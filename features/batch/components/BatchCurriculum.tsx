@@ -18,7 +18,7 @@ export function BatchCurriculum({ subjects }: BatchCurriculumProps) {
     () => new Set(subjects.slice(0, 1).map((s) => s.id)),
   )
   const [preview, setPreview] = useState<{
-    videoUrl: string
+    lessonId: string
     title: string
     duration: string
   } | null>(null)
@@ -70,8 +70,8 @@ export function BatchCurriculum({ subjects }: BatchCurriculumProps) {
                       <h4 className="mb-2 text-sm font-medium text-foreground">{mod.title}</h4>
                       <ul className="space-y-2">
                         {mod.lessons.map((lesson) => {
-                          const canPlay = lesson.isPreview && !!lesson.videoUrl
-                          const isLocked = !lesson.isPreview && !lesson.videoUrl
+                          const canPlay = lesson.isPreview && lesson.hasVideo
+                          const isLocked = !lesson.isPreview && !lesson.hasVideo
 
                           return (
                             <li
@@ -103,7 +103,7 @@ export function BatchCurriculum({ subjects }: BatchCurriculumProps) {
                                     className="h-7 rounded-lg text-xs"
                                     onClick={() =>
                                       setPreview({
-                                        videoUrl: lesson.videoUrl!,
+                                        lessonId: lesson.id,
                                         title: lesson.title,
                                         duration: formatDuration(lesson.durationS),
                                       })
@@ -133,7 +133,7 @@ export function BatchCurriculum({ subjects }: BatchCurriculumProps) {
         <VideoModal
           isOpen
           onClose={() => setPreview(null)}
-          videoUrl={preview.videoUrl}
+          lessonId={preview.lessonId}
           title={preview.title}
           duration={preview.duration}
         />

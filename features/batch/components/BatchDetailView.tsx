@@ -62,7 +62,7 @@ export function BatchDetailView({ idOrSlug }: BatchDetailViewProps) {
   const daysLeft = daysUntil(batch.registrationDeadline)
   const isLive = batch.status === "ACTIVE"
   const previewLessons = subjects.flatMap((s) =>
-    (s.modules ?? []).flatMap((m) => (m.lessons ?? []).filter((l) => l.isPreview && l.videoUrl)),
+    (s.modules ?? []).flatMap((m) => (m.lessons ?? []).filter((l) => l.isPreview && l.hasVideo)),
   )
   const previewLesson = previewLessons[0]
 
@@ -213,7 +213,7 @@ export function BatchDetailView({ idOrSlug }: BatchDetailViewProps) {
         <VideoModal
           isOpen={previewOpen}
           onClose={() => setPreviewOpen(false)}
-          videoUrl={previewLesson.videoUrl!}
+          lessonId={previewLesson.id}
           title={previewLesson.title}
           duration={formatDuration(previewLesson.durationS ?? null)}
         />

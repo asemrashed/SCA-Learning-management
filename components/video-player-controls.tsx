@@ -38,12 +38,17 @@ interface VideoPlayerControlsProps {
   playbackRate: number
   isFullscreen: boolean
   visible?: boolean
+  variant?: "default" | "modal"
+  menuPortalContainer?: HTMLElement | null
   onTogglePlay: () => void
   onToggleMute: () => void
   onVolumeChange: (volume: number) => void
   onSeek: (value: number[]) => void
   onPlaybackRateChange: (rate: number) => void
   onToggleFullscreen: () => void
+  onMenuOpenChange?: (open: boolean) => void
+  onMouseEnterControls?: () => void
+  onMouseLeaveControls?: () => void
   className?: string
 }
 
@@ -60,12 +65,17 @@ export function VideoPlayerControls({
   playbackRate,
   isFullscreen,
   visible = true,
+  variant = "default",
+  menuPortalContainer,
   onTogglePlay,
   onToggleMute,
   onVolumeChange,
   onSeek,
   onPlaybackRateChange,
   onToggleFullscreen,
+  onMenuOpenChange,
+  onMouseEnterControls,
+  onMouseLeaveControls,
   className,
 }: VideoPlayerControlsProps) {
   return (
@@ -75,6 +85,8 @@ export function VideoPlayerControls({
         !visible && "pointer-events-none opacity-0",
         className,
       )}
+      onMouseEnter={onMouseEnterControls}
+      onMouseLeave={onMouseLeaveControls}
     >
       <Slider
         value={[progress]}
@@ -140,7 +152,7 @@ export function VideoPlayerControls({
         </span>
 
         <div className="flex shrink-0 items-center gap-0.5">
-          <DropdownMenu>
+          <DropdownMenu modal={false} onOpenChange={onMenuOpenChange}>
             <DropdownMenuTrigger asChild>
               <Button
                 type="button"
@@ -153,7 +165,14 @@ export function VideoPlayerControls({
                 <Settings className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44">
+            <DropdownMenuContent
+              align="end"
+              container={isFullscreen ? menuPortalContainer : undefined}
+              className={cn(
+                "w-44",
+                (variant === "modal" || isFullscreen) && "z-[130]",
+              )}
+            >
               <DropdownMenuLabel>Playback speed</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuRadioGroup

@@ -4,7 +4,7 @@ import { use, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useSelector } from "react-redux"
 import type { RootState } from "@/store"
-import { isAdminStaff } from "@/lib/roles"
+import { isSuperAdmin } from "@/lib/roles"
 import { BatchAdminForm } from "@/features/batch/components/batch-admin-form"
 
 export default function NewBatchPage({
@@ -22,7 +22,7 @@ export default function NewBatchPage({
       router.replace("/admin/courses")
       return
     }
-    if (user && !isAdminStaff(user.role)) {
+    if (user && !isSuperAdmin(user.role)) {
       router.replace("/admin/batches")
     }
   }, [user, router, courseId])
@@ -31,7 +31,7 @@ export default function NewBatchPage({
     return <p className="p-8 text-muted-foreground">Select a live course first…</p>
   }
 
-  if (!user || !isAdminStaff(user.role)) {
+  if (!user || !isSuperAdmin(user.role)) {
     return <p className="p-8 text-muted-foreground">Checking access…</p>
   }
 

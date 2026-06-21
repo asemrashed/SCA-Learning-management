@@ -3,6 +3,8 @@
 import Link from "next/link"
 import { use } from "react"
 import { Plus } from "lucide-react"
+import { useSelector } from "react-redux"
+import type { RootState } from "@/store"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { BatchCurriculum } from "@/features/batch/components/BatchCurriculum"
@@ -17,6 +19,7 @@ import {
   deliveryModeLabel,
 } from "@/lib/product-vocabulary"
 import { DeliveryMode } from "@/types/api"
+import { isSuperAdmin } from "@/lib/roles"
 import { ExpandableRichContent } from "@/components/expandable-rich-content"
 import { FAQAccordion } from "@/components/faq-accordion"
 import { CurriculumTree } from "./curriculum-tree"
@@ -34,6 +37,8 @@ export function CourseDashboardPreview({
   backLabel = "Back",
   editHref,
 }: CourseDashboardPreviewProps) {
+  const user = useSelector((state: RootState) => state.auth.user)
+  const canCreateDelete = user?.role !== undefined && isSuperAdmin(user.role)
   const { data, isLoading, error } = useGetCourseQuery(courseId)
   const course = data?.data
   const isLive = course?.deliveryMode === DeliveryMode.LIVE
@@ -103,12 +108,14 @@ export function CourseDashboardPreview({
         <section>
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-lg font-semibold">{BATCHES}</h2>
-            <Button asChild size="sm">
-              <Link href={`/admin/courses/${course.id}/batches/new`}>
-                <Plus className="mr-1 h-4 w-4" />
-                {NEW_BATCH}
-              </Link>
-            </Button>
+            {canCreateDelete ? (
+              <Button asChild size="sm">
+                <Link href={`/admin/courses/${course.id}/batches/new`}>
+                  <Plus className="mr-1 h-4 w-4" />
+                  {NEW_BATCH}
+                </Link>
+              </Button>
+            ) : null}
           </div>
           {batches.length === 0 ? (
             <p className="text-sm text-muted-foreground">

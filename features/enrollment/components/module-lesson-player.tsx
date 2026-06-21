@@ -8,7 +8,8 @@ import { LessonVideoPlayer } from "@/components/lesson-video-player"
 export interface PlayableLesson {
   id: string
   title: string
-  videoUrl: string | null
+  hasVideo?: boolean
+  videoUrl?: string | null
   durationS?: number | null
   lectureDate?: string | null
 }
@@ -39,7 +40,7 @@ function LessonRow({
   isActive: boolean
   onSelect: (lesson: PlayableLesson) => void
 }) {
-  const hasVideo = !!lesson.videoUrl
+  const hasVideo = !!lesson.hasVideo || !!lesson.videoUrl
   const lectureLabel = formatLectureDate(lesson.lectureDate)
 
   return (
@@ -92,16 +93,19 @@ export function ModuleLessonPlayer({
   useEffect(() => {
     if (activeLesson) return
     const preferred = initialLessonId
-      ? lessons.find((l) => l.id === initialLessonId && l.videoUrl)
+      ? lessons.find(
+          (l) => l.id === initialLessonId && (l.hasVideo || l.videoUrl),
+        )
       : null
-    const firstPlayable = preferred ?? lessons.find((l) => l.videoUrl)
+    const firstPlayable =
+      preferred ?? lessons.find((l) => l.hasVideo || l.videoUrl)
     if (firstPlayable) setActiveLesson(firstPlayable)
   }, [lessons, initialLessonId, activeLesson])
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_min(380px,34%)] lg:items-start">
       <div className="min-w-0">
-        {activeLesson?.videoUrl ? (
+        {activeLesson && (activeLesson.hasVideo || activeLesson.videoUrl) ? (
           <div className="space-y-2">
             {playlistTitle ? (
               <p className="text-sm text-muted-foreground">{playlistTitle}</p>
@@ -109,7 +113,8 @@ export function ModuleLessonPlayer({
             <div className="overflow-hidden rounded-xl border bg-black shadow-sm">
               <LessonVideoPlayer
                 key={activeLesson.id}
-                videoUrl={activeLesson.videoUrl}
+                lessonId={activeLesson.hasVideo ? activeLesson.id : undefined}
+                videoUrl={activeLesson.videoUrl ?? undefined}
                 title={activeLesson.title}
               />
             </div>

@@ -31,5 +31,5 @@ export function useFullscreen<T extends HTMLElement>() {
     }
   }, [node])
 
-  return { ref, isFullscreen, toggleFullscreen }
+  return { ref, element: node, isFullscreen, toggleFullscreen }
 }
