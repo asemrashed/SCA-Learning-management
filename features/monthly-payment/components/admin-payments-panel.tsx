@@ -222,75 +222,84 @@ export function AdminPaymentsPanel({
             No payment records match your filters.
           </div>
         ) : (
-          <div className="space-y-4">
-            {payments.map((item) => (
-              <div key={item.id} className="rounded-xl border bg-card p-5">
-                <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <div className="mb-1 flex flex-wrap items-center gap-2">
-                      <Badge>{item.status}</Badge>
+          <div className="overflow-hidden rounded-xl border">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50 text-left">
+                <tr>
+                  <th className="px-4 py-3 font-medium">Student</th>
+                  <th className="px-4 py-3 font-medium">Course / Batch</th>
+                  <th className="px-4 py-3 font-medium">Month</th>
+                  <th className="px-4 py-3 font-medium">Requested</th>
+                  <th className="px-4 py-3 font-medium">Amount</th>
+                  <th className="px-4 py-3 font-medium">Status</th>
+                  <th className="px-4 py-3 font-medium">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {payments.map((item) => (
+                  <tr key={item.id} className="border-t">
+                    <td className="px-4 py-3">
+                      <div className="font-medium">{item.student.name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {item.student.phone}
+                        {item.student.rollNumber ? ` · Roll ${item.student.rollNumber}` : ""}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">{productTitle(item)}</td>
+                    <td className="px-4 py-3">
                       <Badge variant="secondary">{formatBillingMonth(item.billingMonth)}</Badge>
-                    </div>
-                    <h3 className="text-lg font-semibold">{productTitle(item)}</h3>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {item.student.name} · {item.student.phone}
-                      {item.student.rollNumber ? ` · Roll ${item.student.rollNumber}` : ""}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Requested {new Date(item.requestedAt).toLocaleString()}
-                    </p>
-                    {item.amountMinor != null ? (
-                      <p className="mt-2 text-sm font-medium">
-                        Amount: {formatBdtMinor(item.amountMinor)}
-                      </p>
-                    ) : null}
-                    {item.note ? (
-                      <p className="mt-1 text-sm text-muted-foreground">Note: {item.note}</p>
-                    ) : null}
-                  </div>
-                </div>
-
-                {!readOnly && item.status === MonthlyPaymentStatus.REQUESTED ? (
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-                    <div className="flex-1">
-                      <label className="mb-1 block text-sm font-medium" htmlFor={`amount-${item.id}`}>
-                        Payment amount (৳)
-                      </label>
-                      <Input
-                        id={`amount-${item.id}`}
-                        type="number"
-                        min="1"
-                        step="0.01"
-                        placeholder="e.g. 1500"
-                        value={amounts[item.id] ?? ""}
-                        onChange={(e) =>
-                          setAmounts((prev) => ({ ...prev, [item.id]: e.target.value }))
-                        }
-                      />
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={() => handleApprove(item.id)}
-                        disabled={reviewing}
-                        className="gap-2"
-                      >
-                        <Check className="h-4 w-4" />
-                        Approve
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => handleReject(item.id)}
-                        disabled={reviewing}
-                        className="gap-2"
-                      >
-                        <X className="h-4 w-4" />
-                        Deny
-                      </Button>
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-            ))}
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {new Date(item.requestedAt).toLocaleString()}
+                    </td>
+                    <td className="px-4 py-3">
+                      {item.amountMinor != null ? formatBdtMinor(item.amountMinor) : "—"}
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge>{item.status}</Badge>
+                    </td>
+                    <td className="px-4 py-3">
+                      {!readOnly && item.status === MonthlyPaymentStatus.REQUESTED ? (
+                        <div className="flex min-w-[220px] flex-col gap-2">
+                          <Input
+                            id={`amount-${item.id}`}
+                            type="number"
+                            min="1"
+                            step="0.01"
+                            placeholder="Amount (৳)"
+                            value={amounts[item.id] ?? ""}
+                            onChange={(e) =>
+                              setAmounts((prev) => ({ ...prev, [item.id]: e.target.value }))
+                            }
+                          />
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              onClick={() => handleApprove(item.id)}
+                              disabled={reviewing}
+                            >
+                              <Check className="mr-1 h-4 w-4" />
+                              Approve
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleReject(item.id)}
+                              disabled={reviewing}
+                            >
+                              <X className="mr-1 h-4 w-4" />
+                              Deny
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </TabsContent>
@@ -314,37 +323,49 @@ export function AdminPaymentsPanel({
             All students have paid for the current billing month.
           </div>
         ) : (
-          <div className="space-y-4">
-            {unpaidStudents.map((item) => (
-              <div key={item.enrollment.id} className="rounded-xl border bg-card p-5">
-                <div className="mb-1 flex flex-wrap items-center gap-2">
-                  <Badge variant="destructive">Unpaid</Badge>
-                  <Badge variant="secondary">{formatBillingMonth(item.billingMonth)}</Badge>
-                  {item.isAccessBlocked ? (
-                    <Badge variant="outline">Access blocked</Badge>
-                  ) : item.isPastDeadline ? null : (
-                    <Badge variant="outline">Before deadline</Badge>
-                  )}
-                  {item.currentMonthRequest ? (
-                    <Badge>{item.currentMonthRequest.status}</Badge>
-                  ) : null}
-                </div>
-                <h3 className="text-lg font-semibold">{productTitle(item)}</h3>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {item.student.name} · {item.student.phone}
-                  {item.student.rollNumber ? ` · Roll ${item.student.rollNumber}` : ""}
-                </p>
-                <p className="mt-2 text-sm">
-                  Deadline:{" "}
-                  <span className="font-medium">{formatDeadline(item.paymentDeadline)}</span>
-                </p>
-                {item.currentMonthRequest?.status === MonthlyPaymentStatus.REQUESTED ? (
-                  <p className="mt-1 text-sm text-amber-700">
-                    Payment request pending admin approval.
-                  </p>
-                ) : null}
-              </div>
-            ))}
+          <div className="overflow-hidden rounded-xl border">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50 text-left">
+                <tr>
+                  <th className="px-4 py-3 font-medium">Student</th>
+                  <th className="px-4 py-3 font-medium">Course / Batch</th>
+                  <th className="px-4 py-3 font-medium">Month</th>
+                  <th className="px-4 py-3 font-medium">Deadline</th>
+                  <th className="px-4 py-3 font-medium">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {unpaidStudents.map((item) => (
+                  <tr key={item.enrollment.id} className="border-t">
+                    <td className="px-4 py-3">
+                      <div className="font-medium">{item.student.name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {item.student.phone}
+                        {item.student.rollNumber ? ` · Roll ${item.student.rollNumber}` : ""}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">{productTitle(item)}</td>
+                    <td className="px-4 py-3">
+                      <Badge variant="secondary">{formatBillingMonth(item.billingMonth)}</Badge>
+                    </td>
+                    <td className="px-4 py-3">{formatDeadline(item.paymentDeadline)}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap gap-2">
+                        <Badge variant="destructive">Unpaid</Badge>
+                        {item.isAccessBlocked ? (
+                          <Badge variant="outline">Access blocked</Badge>
+                        ) : item.isPastDeadline ? null : (
+                          <Badge variant="outline">Before deadline</Badge>
+                        )}
+                        {item.currentMonthRequest ? (
+                          <Badge>{item.currentMonthRequest.status}</Badge>
+                        ) : null}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </TabsContent>

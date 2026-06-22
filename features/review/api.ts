@@ -16,7 +16,7 @@ export const reviewApi = createApi({
   endpoints: (builder) => ({
     listPublicReviews: builder.query<
       { data: ReviewPublicItem[]; meta: { page: number; pageSize: number; total: number } },
-      { page?: number; pageSize?: number } | void
+      { courseId?: string; page?: number; pageSize?: number } | void
     >({
       query: (params) => ({
         url: '/reviews',

@@ -2,11 +2,11 @@ import { EnrollmentRequestsPanel } from "@/features/enrollment/components/enroll
 
 export default function AdminEnrollmentsPage() {
   return (
-    <div className="space-y-6 p-6 md:p-8">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground md:text-3xl">Enrollment requests</h1>
-        <p className="mt-2 text-muted-foreground">
-          Review student requests, assign roll numbers on approval, or reject.
+    <div className="mx-auto max-w-6xl px-4 py-10">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold">Enrollments</h1>
+        <p className="text-sm text-muted-foreground">
+          View all enrollments, filter by status, and review pending requests.
         </p>
       </div>
       <EnrollmentRequestsPanel />

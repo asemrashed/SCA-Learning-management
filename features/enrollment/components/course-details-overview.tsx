@@ -5,7 +5,9 @@ import { Star } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useGetEnrollmentQuery } from "@/features/enrollment/api"
 import { enrollmentCourseId, enrollmentProductTitle } from "@/features/enrollment/curriculum"
+import { EnrollmentInfoCard } from "@/features/enrollment/components/enrollment-info-card"
 import { useGetCourseQuery } from "@/features/course/api"
+import { CourseReviewsSection } from "@/features/review/components/course-reviews-section"
 import { ExpandableRichContent } from "@/components/expandable-rich-content"
 import { FAQAccordion } from "@/components/faq-accordion"
 import { StudentPageShell } from "@/components/student/student-page-shell"
@@ -61,6 +63,8 @@ export function CourseDetailsOverview({ enrollmentId }: { enrollmentId: string }
           </Button>
         </div>
 
+        <EnrollmentInfoCard enrollment={enrollment} />
+
         {course.description ? <ExpandableRichContent html={course.description} /> : null}
 
         {course.faq?.length ? (
@@ -70,9 +74,11 @@ export function CourseDetailsOverview({ enrollmentId }: { enrollmentId: string }
           </section>
         ) : null}
 
+        <CourseReviewsSection courseId={courseId} />
+
         {!course.description && !course.faq?.length ? (
           <p className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-            Course details have not been added yet.
+            No additional course description or FAQ has been added yet.
           </p>
         ) : null}
       </div>

@@ -3,8 +3,11 @@
 import { useState } from "react"
 import { Lock, Play, ChevronDown, ChevronUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { VideoModal } from "@/components/video-modal"
-import type { CourseModule } from "@/types/api"
+import { VideoModal, type PreviewLesson } from "@/components/video-modal"
+import {
+  isPreviewableLesson,
+} from "@/features/enrollment/lib/lesson-view"
+import type { CourseLesson, CourseModule } from "@/types/api"
 
 function formatDuration(seconds: number | null): string {
   if (!seconds) return ""
@@ -15,19 +18,35 @@ function formatDuration(seconds: number | null): string {
 interface CurriculumTreeProps {
   modules: CourseModule[]
   initialVisible?: number
+  /** Staff preview: unlock all lessons with content, not only `isPreview`. */
+  adminMode?: boolean
 }
 
-export function CurriculumTree({ modules, initialVisible = 4 }: CurriculumTreeProps) {
+export function CurriculumTree({
+  modules,
+  initialVisible = 4,
+  adminMode = false,
+}: CurriculumTreeProps) {
   const [expanded, setExpanded] = useState(false)
-  const [preview, setPreview] = useState<{
-    lessonId: string
-    title: string
-    duration: string
-  } | null>(null)
+  const [preview, setPreview] = useState<PreviewLesson | null>(null)
+  const [previewDuration, setPreviewDuration] = useState("")
   const visibleModules = expanded ? modules : modules.slice(0, initialVisible)
 
   if (modules.length === 0) {
     return <p className="text-sm text-muted-foreground">Curriculum coming soon.</p>
+  }
+
+  function openLesson(lesson: CourseLesson) {
+    setPreview({
+      id: lesson.id,
+      title: lesson.title,
+      type: lesson.type,
+      hasVideo: lesson.hasVideo,
+      hasDocument: lesson.hasDocument,
+      content: lesson.content ?? null,
+      videoUrl: lesson.videoUrl ?? null,
+    })
+    setPreviewDuration(formatDuration(lesson.durationS))
   }
 
   return (
@@ -43,7 +62,7 @@ export function CurriculumTree({ modules, initialVisible = 4 }: CurriculumTreePr
             </p>
             <ul className="space-y-2">
               {mod.lessons.map((lesson) => {
-                const playable = lesson.isPreview && lesson.hasVideo
+                const canOpen = isPreviewableLesson(lesson, adminMode)
                 return (
                   <li
                     key={lesson.id}
@@ -54,20 +73,14 @@ export function CurriculumTree({ modules, initialVisible = 4 }: CurriculumTreePr
                       {lesson.durationS ? (
                         <span className="text-xs">{formatDuration(lesson.durationS)}</span>
                       ) : null}
-                      {playable ? (
+                      {canOpen ? (
                         <button
                           type="button"
-                          onClick={() =>
-                            setPreview({
-                              lessonId: lesson.id,
-                              title: lesson.title,
-                              duration: formatDuration(lesson.durationS),
-                            })
-                          }
+                          onClick={() => openLesson(lesson)}
                           className="inline-flex items-center gap-1 text-primary hover:underline text-xs"
                         >
                           <Play className="h-4 w-4" />
-                          Preview
+                          {adminMode && !lesson.isPreview ? "View" : "Preview"}
                         </button>
                       ) : (
                         <span className="inline-flex items-center gap-1 text-xs">
@@ -103,9 +116,9 @@ export function CurriculumTree({ modules, initialVisible = 4 }: CurriculumTreePr
         <VideoModal
           isOpen
           onClose={() => setPreview(null)}
-          lessonId={preview.lessonId}
+          lesson={preview}
           title={preview.title}
-          duration={preview.duration}
+          duration={previewDuration}
         />
       ) : null}
     </>

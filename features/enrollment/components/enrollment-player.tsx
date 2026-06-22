@@ -4,8 +4,10 @@ import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { ChevronDown, ChevronUp, Lock, Play } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { LessonVideoPlayer } from "@/components/lesson-video-player"
+import { LessonContentPanel } from "@/components/lesson-content-panel"
+import { LessonViewerFrame } from "@/components/lesson-viewer-frame"
 import { useGetEnrollmentQuery } from "@/features/enrollment/api"
+import { isViewableLesson } from "@/features/enrollment/lib/lesson-view"
 import { LiveSessionsPanel } from "@/features/liveclass/components/live-sessions-panel"
 import { EnrollmentRecordingsPanel } from "@/features/liveclass/components/enrollment-recordings-panel"
 import { EnrollmentResourcesPanel } from "@/features/resource/components/enrollment-resources-panel"
@@ -35,7 +37,7 @@ function LessonRow({
   isActive: boolean
   onSelect: (lesson: EnrollmentLesson) => void
 }) {
-  const hasVideo = !!lesson.hasVideo
+  const viewable = isViewableLesson(lesson)
 
   return (
     <div
@@ -51,7 +53,7 @@ function LessonRow({
               {formatDuration(lesson.durationS)}
             </span>
           ) : null}
-          {hasVideo ? (
+          {viewable ? (
             <Button
               variant={isActive ? "default" : "ghost"}
               size="sm"
@@ -130,8 +132,8 @@ export function EnrollmentPlayer({ enrollmentId }: { enrollmentId: string }) {
 
   useEffect(() => {
     if (!detail || activeLesson) return
-    const firstPlayable = allLessons.find((l) => l.hasVideo)
-    if (firstPlayable) setActiveLesson(firstPlayable)
+    const firstViewable = allLessons.find((l) => isViewableLesson(l))
+    if (firstViewable) setActiveLesson(firstViewable)
   }, [detail, allLessons, activeLesson])
 
   if (isLoading) return <p className="text-muted-foreground">Loading…</p>
@@ -177,18 +179,14 @@ export function EnrollmentPlayer({ enrollmentId }: { enrollmentId: string }) {
         <>
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_min(380px,34%)] lg:items-start">
             <div className="min-w-0">
-              {activeLesson?.hasVideo ? (
-                <div className="overflow-hidden rounded-xl border bg-black shadow-sm">
-                  <LessonVideoPlayer
-                    key={activeLesson.id}
-                    lessonId={activeLesson.id}
-                    title={activeLesson.title}
-                  />
-                </div>
+              {activeLesson && isViewableLesson(activeLesson) ? (
+                <LessonContentPanel key={activeLesson.id} lesson={activeLesson} />
               ) : (
-                <div className="flex aspect-video items-center justify-center rounded-xl border bg-muted/40 text-sm text-muted-foreground">
-                  Select a lesson from the curriculum to start watching
-                </div>
+                <LessonViewerFrame variant="content">
+                  <div className="flex h-full min-h-0 flex-1 items-center justify-center text-sm text-muted-foreground">
+                    Select a lesson from the curriculum to start
+                  </div>
+                </LessonViewerFrame>
               )}
             </div>
 

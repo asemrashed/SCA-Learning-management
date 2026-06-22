@@ -1,8 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import Link from "next/link"
-import { ArrowLeft, Eye } from "lucide-react"
+import { useMemo, useState } from "react"
+import { Eye } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -20,8 +19,12 @@ import {
 } from "@/components/ui/table"
 import { SecurePdfViewer } from "@/components/secure-pdf-viewer"
 import { useGetEnrollmentQuery } from "@/features/enrollment/api"
-import { enrollmentProductTitle } from "@/features/enrollment/curriculum"
+import { enrollmentProductTitle, getEnrollmentSubjects } from "@/features/enrollment/curriculum"
 import { useListStudentAssessmentResultsQuery } from "@/features/resource-submission/api"
+import {
+  StudentResourceFilters,
+  type StudentResourceFilterValues,
+} from "@/features/resource/components/student-resource-filters"
 import { StudentPageShell } from "@/components/student/student-page-shell"
 import { ResourceCategory } from "@/types/api"
 
@@ -39,11 +42,22 @@ function categoryLabel(category: ResourceCategory): string {
 
 export function StudentAssessmentResults({ enrollmentId }: { enrollmentId: string }) {
   const [previewId, setPreviewId] = useState<string | null>(null)
+  const [filters, setFilters] = useState<StudentResourceFilterValues>({
+    subjectId: "",
+    moduleId: "",
+  })
   const { data: enrollmentData, isLoading: enrollmentLoading } = useGetEnrollmentQuery(enrollmentId)
   const { data, isLoading, error } = useListStudentAssessmentResultsQuery(enrollmentId)
 
   const enrollment = enrollmentData?.data
-  const results = data?.data ?? []
+  const results = useMemo(() => {
+    const all = data?.data ?? []
+    if (!enrollment || !filters.subjectId) return all
+    const subjectTitle =
+      getEnrollmentSubjects(enrollment).find((s) => s.id === filters.subjectId)?.title ?? null
+    if (!subjectTitle) return all
+    return all.filter((item) => item.subjectTitle === subjectTitle)
+  }, [data?.data, enrollment, filters.subjectId])
   const courseTitle = enrollment ? enrollmentProductTitle(enrollment) : "Results"
 
   if (enrollmentLoading || isLoading) {
@@ -65,14 +79,16 @@ export function StudentAssessmentResults({ enrollmentId }: { enrollmentId: strin
   return (
     <StudentPageShell title={courseTitle}>
       <div className="mb-4 flex flex-wrap items-center gap-3">
-        <Button variant="ghost" size="sm" asChild>
-          <Link href={`/dashboard/courses/${enrollmentId}`}>
-            <ArrowLeft className="mr-1 h-4 w-4" />
-            Back to course
-          </Link>
-        </Button>
         <h1 className="text-2xl font-bold">Results</h1>
       </div>
+
+      {enrollment ? (
+        <StudentResourceFilters
+          enrollment={enrollment}
+          values={filters}
+          onChange={setFilters}
+        />
+      ) : null}
 
       {error ? (
         <p className="text-sm text-destructive">Could not load results.</p>

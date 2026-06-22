@@ -12,7 +12,6 @@ export default function AdminExamSubmissionsPage() {
       </div>
       <SubmissionsPanel
         category={ResourceCategory.EXAM}
-        backHref="/admin/exams"
         title="Exam"
       />
     </div>

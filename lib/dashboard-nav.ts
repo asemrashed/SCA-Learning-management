@@ -8,7 +8,6 @@ import {
   Layers,
   LayoutDashboard,
   LayoutGrid,
-  Lightbulb,
   MessageSquareQuote,
   Package,
   PenLine,
@@ -41,7 +40,6 @@ export const studentShellNav: ShellNavGroup[] = [
     items: [
       { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
       { href: '/dashboard/courses', label: MY_COURSES, icon: Layers },
-      { href: '/dashboard/suggestions', label: 'Suggestion', icon: Lightbulb },
       { href: '/dashboard/reviews', label: 'Review', icon: MessageSquareQuote },
     ],
   },

@@ -14,8 +14,6 @@ export default function AdminCourseDetailPage({
     <div className="mx-auto max-w-5xl px-4 py-10">
       <CourseDashboardPreview
         courseId={id}
-        backHref="/admin/courses"
-        backLabel="Courses"
         editHref={`/admin/courses/${id}/edit`}
       />
     </div>

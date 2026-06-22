@@ -6,11 +6,32 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
+import {
+  useGetAdminEnrollmentOverviewQuery,
   useListAdminEnrollmentRequestsQuery,
   useReviewEnrollmentRequestMutation,
 } from "@/features/enrollment/api"
+import { useGetAdminPaymentSummaryQuery } from "@/features/monthly-payment/api"
+import { formatBdtMinor } from "@/lib/format-currency"
 import { EnrollmentKind, EnrollmentStatus } from "@/types/api"
 import { deliveryModeLabel } from "@/lib/product-vocabulary"
+import { cn } from "@/lib/utils"
+
+const PAGE_SIZE = 10
+
+const STATUS_FILTERS: { label: string; value: EnrollmentStatus | "ALL" }[] = [
+  { label: "All", value: "ALL" },
+  { label: "Pending", value: EnrollmentStatus.PENDING },
+  { label: "Active", value: EnrollmentStatus.ACTIVE },
+  { label: "Cancelled", value: EnrollmentStatus.CANCELLED },
+  { label: "Completed", value: EnrollmentStatus.COMPLETED },
+]
 
 function productTitle(item: {
   kind: EnrollmentKind
@@ -22,15 +43,45 @@ function productTitle(item: {
     : item.course!.title
 }
 
+function statusBadgeVariant(status: EnrollmentStatus): "default" | "secondary" | "destructive" | "outline" {
+  switch (status) {
+    case EnrollmentStatus.PENDING:
+      return "secondary"
+    case EnrollmentStatus.ACTIVE:
+      return "default"
+    case EnrollmentStatus.CANCELLED:
+      return "destructive"
+    case EnrollmentStatus.COMPLETED:
+      return "outline"
+    default:
+      return "secondary"
+  }
+}
+
 export function EnrollmentRequestsPanel() {
-  const { data, isLoading, error } = useListAdminEnrollmentRequestsQuery({
-    status: EnrollmentStatus.PENDING,
-  })
-  const [reviewEnrollment, { isLoading: reviewing }] = useReviewEnrollmentRequestMutation()
+  const [statusFilter, setStatusFilter] = useState<EnrollmentStatus | "ALL">("ALL")
+  const [page, setPage] = useState(1)
   const [rollNumbers, setRollNumbers] = useState<Record<string, string>>({})
   const [actionError, setActionError] = useState<string | null>(null)
 
+  const { data: overviewData, isLoading: overviewLoading } = useGetAdminEnrollmentOverviewQuery()
+  const { data: paymentSummary, isLoading: paymentSummaryLoading } = useGetAdminPaymentSummaryQuery()
+  const { data, isLoading, error, isFetching } = useListAdminEnrollmentRequestsQuery({
+    ...(statusFilter !== "ALL" ? { status: statusFilter } : {}),
+    page,
+    pageSize: PAGE_SIZE,
+  })
+  const [reviewEnrollment, { isLoading: reviewing }] = useReviewEnrollmentRequestMutation()
+
+  const overview = overviewData?.data
   const requests = data?.data ?? []
+  const meta = data?.meta
+  const totalPages = meta ? Math.max(1, Math.ceil(meta.total / meta.pageSize)) : 1
+
+  function handleStatusChange(next: EnrollmentStatus | "ALL") {
+    setStatusFilter(next)
+    setPage(1)
+  }
 
   async function handleApprove(id: string) {
     const rollNumber = rollNumbers[id]?.trim()
@@ -60,94 +111,197 @@ export function EnrollmentRequestsPanel() {
     }
   }
 
-  if (isLoading) {
-    return <p className="text-muted-foreground">Loading enrollment requests…</p>
-  }
-
-  if (error) {
-    return <p className="text-destructive">Could not load enrollment requests.</p>
-  }
-
-  if (requests.length === 0) {
-    return (
-      <div className="rounded-xl border border-dashed p-10 text-center text-muted-foreground">
-        No pending enrollment requests.
-      </div>
-    )
-  }
-
   return (
-    <div className="space-y-4">
-      {actionError ? <p className="text-sm text-destructive">{actionError}</p> : null}
-      {requests.map((item) => (
-        <div key={item.id} className="rounded-xl border bg-card p-5">
-          <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <div className="mb-1 flex flex-wrap items-center gap-2">
-                <Badge variant="secondary">{deliveryModeLabel(item.kind === EnrollmentKind.BATCH ? 'LIVE' : 'RECORDED')}</Badge>
-                <Badge>{item.status}</Badge>
-              </div>
-              <h3 className="text-lg font-semibold">{productTitle(item)}</h3>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {item.student.name} · {item.student.phone}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Requested {new Date(item.enrolledAt).toLocaleString()}
-              </p>
-              <p className="mt-2 text-sm">
-                <span className="font-medium">Enrolled:</span> {item.totalEnrollments}
-                {item.totalSeats != null ? (
-                  <>
-                    {" "}
-                    · <span className="font-medium">Seats:</span> {item.totalSeats}
-                    {item.totalSeats - item.totalEnrollments > 0 ? (
-                      <span className="text-muted-foreground">
-                        {" "}
-                        ({item.totalSeats - item.totalEnrollments} remaining)
-                      </span>
-                    ) : item.totalSeats - item.totalEnrollments <= 0 ? (
-                      <span className="text-destructive"> (full)</span>
-                    ) : null}
-                  </>
-                ) : null}
-              </p>
-            </div>
-          </div>
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
+        <OverviewCard label="Total" value={overview?.total} isLoading={overviewLoading} />
+        <OverviewCard label="Pending" value={overview?.pending} isLoading={overviewLoading} />
+        <OverviewCard label="Active" value={overview?.active} isLoading={overviewLoading} />
+        <OverviewCard label="Cancelled" value={overview?.cancelled} isLoading={overviewLoading} />
+        <OverviewCard label="Completed" value={overview?.completed} isLoading={overviewLoading} />
+        <OverviewCard
+          label="Total Revenue"
+          value={formatBdtMinor(paymentSummary?.data.totalRevenueMinor ?? 0)}
+          isLoading={paymentSummaryLoading}
+        />
+        <OverviewCard
+          label="Total Due"
+          value={formatBdtMinor(paymentSummary?.data.totalDueMinor ?? 0)}
+          isLoading={paymentSummaryLoading}
+        />
+      </div>
 
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-            <div className="flex-1">
-              <label className="mb-1 block text-sm font-medium" htmlFor={`roll-${item.id}`}>
-                Roll number
-              </label>
-              <Input
-                id={`roll-${item.id}`}
-                placeholder="e.g. B7-042"
-                value={rollNumbers[item.id] ?? ""}
-                onChange={(e) =>
-                  setRollNumbers((prev) => ({ ...prev, [item.id]: e.target.value }))
-                }
-              />
-            </div>
-            <div className="flex gap-2">
-              <Button
-                disabled={reviewing}
-                onClick={() => void handleApprove(item.id)}
-              >
-                <Check className="mr-2 h-4 w-4" />
-                Approve
-              </Button>
-              <Button
-                variant="outline"
-                disabled={reviewing}
-                onClick={() => void handleReject(item.id)}
-              >
-                <X className="mr-2 h-4 w-4" />
-                Reject
-              </Button>
-            </div>
+      <div className="flex flex-wrap gap-2">
+        {STATUS_FILTERS.map((filter) => (
+          <Button
+            key={filter.value}
+            type="button"
+            size="sm"
+            variant={statusFilter === filter.value ? "default" : "outline"}
+            onClick={() => handleStatusChange(filter.value)}
+          >
+            {filter.label}
+          </Button>
+        ))}
+      </div>
+
+      {isLoading ? (
+        <p className="text-muted-foreground">Loading enrollments…</p>
+      ) : error ? (
+        <p className="text-destructive">Could not load enrollments.</p>
+      ) : requests.length === 0 ? (
+        <div className="rounded-xl border border-dashed p-10 text-center text-muted-foreground">
+          No enrollments found{statusFilter !== "ALL" ? ` with status “${statusFilter.toLowerCase()}”` : ""}.
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {actionError ? <p className="text-sm text-destructive">{actionError}</p> : null}
+          <div className="overflow-hidden rounded-xl border">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50 text-left">
+                <tr>
+                  <th className="px-4 py-3 font-medium">Student</th>
+                  <th className="px-4 py-3 font-medium">Course / Batch</th>
+                  <th className="px-4 py-3 font-medium">Mode</th>
+                  <th className="px-4 py-3 font-medium">Roll</th>
+                  <th className="px-4 py-3 font-medium">Requested</th>
+                  <th className="px-4 py-3 font-medium">Seats</th>
+                  <th className="px-4 py-3 font-medium">Status</th>
+                  <th className="px-4 py-3 font-medium">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {requests.map((item) => (
+                  <tr key={item.id} className="border-t">
+                    <td className="px-4 py-3">
+                      <div className="font-medium">{item.student.name}</div>
+                      <div className="text-xs text-muted-foreground">{item.student.phone}</div>
+                    </td>
+                    <td className="px-4 py-3">{productTitle(item)}</td>
+                    <td className="px-4 py-3">
+                      <Badge variant="secondary">
+                        {deliveryModeLabel(item.kind === EnrollmentKind.BATCH ? "LIVE" : "RECORDED")}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">{item.rollNumber ?? "—"}</td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {new Date(item.enrolledAt).toLocaleString()}
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {item.totalEnrollments}
+                      {item.totalSeats != null ? (
+                        <>
+                          {" / "}
+                          {item.totalSeats}
+                          {item.totalSeats - item.totalEnrollments <= 0 ? (
+                            <span className="text-destructive"> (full)</span>
+                          ) : null}
+                        </>
+                      ) : null}
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge variant={statusBadgeVariant(item.status)}>{item.status}</Badge>
+                    </td>
+                    <td className="px-4 py-3">
+                      {item.status === EnrollmentStatus.PENDING ? (
+                        <div className="flex min-w-[220px] flex-col gap-2">
+                          <Input
+                            id={`roll-${item.id}`}
+                            placeholder="Roll number"
+                            value={rollNumbers[item.id] ?? ""}
+                            onChange={(e) =>
+                              setRollNumbers((prev) => ({ ...prev, [item.id]: e.target.value }))
+                            }
+                          />
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              disabled={reviewing}
+                              onClick={() => void handleApprove(item.id)}
+                            >
+                              <Check className="mr-1 h-4 w-4" />
+                              Approve
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={reviewing}
+                              onClick={() => void handleReject(item.id)}
+                            >
+                              <X className="mr-1 h-4 w-4" />
+                              Reject
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
-      ))}
+      )}
+
+      {meta && meta.total > PAGE_SIZE ? (
+        <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
+          <p className="text-sm text-muted-foreground">
+            Showing {(meta.page - 1) * meta.pageSize + 1}–
+            {Math.min(meta.page * meta.pageSize, meta.total)} of {meta.total}
+            {isFetching ? " · Updating…" : ""}
+          </p>
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  href="#"
+                  className={cn(page <= 1 && "pointer-events-none opacity-50")}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    if (page > 1) setPage((p) => p - 1)
+                  }}
+                />
+              </PaginationItem>
+              <PaginationItem>
+                <span className="px-3 text-sm text-muted-foreground">
+                  Page {page} of {totalPages}
+                </span>
+              </PaginationItem>
+              <PaginationItem>
+                <PaginationNext
+                  href="#"
+                  className={cn(page >= totalPages && "pointer-events-none opacity-50")}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    if (page < totalPages) setPage((p) => p + 1)
+                  }}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+function OverviewCard({
+  label,
+  value,
+  isLoading,
+}: {
+  label: string
+  value: number | string | undefined
+  isLoading: boolean
+}) {
+  return (
+    <div className="rounded-xl border bg-card p-5">
+      <p className="text-sm font-medium text-muted-foreground">{label}</p>
+      <p className="mt-1 text-2xl font-bold text-foreground">
+        {isLoading ? "…" : typeof value === "number" ? (value ?? 0) : (value ?? "৳0")}
+      </p>
     </div>
   )
 }

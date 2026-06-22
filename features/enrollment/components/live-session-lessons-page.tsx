@@ -1,8 +1,6 @@
 "use client"
 
 import { useMemo } from "react"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
 import { useGetEnrollmentQuery } from "@/features/enrollment/api"
 import { enrollmentProductId, enrollmentProductTitle } from "@/features/enrollment/curriculum"
 import {
@@ -105,14 +103,9 @@ export function LiveSessionLessonsPage({
 
   return (
     <StudentPageShell title={courseTitle}>
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-sm text-muted-foreground">Live Class</p>
-          <h1 className="text-2xl font-bold">{session.title}</h1>
-        </div>
-        <Button variant="outline" size="sm" asChild>
-          <Link href={`/dashboard/courses/${enrollmentId}/live-class`}>Back to live classes</Link>
-        </Button>
+      <div className="mb-6">
+        <p className="text-sm text-muted-foreground">Live Class</p>
+        <h1 className="text-2xl font-bold">{session.title}</h1>
       </div>
 
       {lessons.length === 0 ? (

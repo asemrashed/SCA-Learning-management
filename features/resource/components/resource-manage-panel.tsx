@@ -16,6 +16,10 @@ import {
 } from "@/features/resource/api"
 import { ResourceForm } from "@/features/resource/components/resource-upload-form"
 import { ResourceViewButton } from "@/features/resource/components/resource-view-button"
+import {
+  ResourceManageFilters,
+  type ResourceManageFilterValues,
+} from "@/features/resource/components/resource-manage-filters"
 import { useGetBatchQuery } from "@/features/batch/api"
 import { useTeachingProducts } from "@/features/resource/hooks/use-teaching-products"
 import { getApiErrorMessage } from "@/lib/get-api-error-message"
@@ -105,6 +109,14 @@ export function ResourceManagePanel({
   const [editResource, setEditResource] = useState<ResourceItem | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [filters, setFilters] = useState<ResourceManageFilterValues>({
+    courseId: fixedCourseId ?? "",
+    batchId: fixedBatchId ?? "",
+    subjectId: "",
+    moduleId: "",
+    category: defaultCategory ?? "",
+    search: "",
+  })
   const { batches, courses, isLoading: productsLoading } = useTeachingProducts()
   const { data: fixedBatch } = useGetBatchQuery(fixedBatchId ?? "", { skip: !fixedBatchId })
   const [deleteResource, { isLoading: deleting }] = useDeleteResourceMutation()
@@ -130,6 +142,28 @@ export function ResourceManagePanel({
     refreshKey,
     defaultCategory,
   )
+
+  const batchTitleById = useMemo(
+    () => new Map(batches.map((batch) => [batch.id, batch.title])),
+    [batches],
+  )
+
+  const filteredRows = useMemo(() => {
+    return rows.filter(({ resource }) => {
+      if (filters.courseId && resource.courseId !== filters.courseId) return false
+      if (filters.batchId && resource.batchId !== filters.batchId) return false
+      if (filters.subjectId && resource.subjectId !== filters.subjectId) return false
+      if (filters.moduleId && resource.moduleId !== filters.moduleId) return false
+      if (filters.category && resource.category !== filters.category) return false
+      if (
+        filters.search &&
+        !resource.title.toLowerCase().includes(filters.search.trim().toLowerCase())
+      ) {
+        return false
+      }
+      return true
+    })
+  }, [rows, filters])
 
   const hasProducts = scopeCourses.length > 0
   const showLoading = productsLoading || listLoading
@@ -165,58 +199,77 @@ export function ResourceManagePanel({
 
       {deleteError ? <p className="text-sm text-destructive">{deleteError}</p> : null}
 
-      <div className="overflow-hidden rounded-xl border bg-card">
+      {!fixedCourseId && !fixedBatchId ? (
+        <ResourceManageFilters values={filters} onChange={setFilters} />
+      ) : null}
+
+      <div className="overflow-hidden rounded-xl border">
         {showLoading ? (
-          <p className="px-5 py-8 text-sm text-muted-foreground">Loading resources…</p>
+          <p className="px-4 py-8 text-sm text-muted-foreground">Loading resources…</p>
         ) : !hasProducts ? (
-          <p className="px-5 py-8 text-center text-sm text-muted-foreground">
+          <p className="px-4 py-8 text-center text-sm text-muted-foreground">
             No course available yet.
           </p>
-        ) : rows.length === 0 ? (
-          <p className="px-5 py-8 text-center text-sm text-muted-foreground">
-            No resource is added yet.
+        ) : filteredRows.length === 0 ? (
+          <p className="px-4 py-8 text-center text-sm text-muted-foreground">
+            No resources match your filters.
           </p>
         ) : (
-          <ul>
-            {rows.map(({ resource, productLabel }) => (
-              <li
-                key={resource.id}
-                className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4 last:border-b-0"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium">{resource.title}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {productLabel} · {RESOURCE_CATEGORY_LABELS[resource.category]} · Added{" "}
+          <table className="w-full text-sm">
+            <thead className="bg-muted/50 text-left">
+              <tr>
+                <th className="px-4 py-3 font-medium">Title</th>
+                <th className="px-4 py-3 font-medium">Course</th>
+                <th className="px-4 py-3 font-medium">Batch</th>
+                <th className="px-4 py-3 font-medium">Category</th>
+                <th className="px-4 py-3 font-medium">Added</th>
+                <th className="px-4 py-3 font-medium">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredRows.map(({ resource, productLabel }) => (
+                <tr key={resource.id} className="border-t">
+                  <td className="px-4 py-3 font-medium">{resource.title}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{productLabel}</td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {resource.batchId ? (batchTitleById.get(resource.batchId) ?? "—") : "—"}
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {RESOURCE_CATEGORY_LABELS[resource.category]}
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">
                     {new Date(resource.createdAt).toLocaleDateString()}
-                  </p>
-                </div>
-                <div className="flex shrink-0 gap-2">
-                  <ResourceViewButton resource={resource} className="rounded-xl" />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    className="rounded-xl"
-                    onClick={() => setEditResource(resource)}
-                    aria-label="Edit"
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    className="rounded-xl text-destructive hover:text-destructive"
-                    disabled={deleting}
-                    onClick={() => void handleDelete(resource)}
-                    aria-label="Delete"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </li>
-            ))}
-          </ul>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-wrap gap-2">
+                      <ResourceViewButton resource={resource} className="rounded-xl" />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        className="rounded-xl"
+                        onClick={() => setEditResource(resource)}
+                        aria-label="Edit"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        className="rounded-xl text-destructive hover:text-destructive"
+                        disabled={deleting}
+                        onClick={() => void handleDelete(resource)}
+                        aria-label="Delete"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
       </div>
 

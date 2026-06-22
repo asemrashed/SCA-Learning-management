@@ -1,8 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import Link from "next/link"
-import { ArrowLeft, Send } from "lucide-react"
+import { Send } from "lucide-react"
 import { useSelector } from "react-redux"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -20,6 +19,10 @@ import {
 } from "@/features/resource-submission/api"
 import { SecurePdfViewer } from "@/components/secure-pdf-viewer"
 import { StudentPageShell } from "@/components/student/student-page-shell"
+import {
+  StudentResourceFilters,
+  type StudentResourceFilterValues,
+} from "@/features/resource/components/student-resource-filters"
 import { getApiErrorMessage } from "@/lib/get-api-error-message"
 import type { RootState } from "@/store/rootReducer"
 import { ResourceCategory, ResourceSubmissionStatus } from "@/types/api"
@@ -48,6 +51,10 @@ export function CourseResourcePage({
   const user = useSelector((state: RootState) => state.auth.user)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [filters, setFilters] = useState<StudentResourceFilterValues>({
+    subjectId: "",
+    moduleId: "",
+  })
   const { data, isLoading, error } = useGetEnrollmentQuery(enrollmentId)
   const enrollment = data?.data
   const courseId = enrollment ? enrollmentCourseId(enrollment) : ""
@@ -58,6 +65,8 @@ export function CourseResourcePage({
       courseId,
       ...(batchId ? { batchId } : {}),
       category,
+      ...(filters.subjectId ? { subjectId: filters.subjectId } : {}),
+      ...(filters.moduleId ? { moduleId: filters.moduleId } : {}),
       pageSize: 100,
       sort: "createdAt:desc",
     },
@@ -133,6 +142,10 @@ export function CourseResourcePage({
     category === ResourceCategory.EXAM || category === ResourceCategory.ASSIGNMENT
 
   useEffect(() => {
+    setActiveId(null)
+  }, [category, filters.subjectId, filters.moduleId])
+
+  useEffect(() => {
     if (items.length > 0 && !activeId) {
       setActiveId(items[0].id)
     }
@@ -179,12 +192,6 @@ export function CourseResourcePage({
   return (
     <StudentPageShell title={courseTitle}>
       <div className="mb-4 flex flex-wrap items-center gap-3">
-        <Button variant="ghost" size="sm" asChild>
-          <Link href={`/dashboard/courses/${enrollmentId}`}>
-            <ArrowLeft className="mr-1 h-4 w-4" />
-            Back to course
-          </Link>
-        </Button>
         <h1 className="text-2xl font-bold">{pageTitle}</h1>
         {showSubmit && active ? (
           <Button
@@ -199,6 +206,12 @@ export function CourseResourcePage({
       </div>
 
       {submitError ? <p className="mb-3 text-sm text-destructive">{submitError}</p> : null}
+
+      <StudentResourceFilters
+        enrollment={enrollment}
+        values={filters}
+        onChange={setFilters}
+      />
 
       {resourcesQuery.isLoading ? (
         <p className="text-sm text-muted-foreground">Loading documents…</p>

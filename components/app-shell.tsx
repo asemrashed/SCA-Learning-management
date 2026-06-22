@@ -1,5 +1,6 @@
 "use client"
 
+import { StaffBackBar } from "@/components/staff/staff-back-bar"
 import { StaffHeader } from "@/components/staff/staff-header"
 import { StaffShellProvider } from "@/components/staff/staff-shell-context"
 import { StaffSidebar } from "@/components/staff/staff-sidebar"
@@ -46,7 +47,10 @@ function StaffAppShell({
         <StaffSidebar nav={nav} overviewHref={overviewHref} />
         <div className="flex min-w-0 flex-1 flex-col">
           <StaffHeader />
-          <main className="flex-1 overflow-y-auto">{children}</main>
+          <main className="flex-1 overflow-y-auto">
+            <StaffBackBar />
+            {children}
+          </main>
         </div>
       </div>
     </StaffShellProvider>

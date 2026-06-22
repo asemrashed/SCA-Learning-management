@@ -1,8 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import Link from "next/link"
-import { ArrowLeft, Eye, Upload } from "lucide-react"
+import { Eye, Upload } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -33,11 +32,10 @@ import { DeliveryMode, ResourceCategory, ResourceSubmissionStatus } from "@/type
 
 interface ResultsPanelProps {
   category: ResourceCategory.EXAM | ResourceCategory.ASSIGNMENT
-  backHref: string
   title: string
 }
 
-export function ResultsPanel({ category, backHref, title }: ResultsPanelProps) {
+export function ResultsPanel({ category, title }: ResultsPanelProps) {
   const [courseId, setCourseId] = useState("")
   const [batchId, setBatchId] = useState("")
   const [search, setSearch] = useState("")
@@ -95,13 +93,6 @@ export function ResultsPanel({ category, backHref, title }: ResultsPanelProps) {
 
   return (
     <div className="space-y-4">
-      <Button variant="ghost" size="sm" asChild className="rounded-xl">
-        <Link href={backHref}>
-          <ArrowLeft className="mr-1 h-4 w-4" />
-          Back
-        </Link>
-      </Button>
-
       <p className="text-sm text-muted-foreground">
         Upload result PDFs for accepted {title.toLowerCase()} submissions. Students see published
         results on their course result page.

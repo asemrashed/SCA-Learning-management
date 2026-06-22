@@ -1,8 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import Link from "next/link"
-import { ArrowLeft, Check, X } from "lucide-react"
+import { Check, X } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -39,11 +38,10 @@ const statusVariant: Record<
 
 interface SubmissionsPanelProps {
   category: ResourceCategory.EXAM | ResourceCategory.ASSIGNMENT
-  backHref: string
   title: string
 }
 
-export function SubmissionsPanel({ category, backHref, title }: SubmissionsPanelProps) {
+export function SubmissionsPanel({ category, title }: SubmissionsPanelProps) {
   const [status, setStatus] = useState<ResourceSubmissionStatus | "ALL">(
     ResourceSubmissionStatus.PENDING,
   )
@@ -91,13 +89,6 @@ export function SubmissionsPanel({ category, backHref, title }: SubmissionsPanel
 
   return (
     <div className="space-y-4">
-      <Button variant="ghost" size="sm" asChild className="rounded-xl">
-        <Link href={backHref}>
-          <ArrowLeft className="mr-1 h-4 w-4" />
-          Back
-        </Link>
-      </Button>
-
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <Select
           value={status}

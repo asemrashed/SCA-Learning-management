@@ -3,13 +3,17 @@
 import { useEffect, useState } from "react"
 import { Lock, Play } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { LessonVideoPlayer } from "@/components/lesson-video-player"
+import { LessonContentPanel } from "@/components/lesson-content-panel"
+import { LessonViewerFrame } from "@/components/lesson-viewer-frame"
+import {
+  isViewableLesson,
+  type ViewableLessonFields,
+} from "@/features/enrollment/lib/lesson-view"
+import { LessonType } from "@/types/api"
 
-export interface PlayableLesson {
+export interface PlayableLesson extends ViewableLessonFields {
   id: string
   title: string
-  hasVideo?: boolean
-  videoUrl?: string | null
   durationS?: number | null
   lectureDate?: string | null
 }
@@ -40,7 +44,7 @@ function LessonRow({
   isActive: boolean
   onSelect: (lesson: PlayableLesson) => void
 }) {
-  const hasVideo = !!lesson.hasVideo || !!lesson.videoUrl
+  const viewable = isViewableLesson(lesson)
   const lectureLabel = formatLectureDate(lesson.lectureDate)
 
   return (
@@ -62,7 +66,7 @@ function LessonRow({
               {formatDuration(lesson.durationS)}
             </span>
           ) : null}
-          {hasVideo ? (
+          {viewable ? (
             <Button
               variant={isActive ? "default" : "ghost"}
               size="sm"
@@ -93,31 +97,21 @@ export function ModuleLessonPlayer({
   useEffect(() => {
     if (activeLesson) return
     const preferred = initialLessonId
-      ? lessons.find(
-          (l) => l.id === initialLessonId && (l.hasVideo || l.videoUrl),
-        )
+      ? lessons.find((l) => l.id === initialLessonId && isViewableLesson(l))
       : null
-    const firstPlayable =
-      preferred ?? lessons.find((l) => l.hasVideo || l.videoUrl)
-    if (firstPlayable) setActiveLesson(firstPlayable)
+    const firstViewable = preferred ?? lessons.find((l) => isViewableLesson(l))
+    if (firstViewable) setActiveLesson(firstViewable)
   }, [lessons, initialLessonId, activeLesson])
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_min(380px,34%)] lg:items-start">
       <div className="min-w-0">
-        {activeLesson && (activeLesson.hasVideo || activeLesson.videoUrl) ? (
+        {activeLesson && isViewableLesson(activeLesson) ? (
           <div className="space-y-2">
             {playlistTitle ? (
               <p className="text-sm text-muted-foreground">{playlistTitle}</p>
             ) : null}
-            <div className="overflow-hidden rounded-xl border bg-black shadow-sm">
-              <LessonVideoPlayer
-                key={activeLesson.id}
-                lessonId={activeLesson.hasVideo ? activeLesson.id : undefined}
-                videoUrl={activeLesson.videoUrl ?? undefined}
-                title={activeLesson.title}
-              />
-            </div>
+            <LessonContentPanel key={activeLesson.id} lesson={activeLesson} />
             <p className="font-medium">{activeLesson.title}</p>
             {formatLectureDate(activeLesson.lectureDate) ? (
               <p className="text-sm text-muted-foreground">
@@ -126,9 +120,11 @@ export function ModuleLessonPlayer({
             ) : null}
           </div>
         ) : (
-          <div className="flex aspect-video items-center justify-center rounded-xl border bg-muted/40 text-sm text-muted-foreground">
-            Select a lesson from the playlist to start watching
-          </div>
+          <LessonViewerFrame variant="content">
+            <div className="flex h-full min-h-0 flex-1 items-center justify-center text-sm text-muted-foreground">
+              Select a lesson from the playlist to start
+            </div>
+          </LessonViewerFrame>
         )}
       </div>
 

@@ -17,6 +17,10 @@ export function lessonStreamUrl(lessonId: string): string {
   return `${baseUrl}/lessons/${lessonId}/stream`
 }
 
+export function lessonDocumentStreamUrl(lessonId: string): string {
+  return `${baseUrl}/lessons/${lessonId}/document-stream`
+}
+
 export async function fetchLessonPlayMeta(
   lessonId: string,
   accessToken?: string | null,
@@ -80,6 +84,30 @@ export async function fetchLessonVideoBlob(
     throw new Error('Could not load video')
   }
   return res.blob()
+}
+
+export async function fetchLessonDocumentStream(
+  lessonId: string,
+  accessToken: string,
+): Promise<Blob> {
+  const res = await fetch(lessonDocumentStreamUrl(lessonId), {
+    headers: authHeaders(accessToken),
+    credentials: 'include',
+    cache: 'no-store',
+  })
+  if (!res.ok) {
+    let message = 'Could not load document'
+    try {
+      const body = (await res.json()) as { error?: { message?: string } }
+      if (body.error?.message) message = body.error.message
+    } catch {
+      // ignore parse errors
+    }
+    throw new Error(message)
+  }
+  const contentType = res.headers.get('content-type') ?? 'application/pdf'
+  const buffer = await res.arrayBuffer()
+  return new Blob([buffer], { type: contentType })
 }
 
 export function createBlobHtmlUrl(html: string): string {

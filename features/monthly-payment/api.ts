@@ -1,5 +1,6 @@
 import { createApi } from '@reduxjs/toolkit/query/react'
 import type {
+  AdminPaymentSummary,
   EnrollmentPaymentHistory,
   ListMonthlyPaymentsParams,
   MonthlyPaymentRecord,
@@ -11,7 +12,7 @@ import { baseQueryWithReauth } from '@/lib/apiClient'
 export const monthlyPaymentApi = createApi({
   reducerPath: 'monthlyPaymentApi',
   baseQuery: baseQueryWithReauth,
-  tagTypes: ['MonthlyPayment', 'EnrollmentPaymentHistory'],
+  tagTypes: ['MonthlyPayment', 'EnrollmentPaymentHistory', 'PaymentSummary'],
   endpoints: (builder) => ({
     getEnrollmentPaymentHistory: builder.query<
       { data: EnrollmentPaymentHistory },
@@ -34,6 +35,10 @@ export const monthlyPaymentApi = createApi({
         { type: 'EnrollmentPaymentHistory', id: enrollmentId },
         { type: 'MonthlyPayment', id: 'LIST' },
       ],
+    }),
+    getAdminPaymentSummary: builder.query<{ data: AdminPaymentSummary }, void>({
+      query: () => '/admin/monthly-payments/summary',
+      providesTags: [{ type: 'PaymentSummary', id: 'SUMMARY' }],
     }),
     listAdminMonthlyPayments: builder.query<
       { data: MonthlyPaymentRecord[]; meta: { total: number; page: number; pageSize: number } },
@@ -67,6 +72,7 @@ export const monthlyPaymentApi = createApi({
       invalidatesTags: (result) => [
         { type: 'MonthlyPayment', id: 'LIST' },
         { type: 'MonthlyPayment', id: 'UNPAID' },
+        { type: 'PaymentSummary', id: 'SUMMARY' },
         ...(result
           ? [{ type: 'EnrollmentPaymentHistory' as const, id: result.data.enrollment.id }]
           : []),
@@ -78,6 +84,7 @@ export const monthlyPaymentApi = createApi({
 export const {
   useGetEnrollmentPaymentHistoryQuery,
   useRequestMonthlyPaymentMutation,
+  useGetAdminPaymentSummaryQuery,
   useListAdminMonthlyPaymentsQuery,
   useListUnpaidStudentsQuery,
   useReviewMonthlyPaymentMutation,

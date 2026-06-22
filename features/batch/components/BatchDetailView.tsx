@@ -15,6 +15,7 @@ import { BatchCurriculum } from "@/features/batch/components/BatchCurriculum"
 import { BATCH_STATUS_LABEL, daysUntil, formatBatchDate, formatDuration } from "@/features/batch/utils"
 import { BATCH, BROWSE_COURSES, LIVE_BATCH_CATALOG_HREF } from "@/lib/product-vocabulary"
 import { EnrollButton } from "@/features/enrollment/components/enroll-button"
+import { isPreviewableLesson } from "@/features/enrollment/lib/lesson-view"
 import { Calendar, Clock, Play } from "lucide-react"
 import { motion } from "framer-motion"
 
@@ -62,7 +63,9 @@ export function BatchDetailView({ idOrSlug }: BatchDetailViewProps) {
   const daysLeft = daysUntil(batch.registrationDeadline)
   const isLive = batch.status === "ACTIVE"
   const previewLessons = subjects.flatMap((s) =>
-    (s.modules ?? []).flatMap((m) => (m.lessons ?? []).filter((l) => l.isPreview && l.hasVideo)),
+    (s.modules ?? []).flatMap((m) =>
+      (m.lessons ?? []).filter((l) => isPreviewableLesson(l)),
+    ),
   )
   const previewLesson = previewLessons[0]
 
@@ -213,7 +216,15 @@ export function BatchDetailView({ idOrSlug }: BatchDetailViewProps) {
         <VideoModal
           isOpen={previewOpen}
           onClose={() => setPreviewOpen(false)}
-          lessonId={previewLesson.id}
+          lesson={{
+            id: previewLesson.id,
+            title: previewLesson.title,
+            type: previewLesson.type,
+            hasVideo: previewLesson.hasVideo,
+            hasDocument: previewLesson.hasDocument,
+            content: previewLesson.content ?? null,
+            videoUrl: previewLesson.videoUrl ?? null,
+          }}
           title={previewLesson.title}
           duration={formatDuration(previewLesson.durationS ?? null)}
         />

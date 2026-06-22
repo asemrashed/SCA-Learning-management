@@ -1,8 +1,8 @@
 "use client"
 
-import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { ArrowLeft, Menu } from "lucide-react"
+import { Menu } from "lucide-react"
+import { BackButton } from "@/components/back-button"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { getStudentBackHref, getStudentBackLabel } from "@/lib/student-routes"
@@ -41,19 +41,9 @@ export function StudentPageShell({
           <h2 className="text-xl font-bold text-foreground md:text-2xl">{title}</h2>
         </div>
 
-        {resolvedBack ? (
+        {resolvedBack && backLabel ? (
           <div className="mb-6">
-            <Button
-              variant="outline"
-              size="sm"
-              asChild
-              className="rounded-lg border-border bg-secondary text-primary hover:bg-secondary/90 hover:text-primary"
-            >
-              <Link href={resolvedBack}>
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to {backLabel}
-              </Link>
-            </Button>
+            <BackButton href={resolvedBack} label={`Back to ${backLabel}`} />
           </div>
         ) : null}
 

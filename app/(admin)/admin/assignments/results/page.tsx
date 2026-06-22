@@ -12,7 +12,6 @@ export default function AdminAssignmentResultsPage() {
       </div>
       <ResultsPanel
         category={ResourceCategory.ASSIGNMENT}
-        backHref="/admin/assignments"
         title="Assignment"
       />
     </div>

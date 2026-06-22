@@ -2,13 +2,15 @@
 
 import Link from "next/link"
 import type { LucideIcon } from "lucide-react"
-import { Calendar, Layers, Plus, UserPlus, Users } from "lucide-react"
+import { Calendar, DollarSign, Layers, Plus, UserPlus, Users, Wallet } from "lucide-react"
 import { useSelector } from "react-redux"
 import { DashboardLinkCard } from "@/components/student/dashboard-link-card"
 import { StaffPageShell } from "@/components/staff/staff-page-shell"
 import { useListBatchesQuery } from "@/features/batch/api"
 import { useListCoursesQuery } from "@/features/course/api"
-import { useListAdminEnrollmentRequestsQuery } from "@/features/enrollment/api"
+import { useGetAdminEnrollmentOverviewQuery } from "@/features/enrollment/api"
+import { useGetAdminPaymentSummaryQuery } from "@/features/monthly-payment/api"
+import { formatBdtMinor } from "@/lib/format-currency"
 import { useListAdminOrderRequestsQuery } from "@/features/shop/api"
 import { useListAdminMonthlyPaymentsQuery } from "@/features/monthly-payment/api"
 import { isSuperAdmin } from "@/lib/roles"
@@ -21,7 +23,7 @@ import {
 } from "@/lib/product-vocabulary"
 import { staffDashboardLinkItems } from "@/lib/dashboard-nav"
 import type { RootState } from "@/store/rootReducer"
-import { DeliveryMode, EnrollmentStatus, MonthlyPaymentStatus, OrderStatus } from "@/types/api"
+import { DeliveryMode, MonthlyPaymentStatus, OrderStatus } from "@/types/api"
 import { cn } from "@/lib/utils"
 
 interface StaffDashboardOverviewProps {
@@ -50,7 +52,7 @@ function StatCard({
 }: {
   icon: LucideIcon
   label: string
-  value: number | undefined
+  value: number | string | undefined
   isLoading: boolean
 }) {
   return (
@@ -59,7 +61,9 @@ function StatCard({
         <Icon className="h-5 w-5 shrink-0" />
         <span className="text-sm font-medium">{label}</span>
       </div>
-      <p className="text-3xl font-bold text-foreground">{isLoading ? "…" : (value ?? 0)}</p>
+      <p className="text-3xl font-bold text-foreground">
+        {isLoading ? "…" : typeof value === "number" ? (value ?? 0) : (value ?? "৳0")}
+      </p>
     </div>
   )
 }
@@ -116,10 +120,12 @@ export function StaffDashboardOverview({ variant }: StaffDashboardOverviewProps)
     pageSize: 1,
   })
   const { data: batchesData, isLoading: batchesLoading } = useListBatchesQuery({ pageSize: 1 })
-  const { data: activeEnrollmentsData, isLoading: activeEnrollmentsLoading } =
-    useListAdminEnrollmentRequestsQuery({ status: EnrollmentStatus.ACTIVE })
-  const { data: completedEnrollmentsData, isLoading: completedEnrollmentsLoading } =
-    useListAdminEnrollmentRequestsQuery({ status: EnrollmentStatus.COMPLETED })
+  const { data: enrollmentOverview, isLoading: enrollmentOverviewLoading } =
+    useGetAdminEnrollmentOverviewQuery()
+  const { data: paymentSummary, isLoading: paymentSummaryLoading } = useGetAdminPaymentSummaryQuery(
+    undefined,
+    { skip: variant !== "super-admin" },
+  )
   const { data: ordersData } = useListAdminOrderRequestsQuery({
     status: OrderStatus.PENDING,
   })
@@ -131,9 +137,10 @@ export function StaffDashboardOverview({ variant }: StaffDashboardOverviewProps)
   const liveCourseTotal = liveCoursesData?.meta.total ?? 0
   const recordedCourseTotal = recordedCoursesData?.meta.total ?? 0
   const batchTotal = batchesData?.meta.total ?? 0
-  const enrolledTotal =
-    (activeEnrollmentsData?.data?.length ?? 0) + (completedEnrollmentsData?.data?.length ?? 0)
-  const enrollmentsLoading = activeEnrollmentsLoading || completedEnrollmentsLoading
+  const overview = enrollmentOverview?.data
+  const enrolledTotal = (overview?.active ?? 0) + (overview?.completed ?? 0)
+  const totalRevenueMinor = paymentSummary?.data.totalRevenueMinor ?? 0
+  const totalDueMinor = paymentSummary?.data.totalDueMinor ?? 0
   const pendingOrders = ordersData?.data?.length ?? 0
   const pendingPayments = paymentsData?.meta.total ?? 0
 
@@ -141,7 +148,7 @@ export function StaffDashboardOverview({ variant }: StaffDashboardOverviewProps)
 
   return (
     <StaffPageShell title={pageTitle}>
-      <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-3">
         <StatCard
           icon={Layers}
           label={LIVE_COURSES}
@@ -162,10 +169,26 @@ export function StaffDashboardOverview({ variant }: StaffDashboardOverviewProps)
         />
         <StatCard
           icon={UserPlus}
-          label="Enrolled students"
-          value={enrolledTotal}
-          isLoading={enrollmentsLoading}
+          label={variant === "super-admin" ? "Total enrollments" : "Enrolled students"}
+          value={variant === "super-admin" ? (overview?.total ?? 0) : enrolledTotal}
+          isLoading={enrollmentOverviewLoading}
         />
+        {variant === "super-admin" ? (
+          <>
+            <StatCard
+              icon={DollarSign}
+              label="Total Revenue"
+              value={formatBdtMinor(totalRevenueMinor)}
+              isLoading={paymentSummaryLoading}
+            />
+            <StatCard
+              icon={Wallet}
+              label="Total Due"
+              value={formatBdtMinor(totalDueMinor)}
+              isLoading={paymentSummaryLoading}
+            />
+          </>
+        ) : null}
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">

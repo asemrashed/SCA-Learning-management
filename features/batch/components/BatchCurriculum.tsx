@@ -4,24 +4,24 @@ import { useState } from "react"
 import { ChevronDown, ChevronUp, Lock, Play } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { VideoModal } from "@/components/video-modal"
+import { VideoModal, type PreviewLesson } from "@/components/video-modal"
+import { isPreviewableLesson } from "@/features/enrollment/lib/lesson-view"
 import { formatDuration } from "@/features/batch/utils"
-import type { CourseSubject } from "@/types/api"
+import type { CourseLesson, CourseSubject } from "@/types/api"
 import { CHAPTERS } from "@/lib/product-vocabulary"
 
 interface BatchCurriculumProps {
   subjects: CourseSubject[]
+  /** Staff preview: unlock all lessons with content, not only `isPreview`. */
+  adminMode?: boolean
 }
 
-export function BatchCurriculum({ subjects }: BatchCurriculumProps) {
+export function BatchCurriculum({ subjects, adminMode = false }: BatchCurriculumProps) {
   const [expandedSubjects, setExpandedSubjects] = useState<Set<string>>(
     () => new Set(subjects.slice(0, 1).map((s) => s.id)),
   )
-  const [preview, setPreview] = useState<{
-    lessonId: string
-    title: string
-    duration: string
-  } | null>(null)
+  const [preview, setPreview] = useState<PreviewLesson | null>(null)
+  const [previewDuration, setPreviewDuration] = useState("")
 
   const toggleSubject = (id: string) => {
     setExpandedSubjects((prev) => {
@@ -30,6 +30,19 @@ export function BatchCurriculum({ subjects }: BatchCurriculumProps) {
       else next.add(id)
       return next
     })
+  }
+
+  function openLesson(lesson: CourseLesson) {
+    setPreview({
+      id: lesson.id,
+      title: lesson.title,
+      type: lesson.type,
+      hasVideo: lesson.hasVideo,
+      hasDocument: lesson.hasDocument,
+      content: lesson.content ?? null,
+      videoUrl: lesson.videoUrl ?? null,
+    })
+    setPreviewDuration(formatDuration(lesson.durationS))
   }
 
   if (!subjects.length) {
@@ -70,8 +83,7 @@ export function BatchCurriculum({ subjects }: BatchCurriculumProps) {
                       <h4 className="mb-2 text-sm font-medium text-foreground">{mod.title}</h4>
                       <ul className="space-y-2">
                         {mod.lessons.map((lesson) => {
-                          const canPlay = lesson.isPreview && lesson.hasVideo
-                          const isLocked = !lesson.isPreview && !lesson.hasVideo
+                          const canOpen = isPreviewableLesson(lesson, adminMode)
 
                           return (
                             <li
@@ -79,7 +91,7 @@ export function BatchCurriculum({ subjects }: BatchCurriculumProps) {
                               className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-lg bg-muted/30 px-3 py-2 text-sm"
                             >
                               <div className="flex min-w-0 items-center gap-2 w-full">
-                                {canPlay ? (
+                                {canOpen ? (
                                   <Play className="h-4 w-4 shrink-0 text-primary" />
                                 ) : (
                                   <Lock className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -95,24 +107,17 @@ export function BatchCurriculum({ subjects }: BatchCurriculumProps) {
                                 <span className="text-xs text-muted-foreground">
                                   {formatDuration(lesson.durationS)}
                                 </span>
-                                {canPlay && (
+                                {canOpen ? (
                                   <Button
                                     type="button"
                                     size="sm"
                                     variant="outline"
                                     className="h-7 rounded-lg text-xs"
-                                    onClick={() =>
-                                      setPreview({
-                                        lessonId: lesson.id,
-                                        title: lesson.title,
-                                        duration: formatDuration(lesson.durationS),
-                                      })
-                                    }
+                                    onClick={() => openLesson(lesson)}
                                   >
-                                    Preview
+                                    {adminMode && !lesson.isPreview ? "View" : "Preview"}
                                   </Button>
-                                )}
-                                {isLocked && (
+                                ) : (
                                   <span className="text-xs text-muted-foreground">Locked</span>
                                 )}
                               </div>
@@ -133,9 +138,9 @@ export function BatchCurriculum({ subjects }: BatchCurriculumProps) {
         <VideoModal
           isOpen
           onClose={() => setPreview(null)}
-          lessonId={preview.lessonId}
+          lesson={preview}
           title={preview.title}
-          duration={preview.duration}
+          duration={previewDuration}
         />
       ) : null}
     </>

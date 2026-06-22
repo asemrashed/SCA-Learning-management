@@ -1,16 +1,6 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import Link from "next/link"
-import { ArrowLeft } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { useGetEnrollmentQuery, useListEnrollmentsQuery } from "@/features/enrollment/api"
 import {
   enrollmentBatchId,
@@ -18,6 +8,10 @@ import {
   enrollmentProductTitle,
 } from "@/features/enrollment/curriculum"
 import { useListResourcesQuery } from "@/features/resource/api"
+import {
+  StudentResourceFilters,
+  type StudentResourceFilterValues,
+} from "@/features/resource/components/student-resource-filters"
 import { SecurePdfViewer } from "@/components/secure-pdf-viewer"
 import { StudentPageShell } from "@/components/student/student-page-shell"
 import { useAuthQuerySkip } from "@/features/auth/hooks"
@@ -44,6 +38,10 @@ export function SuggestionPage({ enrollmentId: fixedEnrollmentId }: SuggestionPa
   const [selectedEnrollmentId, setSelectedEnrollmentId] = useState<string | null>(
     fixedEnrollmentId ?? null,
   )
+  const [filters, setFilters] = useState<StudentResourceFilterValues>({
+    subjectId: "",
+    moduleId: "",
+  })
 
   const { data: enrollmentsData, isLoading: enrollmentsLoading } = useListEnrollmentsQuery(
     undefined,
@@ -84,6 +82,8 @@ export function SuggestionPage({ enrollmentId: fixedEnrollmentId }: SuggestionPa
       courseId,
       ...(batchId ? { batchId } : {}),
       category,
+      ...(filters.subjectId ? { subjectId: filters.subjectId } : {}),
+      ...(filters.moduleId ? { moduleId: filters.moduleId } : {}),
       pageSize: 100,
       sort: "createdAt:desc",
     },
@@ -94,10 +94,18 @@ export function SuggestionPage({ enrollmentId: fixedEnrollmentId }: SuggestionPa
 
   const active = items.find((r) => r.id === activeId) ?? null
   const courseTitle = enrollment ? enrollmentProductTitle(enrollment) : "Suggestion"
-  const showCoursePicker = !fixedEnrollmentId && accessibleEnrollments.length > 1
+  const enrollmentOptions = useMemo(
+    () =>
+      accessibleEnrollments.map((item) => ({
+        id: item.id,
+        label: item.kind === EnrollmentKind.BATCH ? item.batch?.title ?? "Course" : item.course?.title ?? "Course",
+      })),
+    [accessibleEnrollments],
+  )
 
   useEffect(() => {
     setActiveId(null)
+    setFilters({ subjectId: "", moduleId: "" })
   }, [category, enrollmentId])
 
   useEffect(() => {
@@ -144,36 +152,8 @@ export function SuggestionPage({ enrollmentId: fixedEnrollmentId }: SuggestionPa
   return (
     <StudentPageShell title={fixedEnrollmentId ? courseTitle : "Suggestion"}>
       <div className="mb-4 flex flex-wrap items-center gap-3">
-        {fixedEnrollmentId ? (
-          <Button variant="ghost" size="sm" asChild>
-            <Link href={`/dashboard/courses/${enrollmentId}`}>
-              <ArrowLeft className="mr-1 h-4 w-4" />
-              Back to course
-            </Link>
-          </Button>
-        ) : null}
         <h1 className="text-2xl font-bold">Suggestion</h1>
       </div>
-
-      {showCoursePicker ? (
-        <div className="mb-6 max-w-md">
-          <Select
-            value={enrollmentId ?? undefined}
-            onValueChange={(value) => setSelectedEnrollmentId(value)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select a course" />
-            </SelectTrigger>
-            <SelectContent>
-              {accessibleEnrollments.map((item) => (
-                <SelectItem key={item.id} value={item.id}>
-                  {item.kind === EnrollmentKind.BATCH ? item.batch?.title : item.course?.title}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      ) : null}
 
       <div className="mb-6 flex flex-wrap gap-2">
         {SUGGESTION_TABS.map((tab) => {
@@ -195,6 +175,21 @@ export function SuggestionPage({ enrollmentId: fixedEnrollmentId }: SuggestionPa
           )
         })}
       </div>
+
+      <StudentResourceFilters
+        enrollment={enrollment}
+        values={filters}
+        onChange={setFilters}
+        enrollmentPicker={
+          !fixedEnrollmentId && enrollmentOptions.length > 1
+            ? {
+                options: enrollmentOptions,
+                selectedId: enrollmentId ?? "",
+                onSelect: setSelectedEnrollmentId,
+              }
+            : undefined
+        }
+      />
 
       {resourcesQuery.isLoading ? (
         <p className="text-sm text-muted-foreground">Loading documents…</p>

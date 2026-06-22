@@ -9,6 +9,7 @@ import {
   findSubjectForModule,
 } from "@/features/enrollment/curriculum"
 import { LessonPageHeader } from "@/features/enrollment/components/lesson-page-header"
+import { isViewableLesson } from "@/features/enrollment/lib/lesson-view"
 import {
   ModuleLessonPlayer,
   type PlayableLesson,
@@ -18,7 +19,7 @@ import {
   useListCourseRecordingsQuery,
 } from "@/features/liveclass/api"
 import { StudentPageShell } from "@/components/student/student-page-shell"
-import { EnrollmentKind, LessonType } from "@/types/api"
+import { EnrollmentKind } from "@/types/api"
 
 interface PreRecordedModuleLessonsProps {
   enrollmentId: string
@@ -57,11 +58,14 @@ export function PreRecordedModuleLessons({
     if (fromRecordings.length > 0) return fromRecordings
 
     return mod.lessons
-      .filter((l) => l.type === LessonType.RECORDED || l.hasVideo)
+      .filter((l) => isViewableLesson(l))
       .map((l) => ({
         id: l.id,
         title: l.title,
+        type: l.type,
         hasVideo: l.hasVideo,
+        hasDocument: l.hasDocument,
+        content: l.content,
         durationS: l.durationS,
         lectureDate: l.lectureDate,
       }))
@@ -92,8 +96,6 @@ export function PreRecordedModuleLessons({
         sectionLabel="Pre-Recorded Class"
         subjectTitle={subject?.title ?? null}
         chapterTitle={mod.title}
-        backHref={`/dashboard/courses/${enrollmentId}/pre-recorded`}
-        backLabel="Back to chapters"
       />
 
       {lessons.length === 0 ? (
@@ -150,11 +152,14 @@ export function RecordedModuleLessons({
     if (fromRecordings.length > 0) return fromRecordings
 
     return mod.lessons
-      .filter((l) => l.hasVideo)
+      .filter((l) => isViewableLesson(l))
       .map((l) => ({
         id: l.id,
         title: l.title,
+        type: l.type,
         hasVideo: l.hasVideo,
+        hasDocument: l.hasDocument,
+        content: l.content,
         durationS: l.durationS,
         lectureDate: l.lectureDate,
       }))
@@ -185,8 +190,6 @@ export function RecordedModuleLessons({
         sectionLabel="Recorded Class"
         subjectTitle={subject?.title ?? null}
         chapterTitle={mod.title}
-        backHref={`/dashboard/courses/${enrollmentId}/recorded`}
-        backLabel="Back to chapters"
       />
 
       {lessons.length === 0 ? (

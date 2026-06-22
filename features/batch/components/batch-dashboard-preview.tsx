@@ -14,15 +14,11 @@ import { EnrollmentKind } from "@/types/api"
 interface BatchDashboardPreviewProps {
   batchId: string
   liveManageHref: string
-  backHref: string
-  backLabel?: string
 }
 
 export function BatchDashboardPreview({
   batchId,
   liveManageHref,
-  backHref,
-  backLabel = "Back",
 }: BatchDashboardPreviewProps) {
   const { data, isLoading, error } = useGetBatchQuery(batchId)
   const batch = data?.data
@@ -35,9 +31,6 @@ export function BatchDashboardPreview({
   return (
     <div className="space-y-8">
       <div>
-        <Button variant="ghost" size="sm" asChild className="mb-4">
-          <Link href={backHref}>← {backLabel}</Link>
-        </Button>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold">{batch.title}</h1>
@@ -71,7 +64,7 @@ export function BatchDashboardPreview({
       {subjects.length ? (
         <section>
           <h2 className="mb-4 text-lg font-semibold">Curriculum</h2>
-          <BatchCurriculum subjects={subjects} />
+          <BatchCurriculum subjects={subjects} adminMode />
         </section>
       ) : null}
     </div>

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useSelector } from "react-redux"
 import type { RootState } from "@/store/rootReducer"
 import { cn } from "@/lib/utils"
+import { LESSON_VIEWER_ASPECT_CLASS } from "@/components/lesson-viewer-frame"
 import { fetchLessonPlayMeta, type LessonPlayKind } from "@/lib/fetch-lesson-video"
 import { ServerEmbedPlayer } from "@/components/server-embed-player"
 import { SecureFilePlayer } from "@/components/secure-file-player"
@@ -48,7 +49,8 @@ export function SecureLessonPlayer({
     return (
       <div
         className={cn(
-          "flex h-full w-full items-center justify-center bg-muted text-sm text-muted-foreground",
+          "flex items-center justify-center bg-muted text-sm text-muted-foreground",
+          flexible ? "h-full min-h-0 w-full flex-1" : LESSON_VIEWER_ASPECT_CLASS,
           className,
         )}
       >
@@ -61,7 +63,8 @@ export function SecureLessonPlayer({
     return (
       <div
         className={cn(
-          "flex h-full w-full items-center justify-center bg-muted text-sm text-muted-foreground",
+          "flex items-center justify-center bg-muted text-sm text-muted-foreground",
+          flexible ? "h-full min-h-0 w-full flex-1" : LESSON_VIEWER_ASPECT_CLASS,
           className,
         )}
       >

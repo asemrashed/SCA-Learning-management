@@ -68,6 +68,7 @@ export interface CourseLesson {
   order: number
   isPreview: boolean
   hasVideo: boolean
+  hasDocument: boolean
   videoUrl?: string | null
   content?: string | null
 }
@@ -218,6 +219,8 @@ export interface EnrollmentLesson {
   title: string
   type: LessonType
   hasVideo: boolean
+  hasDocument: boolean
+  content: string | null
   durationS: number | null
   lectureDate: string | null
   order: number
@@ -243,7 +246,9 @@ export interface EnrollmentDetail {
   deliveryMode: DeliveryMode
   status: EnrollmentStatus
   rollNumber: string | null
-  batch: { id: string; title: string; courseId?: string } | null
+  enrolledAt: string
+  completedAt: string | null
+  batch: { id: string; title: string; courseId?: string; endDate?: string | null } | null
   course: { id: string; title: string } | null
   subjects?: EnrollmentSubject[]
   grantedSubjects?: EnrollmentSubject[]
@@ -273,6 +278,27 @@ export interface AdminEnrollmentRequest {
 export interface ReviewEnrollmentInput {
   action: 'approve' | 'reject'
   rollNumber?: string
+}
+
+export interface AdminEnrollmentOverview {
+  total: number
+  pending: number
+  active: number
+  cancelled: number
+  completed: number
+}
+
+export interface ListAdminEnrollmentsParams {
+  status?: EnrollmentStatus
+  page?: number
+  pageSize?: number
+}
+
+export interface AdminPaymentSummary {
+  totalRevenueMinor: number
+  totalDueMinor: number
+  currentBillingMonth: string
+  unpaidStudentCount: number
 }
 
 export interface ResourceItem {

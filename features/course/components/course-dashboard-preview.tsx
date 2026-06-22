@@ -1,7 +1,6 @@
 "use client"
 
 import Link from "next/link"
-import { use } from "react"
 import { Plus } from "lucide-react"
 import { useSelector } from "react-redux"
 import type { RootState } from "@/store"
@@ -26,15 +25,11 @@ import { CurriculumTree } from "./curriculum-tree"
 
 interface CourseDashboardPreviewProps {
   courseId: string
-  backHref: string
-  backLabel?: string
   editHref?: string
 }
 
 export function CourseDashboardPreview({
   courseId,
-  backHref,
-  backLabel = "Back",
   editHref,
 }: CourseDashboardPreviewProps) {
   const user = useSelector((state: RootState) => state.auth.user)
@@ -51,9 +46,6 @@ export function CourseDashboardPreview({
   return (
     <div className="space-y-8">
       <div>
-        <Button variant="ghost" size="sm" asChild className="mb-4">
-          <Link href={backHref}>← {backLabel}</Link>
-        </Button>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -98,7 +90,7 @@ export function CourseDashboardPreview({
             chapters.
           </p>
         ) : course.modules?.length ? (
-          <CurriculumTree modules={course.modules} initialVisible={999} />
+          <CurriculumTree modules={course.modules} initialVisible={999} adminMode />
         ) : (
           <p className="text-sm text-muted-foreground">No curriculum yet.</p>
         )}

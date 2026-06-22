@@ -11,10 +11,11 @@ import { FAQAccordion } from "@/components/faq-accordion"
 import { ExpandableRichContent } from "@/components/expandable-rich-content"
 import { formatBdtMinor } from "@/lib/format-currency"
 import { CHAPTERS, deliveryModeLabel } from "@/lib/product-vocabulary"
-import type { CourseDetail, CourseModule } from "@/types/api"
+import type { CourseDetail, CourseLesson, CourseModule } from "@/types/api"
 import { CurriculumTree } from "./curriculum-tree"
 import { DeliveryMode } from "@/types/api"
 import { formatBatchDate, BATCH_STATUS_LABEL } from "@/features/batch/utils"
+import { isPreviewableLesson } from "@/features/enrollment/lib/lesson-view"
 
 interface CourseDetailViewProps {
   course: CourseDetail
@@ -57,8 +58,8 @@ export function CourseDetailView({ course }: CourseDetailViewProps) {
     ? undefined
     : sortedBatches.find((b) => b.status === "ACTIVE" || b.status === "UPCOMING") || sortedBatches[0]
 
-  const previewLesson = isRecorded
-    ? modules.flatMap((m) => m.lessons).find((l) => l.isPreview && l.hasVideo)
+  const previewLesson: CourseLesson | undefined = isRecorded
+    ? modules.flatMap((m) => m.lessons).find((l) => isPreviewableLesson(l))
     : undefined
   const [previewOpen, setPreviewOpen] = useState(false)
   const lessonCount = isRecorded
@@ -262,7 +263,15 @@ export function CourseDetailView({ course }: CourseDetailViewProps) {
         <VideoModal
           isOpen={previewOpen}
           onClose={() => setPreviewOpen(false)}
-          lessonId={previewLesson.id}
+          lesson={{
+            id: previewLesson.id,
+            title: previewLesson.title,
+            type: previewLesson.type,
+            hasVideo: previewLesson.hasVideo,
+            hasDocument: previewLesson.hasDocument,
+            content: previewLesson.content ?? null,
+            videoUrl: previewLesson.videoUrl ?? null,
+          }}
           title={previewLesson.title}
           duration={formatLessonDuration(previewLesson.durationS)}
         />
