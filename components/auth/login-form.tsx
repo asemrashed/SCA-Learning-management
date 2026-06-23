@@ -16,11 +16,12 @@ import { homePathForRole } from '@/lib/dashboard-nav'
 
 const e164Phone = z
   .string()
+  .trim()
   .regex(/^\+8801[3-9]\d{8}$/, 'Use BD format: +8801XXXXXXXXX')
 
 const loginSchema = z.object({
   phone: e164Phone,
-  password: z.string().min(1, 'Password is required'),
+  password: z.string().trim().min(1, 'Password is required'),
   remember: z.boolean().optional(),
 })
 

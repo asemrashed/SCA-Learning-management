@@ -15,14 +15,15 @@ import { setSessionCookie } from '@/lib/auth-session'
 
 const e164Phone = z
   .string()
+  .trim()
   .regex(/^\+8801[3-9]\d{8}$/, 'Use BD format: +8801XXXXXXXXX')
 
 const registerSchema = z
   .object({
-    name: z.string().min(2, 'Name must be at least 2 characters').max(100),
+    name: z.string().trim().min(2, 'Name must be at least 2 characters').max(100),
     phone: e164Phone,
-    password: z.string().min(8, 'Password must be at least 8 characters'),
-    confirmPassword: z.string(),
+    password: z.string().trim().min(8, 'Password must be at least 8 characters'),
+    confirmPassword: z.string().trim(),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: 'Passwords do not match',
