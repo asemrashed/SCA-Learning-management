@@ -1,8 +1,9 @@
 import type { ReviewPublicItem } from "@/types/api"
 import { TestimonialsSection } from "@/components/home/testimonials-section"
+import { serverApiUrl } from "@/lib/api-url"
 
 async function fetchApprovedReviews(): Promise<ReviewPublicItem[]> {
-  const base = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api"
+  const base = serverApiUrl()
   const res = await fetch(`${base}/reviews?pageSize=20`, { next: { revalidate: 300 } })
   if (!res.ok) return []
   const json = (await res.json()) as { data: ReviewPublicItem[] }

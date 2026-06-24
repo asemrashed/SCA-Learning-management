@@ -6,7 +6,6 @@ import { useSelector } from 'react-redux'
 import type { RootState } from '@/store'
 import { Role } from '@/types/api'
 import { homePathForRole } from '@/lib/dashboard-nav'
-import { hasSessionCookie } from '@/lib/auth-session'
 
 interface RoleGuardProps {
   allow: Role[]
@@ -24,7 +23,6 @@ export function RoleGuard({ allow, children }: RoleGuardProps) {
     if (!authReady) return
 
     if (!user && !accessToken) {
-      if (hasSessionCookie()) return
       router.replace('/login')
       return
     }

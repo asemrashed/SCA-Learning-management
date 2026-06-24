@@ -6,11 +6,9 @@ import { clearSessionCookie, hasSessionCookie } from '@/lib/auth-session'
 import { refreshSessionOnce } from '@/lib/auth-refresh'
 import { waitForAuthReady } from '@/lib/auth-ready'
 import { clearCredentials, setCredentials } from '@/features/auth/authSlice'
+import { clientApiUrl } from '@/lib/api-url'
 
-const baseUrl = process.env.NEXT_PUBLIC_API_URL
-if (!baseUrl) {
-  throw new Error('NEXT_PUBLIC_API_URL is not set')
-}
+const baseUrl = clientApiUrl()
 
 export const baseQuery = fetchBaseQuery({
   baseUrl,
@@ -32,10 +30,14 @@ function isAuthEndpoint(requestUrl: string): boolean {
   )
 }
 
+type RefreshOutcome =
+  | { ok: true; data: { data: AuthTokensResponse } }
+  | { ok: false; unauthorized: boolean }
+
 async function tryRefresh(
   api: Parameters<BaseQueryFn>[1],
   extraOptions: Parameters<BaseQueryFn>[2],
-): Promise<{ data: AuthTokensResponse } | null> {
+): Promise<RefreshOutcome> {
   return refreshSessionOnce(async () => {
     const refreshResult = await baseQuery(
       { url: '/auth/refresh', method: 'POST' },
@@ -43,9 +45,9 @@ async function tryRefresh(
       extraOptions,
     )
     if (refreshResult.data) {
-      return refreshResult.data as { data: AuthTokensResponse }
+      return { ok: true, data: refreshResult.data as { data: AuthTokensResponse } }
     }
-    return null
+    return { ok: false, unauthorized: refreshResult.error?.status === 401 }
   })
 }
 
@@ -72,15 +74,15 @@ export const baseQueryWithReauth: BaseQueryFn<
   if (result.error?.status === 401 && !skipReauth) {
     const refreshed = await tryRefresh(api, extraOptions)
 
-    if (refreshed) {
+    if (refreshed.ok) {
       api.dispatch(
         setCredentials({
-          accessToken: refreshed.data.accessToken,
-          user: refreshed.data.user,
+          accessToken: refreshed.data.data.accessToken,
+          user: refreshed.data.data.user,
         }),
       )
       result = await baseQuery(args, api, extraOptions)
-    } else {
+    } else if (refreshed.unauthorized) {
       api.dispatch(clearCredentials())
       clearSessionCookie()
     }
@@ -89,14 +91,25 @@ export const baseQueryWithReauth: BaseQueryFn<
   return result
 }
 
+export type BootstrapRefreshResult =
+  | { status: 'ok'; data: AuthTokensResponse }
+  | { status: 'unauthorized' }
+  | { status: 'failed' }
+
 /** Used by AuthBootstrap — same mutex as 401 reauth. */
-export async function bootstrapRefreshSession(): Promise<{ data: AuthTokensResponse } | null> {
+export async function bootstrapRefreshSession(): Promise<BootstrapRefreshResult> {
   return refreshSessionOnce(async () => {
-    const res = await fetch(`${baseUrl}/auth/refresh`, {
-      method: 'POST',
-      credentials: 'include',
-    })
-    if (!res.ok) return null
-    return (await res.json()) as { data: AuthTokensResponse }
+    try {
+      const res = await fetch(`${baseUrl}/auth/refresh`, {
+        method: 'POST',
+        credentials: 'include',
+      })
+      if (res.status === 401) return { status: 'unauthorized' }
+      if (!res.ok) return { status: 'failed' }
+      const json = (await res.json()) as { data: AuthTokensResponse }
+      return { status: 'ok', data: json.data }
+    } catch {
+      return { status: 'failed' }
+    }
   })
 }

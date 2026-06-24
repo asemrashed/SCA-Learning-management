@@ -1,15 +1,11 @@
-import type { AuthTokensResponse } from '@/types/api'
-
-export type RefreshResult = { data: AuthTokensResponse } | null
-
-let inFlightRefresh: Promise<RefreshResult> | null = null
+let inFlightRefresh: Promise<unknown> | null = null
 
 /** Deduplicate concurrent /auth/refresh calls (server rotates tokens per request). */
-export function refreshSessionOnce(refreshFn: () => Promise<RefreshResult>): Promise<RefreshResult> {
+export function refreshSessionOnce<T>(refreshFn: () => Promise<T>): Promise<T> {
   if (!inFlightRefresh) {
     inFlightRefresh = refreshFn().finally(() => {
       inFlightRefresh = null
     })
   }
-  return inFlightRefresh
+  return inFlightRefresh as Promise<T>
 }

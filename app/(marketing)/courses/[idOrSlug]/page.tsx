@@ -1,9 +1,10 @@
 import { notFound } from 'next/navigation'
 import { CourseDetailView } from '@/features/course/components/course-detail-view'
+import { serverApiUrl } from '@/lib/api-url'
 import { DeliveryMode, type CourseDetail } from '@/types/api'
 
 async function fetchCourse(idOrSlug: string): Promise<CourseDetail | null> {
-  const base = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api'
+  const base = serverApiUrl()
   const res = await fetch(`${base}/courses/${idOrSlug}`, { next: { revalidate: 60 } })
   if (!res.ok) return null
   const json = (await res.json()) as { data: CourseDetail }

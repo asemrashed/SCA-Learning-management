@@ -28,21 +28,17 @@ export function AuthBootstrap() {
 
     bootstrapRefreshSession()
       .then((result) => {
-        if (result) {
+        if (result.status === 'ok') {
           dispatch(
             setCredentials({
               accessToken: result.data.accessToken,
               user: result.data.user,
             }),
           )
-        } else {
+        } else if (result.status === 'unauthorized') {
           dispatch(clearCredentials())
           clearSessionCookie()
         }
-      })
-      .catch(() => {
-        dispatch(clearCredentials())
-        clearSessionCookie()
       })
       .finally(finish)
   }, [dispatch])

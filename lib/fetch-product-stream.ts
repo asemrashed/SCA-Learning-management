@@ -1,7 +1,6 @@
-const baseUrl = process.env.NEXT_PUBLIC_API_URL
-if (!baseUrl) {
-  throw new Error('NEXT_PUBLIC_API_URL is not set')
-}
+import { clientApiUrl } from '@/lib/api-url'
+
+const baseUrl = clientApiUrl()
 
 export function productStreamUrl(idOrSlug: string): string {
   return `${baseUrl}/products/${idOrSlug}/stream`
