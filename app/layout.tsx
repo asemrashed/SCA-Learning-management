@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { Inter, Noto_Sans_Bengali } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { Providers } from '@/components/providers'
-import { BRAND_NAME } from '@/lib/brand'
+import { BRAND_NAME, BRAND_LOGO_SRC } from '@/lib/brand'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
@@ -17,21 +17,8 @@ export const metadata: Metadata = {
   title: `${BRAND_NAME} - Master New Skills`,
   description: 'Premium learning platform with live courses, expert instructors, and career support',
   icons: {
-    icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
-    ],
-    apple: '/apple-icon.png',
+    icon: BRAND_LOGO_SRC,
+    apple: BRAND_LOGO_SRC,
   },
 }
 

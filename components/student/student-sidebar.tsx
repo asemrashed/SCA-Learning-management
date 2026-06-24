@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronRight, LogOut, X } from "lucide-react"
 import { useDispatch } from "react-redux"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { BRAND_NAME, BRAND_SHORT } from "@/lib/brand"
+import { BrandLogo } from "@/components/brand-logo"
 import { studentShellNav } from "@/lib/dashboard-nav"
 import { useLogoutMutation } from "@/features/auth/api"
 import { clearCredentials } from "@/features/auth/authSlice"
@@ -44,17 +44,15 @@ function SidebarNav({ expanded, onNavigate, onClose }: SidebarNavProps) {
 
   return (
     <>
-      <div className="flex h-16 items-center justify-between border-b border-border px-4">
-        <Link href="/" className="flex min-w-0 items-center gap-2" onClick={onNavigate}>
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary">
-            <span className="text-lg font-bold text-secondary">{BRAND_SHORT}</span>
-          </div>
-          {expanded && (
-            <span className="truncate text-sm font-bold leading-tight text-foreground">
-              {BRAND_NAME}
-            </span>
-          )}
-        </Link>
+      <div className="flex min-h-16 items-center justify-between border-b border-border px-3 py-2">
+        <BrandLogo
+          href="/"
+          size="sidebar"
+          showText={expanded}
+          showTaglines={expanded}
+          onClick={onNavigate}
+          className="min-w-0"
+        />
         {onClose ? (
           <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close menu">
             <X className="h-5 w-5" />

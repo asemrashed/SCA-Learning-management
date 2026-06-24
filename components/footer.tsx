@@ -6,10 +6,10 @@ import {
   Facebook,
   Instagram,
   Twitter,
-  GraduationCap,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { BRAND_EMAIL, BRAND_NAME, BRAND_PHONE } from "@/lib/brand"
+import { BrandLogo } from "@/components/brand-logo"
+import { BRAND_EMAIL, BRAND_PHONE } from "@/lib/brand"
 import { LIVE_COURSE_CATALOG_HREF, LIVE_COURSES } from "@/lib/product-vocabulary"
 
 const usefulLinks = [
@@ -75,12 +75,7 @@ export function Footer() {
           <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
             {/* Brand */}
             <div className="flex flex-col items-center text-center lg:items-start lg:text-left space-y-5">
-              <Link href="/" className="flex items-center gap-2">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
-                  <GraduationCap className="h-5 w-5 text-primary-foreground" />
-                </div>
-                <span className="text-xl font-bold">{BRAND_NAME}</span>
-              </Link>
+              <BrandLogo size="default" showTaglines textTone="secondary" />
               <p className="text-sm leading-relaxed text-secondary-foreground/70">
                 Premium online skill development platform. Master in-demand skills
                 with live courses, expert instructors, and career support.

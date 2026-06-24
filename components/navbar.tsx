@@ -6,7 +6,7 @@ import { Menu, X, Search, ChevronDown, Bell, Globe } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
-import { BRAND_NAME, BRAND_SHORT } from "@/lib/brand"
+import { BrandLogo } from "@/components/brand-logo"
 import {
   BROWSE_LIVE_COURSES,
   LIVE_COURSE_CATALOG_HREF,
@@ -36,29 +36,17 @@ export function Navbar({ variant = "default" }: NavbarProps) {
   const navContent = (
     <nav
       className={cn(
-        "flex h-14 items-center justify-between px-4 md:h-16 md:px-6",
+        "flex h-12 items-center justify-between px-4 md:h-14 md:px-6",
         isFloating && "md:px-8"
       )}
     >
       {/* Logo */}
-      <Link href="/" className="flex items-center gap-2">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary md:h-10 md:w-10">
-          <span className="text-lg font-bold text-primary-foreground md:text-xl">{BRAND_SHORT}</span>
-        </div>
-        <span
-          className={cn(
-            "font-bold",
-            isFloating
-              ? "hidden text-base text-white sm:inline md:text-lg"
-              : "text-base text-foreground md:text-lg"
-          )}
-        >
-          {BRAND_NAME}
-        </span>
-        {isFloating && (
-          <span className="text-base font-bold text-white sm:hidden">{BRAND_SHORT}</span>
-        )}
-      </Link>
+      <BrandLogo
+        size="compact"
+        textTone={isFloating ? "light" : "default"}
+        className="max-w-[min(52vw,220px)] sm:max-w-none"
+        showTaglines
+      />
 
       {/* Desktop Navigation */}
       <div className="hidden items-center gap-6 lg:flex">
