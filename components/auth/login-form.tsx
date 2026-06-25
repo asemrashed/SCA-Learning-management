@@ -58,7 +58,7 @@ export function LoginForm() {
         apiErr.data?.error?.message ??
           (apiErr.status === 403
             ? 'This account cannot sign in.'
-            : 'Invalid phone or password. Please try again.'),
+            : 'Invalid WhatsApp number or password. Please try again.'),
       )
     }
   }
@@ -66,7 +66,7 @@ export function LoginForm() {
   return (
     <AuthShell
       title="Login"
-      subtitle="Enter your phone number and password to sign in."
+      subtitle="Enter your WhatsApp number and password to sign in."
       footer={
         <>
           Don&apos;t have an account?{' '}
@@ -82,7 +82,7 @@ export function LoginForm() {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <div>
           <label htmlFor="phone" className="mb-2 block text-sm font-semibold text-secondary">
-            Phone number
+            WhatsApp number
           </label>
           <input
             id="phone"

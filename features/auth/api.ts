@@ -13,7 +13,7 @@ export const authApi = createApi({
     }),
     register: builder.mutation<
       { data: AuthTokensResponse },
-      { name: string; phone: string; password: string }
+      { name: string; phone: string; email: string; password: string }
     >({
       query: (body) => ({
         url: '/auth/register',

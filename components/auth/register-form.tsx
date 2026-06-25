@@ -22,6 +22,7 @@ const registerSchema = z
   .object({
     name: z.string().trim().min(2, 'Name must be at least 2 characters').max(100),
     phone: e164Phone,
+    email: z.string().trim().email('Enter a valid email address'),
     password: z.string().trim().min(8, 'Password must be at least 8 characters'),
     confirmPassword: z.string().trim(),
   })
@@ -53,6 +54,7 @@ export function RegisterForm() {
       const result = await registerUser({
         name: values.name,
         phone: values.phone,
+        email: values.email,
         password: values.password,
       }).unwrap()
       dispatch(setCredentials({ accessToken: result.data.accessToken, user: result.data.user }))
@@ -72,7 +74,7 @@ export function RegisterForm() {
         'message' in err.data.error &&
         typeof err.data.error.message === 'string'
           ? err.data.error.message
-          : 'Registration failed. This phone may already be registered.'
+          : 'Registration failed. This WhatsApp number or email may already be registered.'
       setErrorMessage(message)
     }
   }
@@ -80,7 +82,7 @@ export function RegisterForm() {
   return (
     <AuthShell
       title="Register"
-      subtitle="Create your student account with phone and password."
+      subtitle="Create your student account with WhatsApp number, email, and password."
       footer={
         <>
           Already have an account?{' '}
@@ -111,7 +113,7 @@ export function RegisterForm() {
 
         <div>
           <label htmlFor="phone" className="mb-2 block text-sm font-semibold text-secondary">
-            Phone number
+            WhatsApp number
           </label>
           <input
             id="phone"
@@ -122,6 +124,21 @@ export function RegisterForm() {
             {...register('phone')}
           />
           {errors.phone && <p className="mt-1.5 text-sm text-destructive">{errors.phone.message}</p>}
+        </div>
+
+        <div>
+          <label htmlFor="email" className="mb-2 block text-sm font-semibold text-secondary">
+            Email
+          </label>
+          <input
+            id="email"
+            type="email"
+            autoComplete="email"
+            placeholder="you@example.com"
+            className="w-full rounded-lg border border-gray-300 px-4 py-3 text-secondary placeholder:text-gray-400 transition-all duration-200 ease-in-out focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary"
+            {...register('email')}
+          />
+          {errors.email && <p className="mt-1.5 text-sm text-destructive">{errors.email.message}</p>}
         </div>
 
         <div>

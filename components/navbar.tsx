@@ -18,7 +18,6 @@ import { motion, AnimatePresence } from "framer-motion"
 
 const navLinks = [
   { href: "/", label: "Home" },
-  { href: "/categories", label: "Categories" },
   { href: LIVE_COURSE_CATALOG_HREF, label: LIVE_COURSES },
   { href: "/shop", label: "Shop" },
   { href: "/about", label: "About Us" },
@@ -44,7 +43,7 @@ export function Navbar({ variant = "default" }: NavbarProps) {
       <BrandLogo
         size="compact"
         textTone={isFloating ? "light" : "default"}
-        className="max-w-[min(52vw,220px)] sm:max-w-none"
+        className="shrink min-w-0"
         showTaglines
       />
 
