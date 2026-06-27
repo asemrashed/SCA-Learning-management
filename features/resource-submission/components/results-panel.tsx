@@ -1,9 +1,10 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { Eye, Upload } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { DashboardTable } from "@/components/dashboard-table"
+import { TableRowActions } from "@/components/table-row-actions"
 import {
   Dialog,
   DialogContent,
@@ -137,7 +138,7 @@ export function ResultsPanel({ category, title }: ResultsPanelProps) {
 
       {actionError ? <p className="text-sm text-destructive">{actionError}</p> : null}
 
-      <div className="overflow-hidden rounded-xl border bg-card">
+      <DashboardTable className="bg-card">
         {isLoading ? (
           <p className="px-5 py-8 text-sm text-muted-foreground">Loading accepted submissions…</p>
         ) : error ? (
@@ -147,8 +148,8 @@ export function ResultsPanel({ category, title }: ResultsPanelProps) {
             No accepted submissions yet.
           </p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto scrollbar-slim">
+            <table className="w-full min-w-[720px] text-sm">
               <thead>
                 <tr className="border-b bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
                   <th className="px-4 py-3 font-medium">Student</th>
@@ -179,32 +180,23 @@ export function ResultsPanel({ category, title }: ResultsPanelProps) {
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="rounded-xl"
-                          onClick={() => {
-                            setUploadTargetId(item.id)
-                            setResultFileUrl(item.resultFileUrl ?? "")
-                            setActionError(null)
-                          }}
-                        >
-                          <Upload className="mr-1 h-4 w-4" />
-                          {item.resultPublishedAt ? "Replace" : "Upload"}
-                        </Button>
-                        {item.resultPublishedAt ? (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="rounded-xl"
-                            onClick={() => setPreviewSubmissionId(item.id)}
-                          >
-                            <Eye className="mr-1 h-4 w-4" />
-                            View
-                          </Button>
-                        ) : null}
-                      </div>
+                      <TableRowActions
+                        actions={[
+                          {
+                            label: item.resultPublishedAt ? "Replace result" : "Upload result",
+                            onClick: () => {
+                              setUploadTargetId(item.id)
+                              setResultFileUrl(item.resultFileUrl ?? "")
+                              setActionError(null)
+                            },
+                          },
+                          {
+                            label: "View result",
+                            hidden: !item.resultPublishedAt,
+                            onClick: () => setPreviewSubmissionId(item.id),
+                          },
+                        ]}
+                      />
                     </td>
                   </tr>
                 ))}
@@ -212,7 +204,7 @@ export function ResultsPanel({ category, title }: ResultsPanelProps) {
             </table>
           </div>
         )}
-      </div>
+      </DashboardTable>
 
       <Dialog open={Boolean(uploadTargetId)} onOpenChange={(open) => !open && setUploadTargetId(null)}>
         <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">

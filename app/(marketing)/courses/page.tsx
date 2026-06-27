@@ -3,8 +3,8 @@ import { Suspense } from 'react'
 
 export default function CoursesPage() {
   return (
-    <main className="container mx-auto px-4 py-10">
-      <Suspense fallback={<p className="text-center text-muted-foreground">Loading courses…</p>}>
+    <main>
+      <Suspense fallback={<p className="px-4 py-12 text-center text-muted-foreground">Loading courses…</p>}>
         <CourseCatalog />
       </Suspense>
     </main>

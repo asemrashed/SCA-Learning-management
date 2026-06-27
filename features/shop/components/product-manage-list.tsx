@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button"
 import { formatBdtMinor } from "@/lib/format-currency"
 import { useDeleteProductMutation, useListProductsQuery } from "@/features/shop/api"
 import { PRODUCT_TYPE_LABEL } from "@/features/shop/utils"
+import { DashboardTable } from "@/components/dashboard-table"
+import { TableRowActions } from "@/components/table-row-actions"
 
 export function ProductManageList() {
   const { data, isLoading, error } = useListProductsQuery({
@@ -37,8 +39,8 @@ export function ProductManageList() {
       ) : products.length === 0 ? (
         <p className="text-muted-foreground">No products yet.</p>
       ) : (
-        <div className="overflow-hidden rounded-xl border">
-          <table className="w-full text-sm">
+        <DashboardTable>
+          <table className="w-full min-w-[640px] text-sm">
             <thead className="bg-muted/50 text-left">
               <tr>
                 <th className="px-4 py-3 font-medium">Title</th>
@@ -63,29 +65,26 @@ export function ProductManageList() {
                     {product.isPublished ? "Published" : "Draft"}
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-2">
-                      <Button variant="outline" size="sm" asChild>
-                        <Link href={`/admin/products/${product.id}/edit`}>Edit</Link>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-destructive"
-                        onClick={() => {
-                          if (confirm("Delete this product?")) {
-                            void deleteProduct(product.id)
-                          }
-                        }}
-                      >
-                        Delete
-                      </Button>
-                    </div>
+                    <TableRowActions
+                      actions={[
+                        { label: "Edit", href: `/admin/products/${product.id}/edit` },
+                        {
+                          label: "Delete",
+                          destructive: true,
+                          onClick: () => {
+                            if (confirm("Delete this product?")) {
+                              void deleteProduct(product.id)
+                            }
+                          },
+                        },
+                      ]}
+                    />
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
+        </DashboardTable>
       )}
     </div>
   )

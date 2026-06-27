@@ -8,9 +8,8 @@ import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { BrandLogo } from "@/components/brand-logo"
 import {
-  BROWSE_LIVE_COURSES,
-  LIVE_COURSE_CATALOG_HREF,
-  LIVE_COURSES,
+  COURSE_CATALOG_HREF,
+  OUR_COURSES,
 } from "@/lib/product-vocabulary"
 import { AuthNavActions } from "@/components/auth/auth-nav-actions"
 import { CartNavButton } from "@/features/shop/components/cart-nav-button"
@@ -18,7 +17,7 @@ import { motion, AnimatePresence } from "framer-motion"
 
 const navLinks = [
   { href: "/", label: "Home" },
-  { href: LIVE_COURSE_CATALOG_HREF, label: LIVE_COURSES },
+  { href: COURSE_CATALOG_HREF, label: OUR_COURSES },
   { href: "/shop", label: "Shop" },
   { href: "/about", label: "About Us" },
   { href: "/contact", label: "Contact" },
@@ -88,8 +87,8 @@ export function Navbar({ variant = "default" }: NavbarProps) {
               <Bell className="h-5 w-5" />
             </Button>
             <Button variant="outline" className="rounded-xl" asChild>
-              <Link href={LIVE_COURSE_CATALOG_HREF}>
-                {BROWSE_LIVE_COURSES}
+              <Link href={COURSE_CATALOG_HREF}>
+                {OUR_COURSES}
                 <ChevronDown className="ml-1 h-4 w-4" />
               </Link>
             </Button>
@@ -99,16 +98,19 @@ export function Navbar({ variant = "default" }: NavbarProps) {
         <AuthNavActions floating={isFloating} layout="desktop" />
       </div>
 
-      {/* Mobile Menu Toggle */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className={cn(isFloating ? "text-white hover:bg-white/10" : "", "lg:hidden")}
-        onClick={() => setIsOpen(!isOpen)}
-        aria-label="Toggle menu"
-      >
-        {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-      </Button>
+      {/* Mobile cart + menu */}
+      <div className="flex items-center gap-1 lg:hidden">
+        <CartNavButton floating={isFloating} />
+        <Button
+          variant="ghost"
+          size="icon"
+          className={cn(isFloating ? "text-white hover:bg-white/10" : "")}
+          onClick={() => setIsOpen(!isOpen)}
+          aria-label="Toggle menu"
+        >
+          {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+        </Button>
+      </div>
     </nav>
   )
 

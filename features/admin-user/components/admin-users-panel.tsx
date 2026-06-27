@@ -10,6 +10,8 @@ import {
   useListAdminUsersQuery,
   useUpdateAdminUserMutation,
 } from "@/features/admin-user/api"
+import { DashboardTable } from "@/components/dashboard-table"
+import { TableRowActions } from "@/components/table-row-actions"
 
 export function AdminUsersPanel() {
   const { data, isLoading, error } = useListAdminUsersQuery({
@@ -83,8 +85,8 @@ export function AdminUsersPanel() {
         ) : users.length === 0 ? (
           <p className="text-muted-foreground">No admin accounts yet.</p>
         ) : (
-          <div className="overflow-hidden rounded-xl border">
-            <table className="w-full text-sm">
+          <DashboardTable>
+            <table className="w-full min-w-[560px] text-sm">
               <thead className="bg-muted/50 text-left">
                 <tr>
                   <th className="px-4 py-3 font-medium">Name</th>
@@ -106,24 +108,25 @@ export function AdminUsersPanel() {
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          void updateUser({
-                            id: user.id,
-                            body: { isActive: !user.isActive },
-                          })
-                        }}
-                      >
-                        {user.isActive ? "Deactivate" : "Activate"}
-                      </Button>
+                      <TableRowActions
+                        actions={[
+                          {
+                            label: user.isActive ? "Deactivate" : "Activate",
+                            onClick: () => {
+                              void updateUser({
+                                id: user.id,
+                                body: { isActive: !user.isActive },
+                              })
+                            },
+                          },
+                        ]}
+                      />
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
+          </DashboardTable>
         )}
       </div>
     </div>

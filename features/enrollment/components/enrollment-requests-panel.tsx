@@ -1,10 +1,20 @@
 "use client"
 
 import { useState } from "react"
-import { Check, X } from "lucide-react"
+import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { DashboardTable } from "@/components/dashboard-table"
+import { TableRowActions } from "@/components/table-row-actions"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import {
   Pagination,
   PaginationContent,
@@ -22,6 +32,7 @@ import { formatBdtMinor } from "@/lib/format-currency"
 import { EnrollmentKind, EnrollmentStatus } from "@/types/api"
 import { deliveryModeLabel } from "@/lib/product-vocabulary"
 import { cn } from "@/lib/utils"
+import { ManualEnrollmentDialog } from "@/features/enrollment/components/manual-enrollment-dialog"
 
 const PAGE_SIZE = 10
 
@@ -61,8 +72,10 @@ function statusBadgeVariant(status: EnrollmentStatus): "default" | "secondary" |
 export function EnrollmentRequestsPanel() {
   const [statusFilter, setStatusFilter] = useState<EnrollmentStatus | "ALL">("ALL")
   const [page, setPage] = useState(1)
-  const [rollNumbers, setRollNumbers] = useState<Record<string, string>>({})
   const [actionError, setActionError] = useState<string | null>(null)
+  const [manualOpen, setManualOpen] = useState(false)
+  const [approveTarget, setApproveTarget] = useState<{ id: string; name: string } | null>(null)
+  const [approveRoll, setApproveRoll] = useState("")
 
   const { data: overviewData, isLoading: overviewLoading } = useGetAdminEnrollmentOverviewQuery()
   const { data: paymentSummary, isLoading: paymentSummaryLoading } = useGetAdminPaymentSummaryQuery()
@@ -83,20 +96,16 @@ export function EnrollmentRequestsPanel() {
     setPage(1)
   }
 
-  async function handleApprove(id: string) {
-    const rollNumber = rollNumbers[id]?.trim()
-    if (!rollNumber) {
+  async function handleApprove(id: string, rollNumber: string) {
+    if (!rollNumber.trim()) {
       setActionError("Enter a roll number before approving.")
       return
     }
     setActionError(null)
     try {
-      await reviewEnrollment({ id, body: { action: "approve", rollNumber } }).unwrap()
-      setRollNumbers((prev) => {
-        const next = { ...prev }
-        delete next[id]
-        return next
-      })
+      await reviewEnrollment({ id, body: { action: "approve", rollNumber: rollNumber.trim() } }).unwrap()
+      setApproveTarget(null)
+      setApproveRoll("")
     } catch {
       setActionError("Could not approve enrollment.")
     }
@@ -131,7 +140,8 @@ export function EnrollmentRequestsPanel() {
         />
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap gap-2">
         {STATUS_FILTERS.map((filter) => (
           <Button
             key={filter.value}
@@ -143,6 +153,11 @@ export function EnrollmentRequestsPanel() {
             {filter.label}
           </Button>
         ))}
+        </div>
+        <Button type="button" onClick={() => setManualOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          New
+        </Button>
       </div>
 
       {isLoading ? (
@@ -156,8 +171,8 @@ export function EnrollmentRequestsPanel() {
       ) : (
         <div className="space-y-4">
           {actionError ? <p className="text-sm text-destructive">{actionError}</p> : null}
-          <div className="overflow-hidden rounded-xl border">
-            <table className="w-full text-sm">
+          <DashboardTable>
+            <table className="w-full min-w-[900px] text-sm">
               <thead className="bg-muted/50 text-left">
                 <tr>
                   <th className="px-4 py-3 font-medium">Student</th>
@@ -203,45 +218,38 @@ export function EnrollmentRequestsPanel() {
                       <Badge variant={statusBadgeVariant(item.status)}>{item.status}</Badge>
                     </td>
                     <td className="px-4 py-3">
-                      {item.status === EnrollmentStatus.PENDING ? (
-                        <div className="flex min-w-[220px] flex-col gap-2">
-                          <Input
-                            id={`roll-${item.id}`}
-                            placeholder="Roll number"
-                            value={rollNumbers[item.id] ?? ""}
-                            onChange={(e) =>
-                              setRollNumbers((prev) => ({ ...prev, [item.id]: e.target.value }))
-                            }
-                          />
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              disabled={reviewing}
-                              onClick={() => void handleApprove(item.id)}
-                            >
-                              <Check className="mr-1 h-4 w-4" />
-                              Approve
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              disabled={reviewing}
-                              onClick={() => void handleReject(item.id)}
-                            >
-                              <X className="mr-1 h-4 w-4" />
-                              Reject
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
+                      <TableRowActions
+                        actions={
+                          item.status === EnrollmentStatus.PENDING
+                            ? [
+                                {
+                                  label: "Approve",
+                                  disabled: reviewing,
+                                  onClick: () => {
+                                    setApproveTarget({ id: item.id, name: item.student.name })
+                                    setApproveRoll("")
+                                  },
+                                },
+                                {
+                                  label: "Reject",
+                                  destructive: true,
+                                  disabled: reviewing,
+                                  onClick: () => {
+                                    if (confirm(`Reject enrollment for ${item.student.name}?`)) {
+                                      void handleReject(item.id)
+                                    }
+                                  },
+                                },
+                              ]
+                            : []
+                        }
+                      />
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
+          </DashboardTable>
         </div>
       )}
 
@@ -283,6 +291,50 @@ export function EnrollmentRequestsPanel() {
           </Pagination>
         </div>
       ) : null}
+
+      <ManualEnrollmentDialog open={manualOpen} onOpenChange={setManualOpen} />
+
+      <Dialog
+        open={approveTarget != null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setApproveTarget(null)
+            setApproveRoll("")
+          }
+        }}
+      >
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Approve enrollment</DialogTitle>
+            <DialogDescription>
+              Enter a roll number for {approveTarget?.name ?? "this student"}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Input
+              placeholder="Roll number"
+              value={approveRoll}
+              onChange={(e) => setApproveRoll(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setApproveTarget(null)}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              disabled={reviewing}
+              onClick={() => {
+                if (approveTarget) {
+                  void handleApprove(approveTarget.id, approveRoll)
+                }
+              }}
+            >
+              Approve
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

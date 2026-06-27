@@ -20,6 +20,42 @@ interface ResourceViewButtonProps {
   className?: string
 }
 
+export function ResourceViewDialog({
+  resource,
+  open,
+  onOpenChange,
+}: {
+  resource: Pick<ResourceItem, "id" | "title" | "fileUrl" | "fileType">
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent showCloseButton={false} className="max-h-[95vh] max-w-5xl gap-0 overflow-hidden p-0">
+        <DialogHeader className="sr-only">
+          <DialogTitle>{resource.title}</DialogTitle>
+        </DialogHeader>
+        <SecurePdfViewer
+          resourceId={resource.id}
+          title={resource.title}
+          onClose={() => onOpenChange(false)}
+          className="min-h-[80vh] rounded-none border-0"
+        />
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+export function openResourceExternally(
+  resource: Pick<ResourceItem, "fileUrl" | "fileType">,
+) {
+  if (resource.fileType === "link" && resource.fileUrl) {
+    window.open(resource.fileUrl, "_blank", "noopener,noreferrer")
+    return true
+  }
+  return false
+}
+
 export function ResourceViewButton({
   resource,
   variant = "outline",
@@ -52,19 +88,7 @@ export function ResourceViewButton({
         <Eye className="mr-1 h-4 w-4" />
         View
       </Button>
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent showCloseButton={false} className="max-h-[95vh] max-w-5xl gap-0 overflow-hidden p-0">
-          <DialogHeader className="sr-only">
-            <DialogTitle>{resource.title}</DialogTitle>
-          </DialogHeader>
-          <SecurePdfViewer
-            resourceId={resource.id}
-            title={resource.title}
-            onClose={() => setOpen(false)}
-            className="min-h-[80vh] rounded-none border-0"
-          />
-        </DialogContent>
-      </Dialog>
+      <ResourceViewDialog resource={resource} open={open} onOpenChange={setOpen} />
     </>
   )
 }

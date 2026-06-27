@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { MarketingPageHero } from "@/components/marketing-page-hero"
 
 export const metadata = {
   title: "Privacy Policy | Sharif Commerce Academy",
@@ -9,32 +10,12 @@ export default function PrivacyPolicyPage() {
   const lastUpdated = "June 18, 2026"
 
   return (
-    <div className="bg-background min-h-screen">
-      {/* Hero Header */}
-      <section className="relative overflow-hidden bg-secondary py-16 text-secondary-foreground">
-        <div
-          className="pointer-events-none absolute inset-0 opacity-10"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 30 Q15 15 30 30 T60 30' fill='none' stroke='%2371d4cb' stroke-width='0.5'/%3E%3C/svg%3E")`,
-            backgroundSize: "60px 60px",
-          }}
-        />
-        <div className="container mx-auto px-4 text-center relative z-10">
-          <nav className="mb-4 flex justify-center space-x-2 text-sm text-secondary-foreground/60">
-            <Link href="/" className="hover:text-primary transition-colors">
-              Home
-            </Link>
-            <span>/</span>
-            <span className="text-secondary-foreground">Privacy Policy</span>
-          </nav>
-          <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
-            Privacy Policy
-          </h1>
-          <p className="mx-auto mt-2 text-sm text-secondary-foreground/60">
-            Last Updated: {lastUpdated}
-          </p>
-        </div>
-      </section>
+    <div className="min-h-screen bg-background">
+      <MarketingPageHero breadcrumb="Privacy Policy" title="Privacy Policy">
+        <p className="mx-auto mt-2 text-sm text-secondary-foreground/60">
+          Last Updated: {lastUpdated}
+        </p>
+      </MarketingPageHero>
 
       {/* Privacy Policy Content */}
       <section className="py-16 md:py-24">

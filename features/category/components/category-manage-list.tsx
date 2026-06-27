@@ -4,6 +4,8 @@ import Link from "next/link"
 import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useDeleteCategoryMutation, useListCategoriesQuery } from "@/features/category/api"
+import { DashboardTable } from "@/components/dashboard-table"
+import { TableRowActions } from "@/components/table-row-actions"
 
 export function CategoryManageList() {
   const { data, isLoading, error } = useListCategoriesQuery({
@@ -37,8 +39,8 @@ export function CategoryManageList() {
       ) : categories.length === 0 ? (
         <p className="text-muted-foreground">No categories yet.</p>
       ) : (
-        <div className="overflow-hidden rounded-xl border">
-          <table className="w-full text-sm">
+        <DashboardTable>
+          <table className="w-full min-w-[600px] text-sm">
             <thead className="bg-muted/50 text-left">
               <tr>
                 <th className="px-4 py-3 font-medium">Title</th>
@@ -62,29 +64,26 @@ export function CategoryManageList() {
                   <td className="px-4 py-3">{category.courseCount}</td>
                   <td className="px-4 py-3">{category.order}</td>
                   <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-2">
-                      <Button variant="outline" size="sm" asChild>
-                        <Link href={`/admin/categories/${category.id}/edit`}>Edit</Link>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-destructive"
-                        onClick={() => {
-                          if (confirm("Delete this category? Linked courses will be uncategorized.")) {
-                            void deleteCategory(category.id)
-                          }
-                        }}
-                      >
-                        Delete
-                      </Button>
-                    </div>
+                    <TableRowActions
+                      actions={[
+                        { label: "Edit", href: `/admin/categories/${category.id}/edit` },
+                        {
+                          label: "Delete",
+                          destructive: true,
+                          onClick: () => {
+                            if (confirm("Delete this category? Linked courses will be uncategorized.")) {
+                              void deleteCategory(category.id)
+                            }
+                          },
+                        },
+                      ]}
+                    />
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
+        </DashboardTable>
       )}
     </div>
   )

@@ -280,6 +280,15 @@ export interface ReviewEnrollmentInput {
   rollNumber?: string
 }
 
+export interface ManualEnrollmentInput {
+  name: string
+  phone: string
+  email?: string
+  rollNumber: string
+  batchId?: string
+  courseId?: string
+}
+
 export interface AdminEnrollmentOverview {
   total: number
   pending: number

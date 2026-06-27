@@ -21,6 +21,8 @@ import { DeliveryMode } from "@/types/api"
 import { isSuperAdmin } from "@/lib/roles"
 import { ExpandableRichContent } from "@/components/expandable-rich-content"
 import { FAQAccordion } from "@/components/faq-accordion"
+import { DashboardTable } from "@/components/dashboard-table"
+import { TableRowActions } from "@/components/table-row-actions"
 import { CurriculumTree } from "./curriculum-tree"
 
 interface CourseDashboardPreviewProps {
@@ -114,8 +116,8 @@ export function CourseDashboardPreview({
               No cohorts yet. Add a {BATCH.toLowerCase()} for students to enroll.
             </p>
           ) : (
-            <div className="overflow-hidden rounded-xl border">
-              <table className="w-full text-sm">
+            <DashboardTable>
+              <table className="w-full min-w-[640px] text-sm">
                 <thead className="bg-muted/50 text-left">
                   <tr>
                     <th className="px-4 py-3 font-medium">Cohort</th>
@@ -135,25 +137,22 @@ export function CourseDashboardPreview({
                         {BATCH_STATUS_LABEL[batch.status] ?? batch.status}
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex flex-wrap gap-2">
-                          <Button variant="outline" size="sm" asChild>
-                            <Link href={`/admin/courses/${course.id}/edit?batchId=${batch.id}`}>
-                              Curriculum
-                            </Link>
-                          </Button>
-                          <Button variant="outline" size="sm" asChild>
-                            <Link href={`/admin/batches/${batch.id}/edit`}>Edit</Link>
-                          </Button>
-                          <Button variant="outline" size="sm" asChild>
-                            <Link href={`/admin/batches/${batch.id}/live`}>Live</Link>
-                          </Button>
-                        </div>
+                        <TableRowActions
+                          actions={[
+                            {
+                              label: "Curriculum",
+                              href: `/admin/courses/${course.id}/edit?batchId=${batch.id}`,
+                            },
+                            { label: "Edit", href: `/admin/batches/${batch.id}/edit` },
+                            { label: "Live", href: `/admin/batches/${batch.id}/live` },
+                          ]}
+                        />
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            </div>
+            </DashboardTable>
           )}
         </section>
       ) : null}

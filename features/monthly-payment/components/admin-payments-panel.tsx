@@ -1,10 +1,19 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { Check, X } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { DashboardTable } from "@/components/dashboard-table"
+import { TableRowActions } from "@/components/table-row-actions"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import {
   Select,
   SelectContent,
@@ -68,7 +77,8 @@ export function AdminPaymentsPanel({
   const [courseId, setCourseId] = useState<string>("")
   const [batchId, setBatchId] = useState<string>("")
   const [search, setSearch] = useState("")
-  const [amounts, setAmounts] = useState<Record<string, string>>({})
+  const [approveTarget, setApproveTarget] = useState<{ id: string; name: string } | null>(null)
+  const [approveAmount, setApproveAmount] = useState("")
   const [actionError, setActionError] = useState<string | null>(null)
 
   const { data: coursesData } = useListCoursesQuery({ deliveryMode: DeliveryMode.LIVE, pageSize: 100 })
@@ -113,8 +123,8 @@ export function AdminPaymentsPanel({
     setBatchId("")
   }, [courseId])
 
-  async function handleApprove(id: string) {
-    const raw = amounts[id]?.trim()
+  async function handleApprove(id: string, amountRaw: string) {
+    const raw = amountRaw.trim()
     const major = raw ? Number(raw) : NaN
     if (!raw || Number.isNaN(major) || major <= 0) {
       setActionError("Enter a valid payment amount before approving.")
@@ -126,11 +136,8 @@ export function AdminPaymentsPanel({
         id,
         body: { action: "approve", amountMinor: Math.round(major * 100) },
       }).unwrap()
-      setAmounts((prev) => {
-        const next = { ...prev }
-        delete next[id]
-        return next
-      })
+      setApproveTarget(null)
+      setApproveAmount("")
     } catch {
       setActionError("Could not approve payment.")
     }
@@ -185,6 +192,7 @@ export function AdminPaymentsPanel({
   )
 
   return (
+    <>
     <Tabs defaultValue="requests" className="space-y-4">
       <TabsList>
         <TabsTrigger value="requests">Payment requests</TabsTrigger>
@@ -222,8 +230,8 @@ export function AdminPaymentsPanel({
             No payment records match your filters.
           </div>
         ) : (
-          <div className="overflow-hidden rounded-xl border">
-            <table className="w-full text-sm">
+          <DashboardTable>
+            <table className="w-full min-w-[900px] text-sm">
               <thead className="bg-muted/50 text-left">
                 <tr>
                   <th className="px-4 py-3 font-medium">Student</th>
@@ -259,48 +267,34 @@ export function AdminPaymentsPanel({
                       <Badge>{item.status}</Badge>
                     </td>
                     <td className="px-4 py-3">
-                      {!readOnly && item.status === MonthlyPaymentStatus.REQUESTED ? (
-                        <div className="flex min-w-[220px] flex-col gap-2">
-                          <Input
-                            id={`amount-${item.id}`}
-                            type="number"
-                            min="1"
-                            step="0.01"
-                            placeholder="Amount (৳)"
-                            value={amounts[item.id] ?? ""}
-                            onChange={(e) =>
-                              setAmounts((prev) => ({ ...prev, [item.id]: e.target.value }))
-                            }
-                          />
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              onClick={() => handleApprove(item.id)}
-                              disabled={reviewing}
-                            >
-                              <Check className="mr-1 h-4 w-4" />
-                              Approve
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleReject(item.id)}
-                              disabled={reviewing}
-                            >
-                              <X className="mr-1 h-4 w-4" />
-                              Deny
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
+                      <TableRowActions
+                        actions={
+                          !readOnly && item.status === MonthlyPaymentStatus.REQUESTED
+                            ? [
+                                {
+                                  label: "Approve",
+                                  disabled: reviewing,
+                                  onClick: () => {
+                                    setApproveTarget({ id: item.id, name: item.student.name })
+                                    setApproveAmount("")
+                                  },
+                                },
+                                {
+                                  label: "Deny",
+                                  destructive: true,
+                                  disabled: reviewing,
+                                  onClick: () => void handleReject(item.id),
+                                },
+                              ]
+                            : []
+                        }
+                      />
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
+          </DashboardTable>
         )}
       </TabsContent>
 
@@ -323,8 +317,8 @@ export function AdminPaymentsPanel({
             All students have paid for the current billing month.
           </div>
         ) : (
-          <div className="overflow-hidden rounded-xl border">
-            <table className="w-full text-sm">
+          <DashboardTable>
+            <table className="w-full min-w-[800px] text-sm">
               <thead className="bg-muted/50 text-left">
                 <tr>
                   <th className="px-4 py-3 font-medium">Student</th>
@@ -366,9 +360,53 @@ export function AdminPaymentsPanel({
                 ))}
               </tbody>
             </table>
-          </div>
+          </DashboardTable>
         )}
       </TabsContent>
     </Tabs>
+
+    <Dialog
+      open={approveTarget != null}
+      onOpenChange={(open) => {
+        if (!open) {
+          setApproveTarget(null)
+          setApproveAmount("")
+        }
+      }}
+    >
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Approve payment</DialogTitle>
+          <DialogDescription>
+            Enter the approved amount for {approveTarget?.name ?? "this student"}.
+          </DialogDescription>
+        </DialogHeader>
+        <Input
+          type="number"
+          min="1"
+          step="0.01"
+          placeholder="Amount (৳)"
+          value={approveAmount}
+          onChange={(e) => setApproveAmount(e.target.value)}
+        />
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => setApproveTarget(null)}>
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            disabled={reviewing}
+            onClick={() => {
+              if (approveTarget) {
+                void handleApprove(approveTarget.id, approveAmount)
+              }
+            }}
+          >
+            Approve
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   )
 }

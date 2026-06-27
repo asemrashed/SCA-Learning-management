@@ -106,6 +106,82 @@ function ActionGroup({ title, children }: { title: string; children: React.React
   )
 }
 
+function DashboardActions({
+  canManagePlatform,
+  pendingPayments,
+  pendingOrders,
+  layout,
+}: {
+  canManagePlatform: boolean
+  pendingPayments: number
+  pendingOrders: number
+  layout: "mobile" | "desktop"
+}) {
+  const isMobile = layout === "mobile"
+
+  return (
+    <div className={cn(isMobile ? "grid grid-cols-2 gap-2" : "space-y-6")}>
+      {isMobile ? (
+        <>
+          {canManagePlatform ? (
+            <ActionListCard href="/admin/courses/new" primary icon={Plus}>
+              {NEW_COURSE}
+            </ActionListCard>
+          ) : null}
+          <ActionListCard href="/admin/courses">{MANAGE_COURSES}</ActionListCard>
+          {canManagePlatform ? (
+            <ActionListCard href="/super-admin/users" icon={Users}>
+              Manage admins
+            </ActionListCard>
+          ) : null}
+          <ActionListCard href="/admin/payments" primary={pendingPayments > 0}>
+            Review payments{pendingPayments > 0 ? ` (${pendingPayments})` : ""}
+          </ActionListCard>
+          <ActionListCard href="/admin/products/new" primary icon={Plus}>
+            Add product
+          </ActionListCard>
+          <ActionListCard href="/admin/products">Manage products</ActionListCard>
+          <ActionListCard href="/admin/orders" primary={pendingOrders > 0}>
+            Review orders{pendingOrders > 0 ? ` (${pendingOrders})` : ""}
+          </ActionListCard>
+        </>
+      ) : (
+        <>
+          <ActionGroup title="Platform">
+            {canManagePlatform ? (
+              <ActionListCard href="/admin/courses/new" primary icon={Plus}>
+                {NEW_COURSE}
+              </ActionListCard>
+            ) : null}
+            <ActionListCard href="/admin/courses">{MANAGE_COURSES}</ActionListCard>
+            {canManagePlatform ? (
+              <ActionListCard href="/super-admin/users" icon={Users}>
+                Manage admins
+              </ActionListCard>
+            ) : null}
+          </ActionGroup>
+
+          <ActionGroup title="Payments">
+            <ActionListCard href="/admin/payments" primary={pendingPayments > 0}>
+              Review payments{pendingPayments > 0 ? ` (${pendingPayments})` : ""}
+            </ActionListCard>
+          </ActionGroup>
+
+          <ActionGroup title="Shop">
+            <ActionListCard href="/admin/products/new" primary icon={Plus}>
+              Add product
+            </ActionListCard>
+            <ActionListCard href="/admin/products">Manage products</ActionListCard>
+            <ActionListCard href="/admin/orders" primary={pendingOrders > 0}>
+              Review orders{pendingOrders > 0 ? ` (${pendingOrders})` : ""}
+            </ActionListCard>
+          </ActionGroup>
+        </>
+      )}
+    </div>
+  )
+}
+
 export function StaffDashboardOverview({ variant }: StaffDashboardOverviewProps) {
   const user = useSelector((state: RootState) => state.auth.user)
   const canManagePlatform = user?.role !== undefined && isSuperAdmin(user.role)
@@ -191,6 +267,15 @@ export function StaffDashboardOverview({ variant }: StaffDashboardOverviewProps)
         ) : null}
       </div>
 
+      <div className="mb-8 lg:hidden">
+        <DashboardActions
+          canManagePlatform={canManagePlatform}
+          pendingPayments={pendingPayments}
+          pendingOrders={pendingOrders}
+          layout="mobile"
+        />
+      </div>
+
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:col-span-3 xl:grid-cols-3">
           {linkItems.map((item, index) => {
@@ -210,36 +295,13 @@ export function StaffDashboardOverview({ variant }: StaffDashboardOverviewProps)
           })}
         </div>
 
-        <div className="space-y-6 lg:col-span-1">
-          <ActionGroup title="Platform">
-            {canManagePlatform ? (
-              <ActionListCard href="/admin/courses/new" primary icon={Plus}>
-                {NEW_COURSE}
-              </ActionListCard>
-            ) : null}
-            <ActionListCard href="/admin/courses">{MANAGE_COURSES}</ActionListCard>
-            {canManagePlatform ? (
-              <ActionListCard href="/super-admin/users" icon={Users}>
-                Manage admins
-              </ActionListCard>
-            ) : null}
-          </ActionGroup>
-
-          <ActionGroup title="Payments">
-            <ActionListCard href="/admin/payments" primary={pendingPayments > 0}>
-              Review payments{pendingPayments > 0 ? ` (${pendingPayments})` : ""}
-            </ActionListCard>
-          </ActionGroup>
-
-          <ActionGroup title="Shop">
-            <ActionListCard href="/admin/products/new" primary icon={Plus}>
-              Add product
-            </ActionListCard>
-            <ActionListCard href="/admin/products">Manage products</ActionListCard>
-            <ActionListCard href="/admin/orders" primary={pendingOrders > 0}>
-              Review orders{pendingOrders > 0 ? ` (${pendingOrders})` : ""}
-            </ActionListCard>
-          </ActionGroup>
+        <div className="hidden lg:col-span-1 lg:block">
+          <DashboardActions
+            canManagePlatform={canManagePlatform}
+            pendingPayments={pendingPayments}
+            pendingOrders={pendingOrders}
+            layout="desktop"
+          />
         </div>
       </div>
     </StaffPageShell>

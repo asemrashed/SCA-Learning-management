@@ -2,6 +2,7 @@ import Link from "next/link"
 import { Mail, Phone } from "lucide-react"
 import { ContactForm } from "./contact-form"
 import { BRAND_EMAIL, BRAND_PHONE } from "@/lib/brand"
+import { MarketingPageHero } from "@/components/marketing-page-hero"
 
 export const metadata = {
   title: "Contact Us | Sharif Commerce Academy",
@@ -28,39 +29,16 @@ const contactDetails = [
 
 export default function ContactPage() {
   return (
-    <div className="bg-background min-h-screen">
-      {/* Hero Header */}
-      <section className="relative overflow-hidden bg-secondary py-16 md:py-24 text-secondary-foreground">
-        <div
-          className="pointer-events-none absolute inset-0 opacity-10"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 30 Q15 15 30 30 T60 30' fill='none' stroke='%2371d4cb' stroke-width='0.5'/%3E%3C/svg%3E")`,
-            backgroundSize: "60px 60px",
-          }}
-        />
-        <div className="container mx-auto px-4 text-center relative z-10">
-          <nav className="mb-4 flex justify-center space-x-2 text-sm text-secondary-foreground/60">
-            <Link href="/" className="hover:text-primary transition-colors">
-              Home
-            </Link>
-            <span>/</span>
-            <span className="text-secondary-foreground">Contact</span>
-          </nav>
-          <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl md:text-5xl">
-            Get in Touch
-          </h1>
-          <p className="mx-auto mt-4 max-w-2xl text-lg text-secondary-foreground/80">
-            Have questions about our commerce courses, batches, or study packages? Reach out to us
-            anytime.
-          </p>
-        </div>
-      </section>
+    <div className="min-h-screen bg-background">
+      <MarketingPageHero
+        breadcrumb="Contact"
+        title="Get in Touch"
+        description="Have questions about our commerce courses, batches, or study packages? Reach out to us anytime."
+      />
 
-      {/* Main Grid */}
       <section className="py-16 md:py-24">
         <div className="container mx-auto px-4">
           <div className="grid gap-12 lg:grid-cols-3">
-            {/* Info Cards Column */}
             <div className="space-y-6 lg:col-span-1">
               <div>
                 <div className="flex items-center gap-2">
@@ -101,7 +79,6 @@ export default function ContactPage() {
               </div>
             </div>
 
-            {/* Form Column */}
             <div className="lg:col-span-2">
               <ContactForm />
             </div>

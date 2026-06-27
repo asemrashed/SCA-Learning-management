@@ -16,6 +16,7 @@ import {
   BRAND_SUBTAGLINE,
   BRAND_TAGLINE,
 } from "@/lib/brand"
+import { MarketingPageHero } from "@/components/marketing-page-hero"
 
 export const metadata = {
   title: "About Us | Sharif Commerce Academy",
@@ -80,32 +81,12 @@ function SectionLabel({
 
 export default function AboutPage() {
   return (
-    <div className="bg-background min-h-screen">
-      {/* Hero Header */}
-      <section className="relative overflow-hidden bg-secondary py-16 md:py-24 text-secondary-foreground">
-        <div
-          className="pointer-events-none absolute inset-0 opacity-10"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 30 Q15 15 30 30 T60 30' fill='none' stroke='%2371d4cb' stroke-width='0.5'/%3E%3C/svg%3E")`,
-            backgroundSize: "60px 60px",
-          }}
-        />
-        <div className="container relative z-10 mx-auto px-4 text-center">
-          <nav className="mb-4 flex justify-center space-x-2 text-sm text-secondary-foreground/60">
-            <Link href="/" className="transition-colors hover:text-primary">
-              Home
-            </Link>
-            <span>/</span>
-            <span className="text-secondary-foreground">About Us</span>
-          </nav>
-          <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl md:text-5xl">
-            About Us
-          </h1>
-          <p className="mx-auto mt-4 max-w-3xl text-lg text-secondary-foreground/80">
-            Empowering Future Business Leaders Through Quality Education
-          </p>
-        </div>
-      </section>
+    <div className="min-h-screen bg-background">
+      <MarketingPageHero
+        breadcrumb="About Us"
+        title="About Us"
+        description="Empowering Future Business Leaders Through Quality Education"
+      />
 
       {/* About Us Intro */}
       <section className="py-16 md:py-24">

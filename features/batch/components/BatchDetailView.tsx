@@ -14,6 +14,12 @@ import { useGetBatchQuery, useGetBatchCurriculumQuery } from "@/features/batch/a
 import { BatchCurriculum } from "@/features/batch/components/BatchCurriculum"
 import { BATCH_STATUS_LABEL, daysUntil, formatBatchDate, formatDuration } from "@/features/batch/utils"
 import { BATCH, BROWSE_COURSES, LIVE_BATCH_CATALOG_HREF } from "@/lib/product-vocabulary"
+import {
+  MARKETING_COVER_HERO_HEIGHT,
+  MARKETING_NAV_CLEARANCE,
+  marketingHeroSection,
+} from "@/lib/marketing-layout"
+import { cn } from "@/lib/utils"
 import { EnrollButton } from "@/features/enrollment/components/enroll-button"
 import { isPreviewableLesson } from "@/features/enrollment/lib/lesson-view"
 import { Calendar, Clock, Play } from "lucide-react"
@@ -37,8 +43,8 @@ export function BatchDetailView({ idOrSlug }: BatchDetailViewProps) {
 
   if (isLoading) {
     return (
-      <main className="py-8">
-        <div className="container mx-auto px-4">
+      <main className={`overflow-x-hidden py-8 ${MARKETING_NAV_CLEARANCE}`}>
+        <div className="container mx-auto max-w-full px-4">
           <AppLoading message={`Loading ${BATCH.toLowerCase()}…`} />
         </div>
       </main>
@@ -47,8 +53,8 @@ export function BatchDetailView({ idOrSlug }: BatchDetailViewProps) {
 
   if (isError || !batch) {
     return (
-      <main className="py-8">
-        <div className="container mx-auto px-4">
+      <main className={`overflow-x-hidden py-8 ${MARKETING_NAV_CLEARANCE}`}>
+        <div className="container mx-auto max-w-full px-4">
           <AppNotFound
             title={`${BATCH} not found`}
             description={`This cohort may have been removed or is not yet published.`}
@@ -71,14 +77,17 @@ export function BatchDetailView({ idOrSlug }: BatchDetailViewProps) {
 
   return (
     <>
-      <main className="py-8">
-        <div className="container mx-auto px-4">
+      <main className="overflow-x-hidden py-8">
+        <div className="container mx-auto max-w-full px-4">
           <div className="grid gap-8 lg:grid-cols-3">
-            <div className="space-y-8 lg:col-span-2">
+            <div className="order-2 space-y-8 lg:order-1 lg:col-span-2">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="rounded-[24px] bg-gradient-to-br from-primary/10 via-accent/5 to-background p-6 md:p-8"
+                className={cn(
+                  "rounded-[24px] bg-gradient-to-br from-primary/10 via-accent/5 to-background p-6 md:p-8",
+                  marketingHeroSection("max-lg:mt-0 max-lg:pt-0"),
+                )}
               >
                 {isLive && <Badge className="mb-4 bg-destructive">Live now</Badge>}
                 <h1 className="mb-2 text-2xl font-bold text-foreground md:text-3xl lg:text-4xl">
@@ -132,20 +141,31 @@ export function BatchDetailView({ idOrSlug }: BatchDetailViewProps) {
               ) : null}
             </div>
 
-            <div className="lg:col-span-1">
+            <div
+              className={cn(
+                "order-1 lg:order-2 lg:col-span-1",
+                marketingHeroSection("lg:mt-0 lg:pt-0"),
+              )}
+            >
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="sticky top-24 rounded-[20px] bg-card p-6 shadow-lg"
+                className="rounded-[20px] bg-card p-6 shadow-lg lg:sticky lg:top-24"
               >
-                <div className="relative mb-6 aspect-video overflow-hidden rounded-xl">
+                <div
+                  className={cn(
+                    "relative mb-6 min-h-[200px] overflow-hidden rounded-xl",
+                    MARKETING_COVER_HERO_HEIGHT,
+                  )}
+                >
                   <Image
                     src={batch.thumbnail || FALLBACK_IMAGE}
                     alt={batch.title}
                     fill
+                    priority
                     className="object-cover"
                   />
-                  {previewLesson && (
+                  {previewLesson ? (
                     <div className="absolute inset-0 flex items-center justify-center bg-black/40">
                       <Button
                         size="lg"
@@ -156,7 +176,7 @@ export function BatchDetailView({ idOrSlug }: BatchDetailViewProps) {
                         Preview
                       </Button>
                     </div>
-                  )}
+                  ) : null}
                 </div>
 
                 <div className="mb-6">

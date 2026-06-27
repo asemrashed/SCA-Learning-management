@@ -5,6 +5,7 @@ import { ProductDetailView } from "@/features/shop/components/product-detail-vie
 import { useGetProductQuery } from "@/features/shop/api"
 import { AppLoading } from "@/components/status/app-loading"
 import { Button } from "@/components/ui/button"
+import { MARKETING_NAV_CLEARANCE } from "@/lib/marketing-layout"
 
 interface ProductDetailClientProps {
   idOrSlug: string
@@ -16,7 +17,7 @@ export function ProductDetailClient({ idOrSlug }: ProductDetailClientProps) {
   if (isLoading) return <AppLoading message="Loading product…" />
   if (error || !data?.data) {
     return (
-      <div className="container mx-auto px-4 py-16 text-center">
+      <div className={`container mx-auto px-4 py-16 text-center ${MARKETING_NAV_CLEARANCE}`}>
         <p className="text-destructive">Product not found.</p>
         <Button className="mt-4" asChild>
           <Link href="/shop">Back to shop</Link>

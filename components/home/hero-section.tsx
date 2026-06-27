@@ -4,7 +4,9 @@ import Link from "next/link"
 import Image from "next/image"
 import { ArrowRight, Play, BookOpen, Pencil, GraduationCap, Rocket } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 import { LIVE_COURSE_CATALOG_HREF } from "@/lib/product-vocabulary"
+import { MARKETING_NAV_BLEED } from "@/lib/marketing-layout"
 import { motion } from "framer-motion"
 import heroImage from "@/public/heroChr.png"
 
@@ -20,7 +22,7 @@ const HERO_PERSON_IMAGE =
 
 export function HeroSection() {
   return (
-    <section className="relative -mt-[4.75rem] text-white md:-mt-[5.25rem] h-[95dvh] lg:h-[90dvh]">
+    <section className={cn("relative text-white h-[95dvh] lg:h-[90dvh]", MARKETING_NAV_BLEED)}>
       {/* Background image — object-top keeps torn bottom edge in view */}
       <div className="absolute inset-0 -bottom-8 md:-bottom-22 -top-20">
         <Image

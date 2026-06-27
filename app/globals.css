@@ -248,6 +248,25 @@
   font-style: italic;
 }
 
+.scrollbar-slim {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--muted-foreground) 40%, transparent) transparent;
+}
+
+.scrollbar-slim::-webkit-scrollbar {
+  height: 4px;
+  width: 4px;
+}
+
+.scrollbar-slim::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-slim::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--muted-foreground) 40%, transparent);
+  border-radius: 9999px;
+}
+
 .rich-text-content a {
   color: var(--primary);
   text-decoration: underline;

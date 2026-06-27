@@ -51,9 +51,9 @@ export function CurriculumTree({
 
   return (
     <>
-      <div className="space-y-3">
+      <div className="space-y-3 overflow-hidden">
         {visibleModules.map((mod, index) => (
-          <div key={mod.id} className="rounded-xl bg-muted/50 p-4">
+          <div key={mod.id} className="overflow-hidden rounded-xl bg-muted/50 p-4">
             <h3 className="font-semibold text-foreground">
               Module {index + 1}: {mod.title}
             </h3>
@@ -66,10 +66,12 @@ export function CurriculumTree({
                 return (
                   <li
                     key={lesson.id}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-lg bg-background/80 px-3 py-2 text-sm"
+                    className="flex flex-col gap-2 rounded-lg bg-background/80 px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between"
                   >
-                    <span className="truncate text-foreground font-medium w-full min-w-0">{lesson.title}</span>
-                    <div className="flex shrink-0 items-center gap-2 justify-between sm:justify-end w-full sm:w-auto text-muted-foreground">
+                    <span className="min-w-0 flex-1 break-words font-medium leading-snug text-foreground line-clamp-2">
+                      {lesson.title}
+                    </span>
+                    <div className="flex shrink-0 items-center gap-2 justify-between text-muted-foreground sm:justify-end">
                       {lesson.durationS ? (
                         <span className="text-xs">{formatDuration(lesson.durationS)}</span>
                       ) : null}

@@ -7,6 +7,7 @@ import type {
   AdminEnrollmentOverview,
   ListAdminEnrollmentsParams,
   ReviewEnrollmentInput,
+  ManualEnrollmentInput,
   PaginationMeta,
 } from '@/types/api'
 import { baseQueryWithReauth } from '@/lib/apiClient'
@@ -63,6 +64,21 @@ export const enrollmentApi = createApi({
         { type: 'EnrollmentList', id: 'LIST' },
       ],
     }),
+    createManualEnrollment: builder.mutation<
+      { data: AdminEnrollmentRequest },
+      ManualEnrollmentInput
+    >({
+      query: (body) => ({
+        url: '/admin/enrollments',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: [
+        { type: 'EnrollmentList', id: 'ADMIN' },
+        { type: 'EnrollmentList', id: 'ADMIN_OVERVIEW' },
+        { type: 'EnrollmentList', id: 'LIST' },
+      ],
+    }),
   }),
 })
 
@@ -73,4 +89,5 @@ export const {
   useListAdminEnrollmentRequestsQuery,
   useGetAdminEnrollmentOverviewQuery,
   useReviewEnrollmentRequestMutation,
+  useCreateManualEnrollmentMutation,
 } = enrollmentApi

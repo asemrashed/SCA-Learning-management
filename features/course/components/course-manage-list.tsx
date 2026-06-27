@@ -22,6 +22,8 @@ import { useListCategoriesQuery } from "@/features/category/api"
 import { COURSES, MANAGE_COURSES, NEW_COURSE, deliveryModeLabel } from "@/lib/product-vocabulary"
 import { DeliveryMode } from "@/types/api"
 import { cn } from "@/lib/utils"
+import { DashboardTable } from "@/components/dashboard-table"
+import { TableRowActions } from "@/components/table-row-actions"
 
 type ModeFilter = "all" | DeliveryMode.LIVE | DeliveryMode.RECORDED
 
@@ -134,8 +136,8 @@ export function CourseManageList() {
       ) : courses.length === 0 ? (
         <p className="text-muted-foreground">No {COURSES.toLowerCase()} match your filters.</p>
       ) : (
-        <div className="overflow-hidden rounded-xl border">
-          <table className="w-full text-sm">
+        <DashboardTable>
+          <table className="w-full min-w-[800px] text-sm">
             <thead className="bg-muted/50 text-left">
               <tr>
                 <th className="px-4 py-3 font-medium">Title</th>
@@ -177,34 +179,28 @@ export function CourseManageList() {
                     {course.isPublished ? "Published" : "Draft"}
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-2">
-                      <Button variant="outline" size="sm" asChild>
-                        <Link href={`/admin/courses/${course.id}/edit`}>Edit</Link>
-                      </Button>
-                      <Button variant="outline" size="sm" asChild>
-                        <Link href={`/admin/courses/${course.id}`}>View</Link>
-                      </Button>
-                      {canCreateDelete ? (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-destructive"
-                          onClick={() => {
+                    <TableRowActions
+                      actions={[
+                        { label: "Edit", href: `/admin/courses/${course.id}/edit` },
+                        { label: "View", href: `/admin/courses/${course.id}` },
+                        {
+                          label: "Delete",
+                          destructive: true,
+                          hidden: !canCreateDelete,
+                          onClick: () => {
                             if (confirm(`Delete this course?`)) {
                               void deleteCourse(course.id)
                             }
-                          }}
-                        >
-                          Delete
-                        </Button>
-                      ) : null}
-                    </div>
+                          },
+                        },
+                      ]}
+                    />
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
+        </DashboardTable>
       )}
     </div>
   )

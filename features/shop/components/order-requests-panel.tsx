@@ -1,9 +1,10 @@
 "use client"
 
 import { useState } from "react"
-import { Check, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { DashboardTable } from "@/components/dashboard-table"
+import { TableRowActions } from "@/components/table-row-actions"
 import {
   Select,
   SelectContent,
@@ -77,8 +78,8 @@ export function OrderRequestsPanel() {
           No shop orders match your filters.
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border">
-          <table className="w-full text-sm">
+        <DashboardTable>
+          <table className="w-full min-w-[900px] text-sm">
             <thead className="bg-muted/50 text-left">
               <tr>
                 <th className="px-4 py-3 font-medium">Order</th>
@@ -117,35 +118,31 @@ export function OrderRequestsPanel() {
                     <Badge>{ORDER_STATUS_LABEL[order.status] ?? order.status}</Badge>
                   </td>
                   <td className="px-4 py-3">
-                    {order.status === OrderStatus.PENDING ? (
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          size="sm"
-                          disabled={reviewing}
-                          onClick={() => void handleConfirm(order.id)}
-                        >
-                          <Check className="mr-1 h-4 w-4" />
-                          Confirm
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={reviewing}
-                          onClick={() => void handleCancel(order.id)}
-                        >
-                          <X className="mr-1 h-4 w-4" />
-                          Cancel
-                        </Button>
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
+                    <TableRowActions
+                      actions={
+                        order.status === OrderStatus.PENDING
+                          ? [
+                              {
+                                label: "Confirm",
+                                disabled: reviewing,
+                                onClick: () => void handleConfirm(order.id),
+                              },
+                              {
+                                label: "Cancel",
+                                destructive: true,
+                                disabled: reviewing,
+                                onClick: () => void handleCancel(order.id),
+                              },
+                            ]
+                          : []
+                      }
+                    />
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
+        </DashboardTable>
       )}
     </div>
   )

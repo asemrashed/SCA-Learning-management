@@ -1,8 +1,10 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { Pencil, Plus, Trash2 } from "lucide-react"
+import { Pencil, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { DashboardTable } from "@/components/dashboard-table"
+import { TableRowActions } from "@/components/table-row-actions"
 import {
   Dialog,
   DialogContent,
@@ -15,7 +17,10 @@ import {
   useLazyListResourcesQuery,
 } from "@/features/resource/api"
 import { ResourceForm } from "@/features/resource/components/resource-upload-form"
-import { ResourceViewButton } from "@/features/resource/components/resource-view-button"
+import {
+  openResourceExternally,
+  ResourceViewDialog,
+} from "@/features/resource/components/resource-view-button"
 import {
   ResourceManageFilters,
   type ResourceManageFilterValues,
@@ -107,6 +112,7 @@ export function ResourceManagePanel({
 } = {}) {
   const [addOpen, setAddOpen] = useState(false)
   const [editResource, setEditResource] = useState<ResourceItem | null>(null)
+  const [viewResource, setViewResource] = useState<ResourceItem | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [filters, setFilters] = useState<ResourceManageFilterValues>({
@@ -203,7 +209,7 @@ export function ResourceManagePanel({
         <ResourceManageFilters values={filters} onChange={setFilters} />
       ) : null}
 
-      <div className="overflow-hidden rounded-xl border">
+      <DashboardTable className="bg-card">
         {showLoading ? (
           <p className="px-4 py-8 text-sm text-muted-foreground">Loading resources…</p>
         ) : !hasProducts ? (
@@ -215,7 +221,7 @@ export function ResourceManagePanel({
             No resources match your filters.
           </p>
         ) : (
-          <table className="w-full text-sm">
+            <table className="w-full min-w-[900px] text-sm">
             <thead className="bg-muted/50 text-left">
               <tr>
                 <th className="px-4 py-3 font-medium">Title</th>
@@ -241,37 +247,42 @@ export function ResourceManagePanel({
                     {new Date(resource.createdAt).toLocaleDateString()}
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-2">
-                      <ResourceViewButton resource={resource} className="rounded-xl" />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        className="rounded-xl"
-                        onClick={() => setEditResource(resource)}
-                        aria-label="Edit"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        className="rounded-xl text-destructive hover:text-destructive"
-                        disabled={deleting}
-                        onClick={() => void handleDelete(resource)}
-                        aria-label="Delete"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    <TableRowActions
+                      actions={[
+                        {
+                          label: "View",
+                          onClick: () => {
+                            if (!openResourceExternally(resource)) {
+                              setViewResource(resource)
+                            }
+                          },
+                        },
+                        { label: "Edit", onClick: () => setEditResource(resource) },
+                        {
+                          label: "Delete",
+                          destructive: true,
+                          disabled: deleting,
+                          onClick: () => void handleDelete(resource),
+                        },
+                      ]}
+                    />
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
-      </div>
+      </DashboardTable>
+
+      {viewResource ? (
+        <ResourceViewDialog
+          resource={viewResource}
+          open
+          onOpenChange={(open) => {
+            if (!open) setViewResource(null)
+          }}
+        />
+      ) : null}
 
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
         <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">

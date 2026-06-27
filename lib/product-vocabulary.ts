@@ -12,6 +12,7 @@ export const MANAGE_COURSES = 'Manage courses'
 
 export const LIVE_COURSE = 'Live course'
 export const LIVE_COURSES = 'Live courses'
+export const OUR_COURSES = 'Our Courses'
 export const RECORDED_COURSE = 'Recorded course'
 export const RECORDED_COURSES = 'Recorded courses'
 

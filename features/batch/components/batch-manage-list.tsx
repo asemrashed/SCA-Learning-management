@@ -23,6 +23,8 @@ import { useListCoursesQuery } from "@/features/course/api"
 import { useListCategoriesQuery } from "@/features/category/api"
 import { BATCH, BATCHES } from "@/lib/product-vocabulary"
 import { DeliveryMode } from "@/types/api"
+import { DashboardTable } from "@/components/dashboard-table"
+import { TableRowActions } from "@/components/table-row-actions"
 
 const BATCH_BASE = "/admin/batches"
 
@@ -184,8 +186,8 @@ export function BatchManageList() {
       ) : batches.length === 0 ? (
         <p className="text-muted-foreground">No {BATCHES.toLowerCase()} match your filters.</p>
       ) : (
-        <div className="overflow-hidden rounded-xl border">
-          <table className="w-full text-sm">
+        <DashboardTable>
+          <table className="w-full min-w-[900px] text-sm">
             <thead className="bg-muted/50 text-left">
               <tr>
                 <th className="px-4 py-3 font-medium">Cohort</th>
@@ -225,37 +227,29 @@ export function BatchManageList() {
                     {BATCH_STATUS_LABEL[batch.status] ?? batch.status}
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-2">
-                      <Button variant="outline" size="sm" asChild>
-                        <Link href={`${BATCH_BASE}/${batch.id}/edit`}>Edit</Link>
-                      </Button>
-                      <Button variant="outline" size="sm" asChild>
-                        <Link href={`${BATCH_BASE}/${batch.id}`}>View</Link>
-                      </Button>
-                      <Button variant="outline" size="sm" asChild>
-                        <Link href={`${BATCH_BASE}/${batch.id}/live`}>Live</Link>
-                      </Button>
-                      {canCreateDelete ? (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-destructive"
-                          onClick={() => {
+                    <TableRowActions
+                      actions={[
+                        { label: "Edit", href: `${BATCH_BASE}/${batch.id}/edit` },
+                        { label: "View", href: `${BATCH_BASE}/${batch.id}` },
+                        { label: "Live", href: `${BATCH_BASE}/${batch.id}/live` },
+                        {
+                          label: "Delete",
+                          destructive: true,
+                          hidden: !canCreateDelete,
+                          onClick: () => {
                             if (confirm(`Delete this ${BATCH.toLowerCase()}?`)) {
                               void deleteBatch(batch.id)
                             }
-                          }}
-                        >
-                          Delete
-                        </Button>
-                      ) : null}
-                    </div>
+                          },
+                        },
+                      ]}
+                    />
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
+        </DashboardTable>
       )}
     </div>
   )

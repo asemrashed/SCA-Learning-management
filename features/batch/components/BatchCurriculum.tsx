@@ -51,7 +51,7 @@ export function BatchCurriculum({ subjects, adminMode = false }: BatchCurriculum
 
   return (
     <>
-      <div className="space-y-4">
+      <div className="space-y-4 overflow-hidden">
         {subjects.map((subject) => {
           const isOpen = expandedSubjects.has(subject.id)
           const lessonCount = subject.modules.reduce((n, m) => n + m.lessons.length, 0)
@@ -88,22 +88,24 @@ export function BatchCurriculum({ subjects, adminMode = false }: BatchCurriculum
                           return (
                             <li
                               key={lesson.id}
-                              className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-lg bg-muted/30 px-3 py-2 text-sm"
+                              className="flex flex-col gap-2 rounded-lg bg-muted/30 px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between"
                             >
-                              <div className="flex min-w-0 items-center gap-2 w-full">
+                              <div className="flex min-w-0 items-start gap-2">
                                 {canOpen ? (
-                                  <Play className="h-4 w-4 shrink-0 text-primary" />
+                                  <Play className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                                 ) : (
-                                  <Lock className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                  <Lock className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                                 )}
-                                <span className="truncate text-sm font-medium text-foreground">{lesson.title}</span>
+                                <span className="min-w-0 flex-1 break-words text-sm font-medium leading-snug text-foreground line-clamp-2">
+                                  {lesson.title}
+                                </span>
                                 {lesson.isPreview && (
                                   <Badge variant="secondary" className="shrink-0 text-[10px]">
                                     Preview
                                   </Badge>
                                 )}
                               </div>
-                              <div className="flex shrink-0 items-center gap-2 justify-between sm:justify-end w-full sm:w-auto pl-6 sm:pl-0">
+                              <div className="flex shrink-0 items-center gap-2 justify-between sm:justify-end sm:pl-0 pl-6">
                                 <span className="text-xs text-muted-foreground">
                                   {formatDuration(lesson.durationS)}
                                 </span>

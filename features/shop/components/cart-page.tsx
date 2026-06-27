@@ -21,6 +21,7 @@ import { useCart } from "@/features/shop/hooks/use-cart"
 import { QuantityStepper } from "@/features/shop/components/buy-now-button"
 import { formatBdtMinor } from "@/lib/format-currency"
 import { orderWhatsAppMessage, whatsappUrl } from "@/lib/whatsapp"
+import { MARKETING_NAV_CLEARANCE } from "@/lib/marketing-layout"
 
 const FALLBACK_IMAGE =
   "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=200&h=150&fit=crop"
@@ -84,7 +85,7 @@ export function CartPage() {
 
   if (items.length === 0) {
     return (
-      <div className="container mx-auto px-4 py-16 text-center">
+      <div className={`container mx-auto px-4 py-16 text-center ${MARKETING_NAV_CLEARANCE}`}>
         <ShoppingBag className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
         <h1 className="text-2xl font-bold">Your cart is empty</h1>
         <p className="mt-2 text-muted-foreground">Browse the shop and add study materials.</p>
@@ -96,7 +97,7 @@ export function CartPage() {
   }
 
   return (
-    <div className="container mx-auto max-w-4xl px-4 py-10 md:py-14">
+    <div className={`container mx-auto max-w-4xl px-4 py-10 md:py-14 ${MARKETING_NAV_CLEARANCE}`}>
       <h1 className="mb-8 text-3xl font-bold">Shopping cart</h1>
 
       {isLoading ? (

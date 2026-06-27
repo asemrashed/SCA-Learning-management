@@ -14,6 +14,7 @@ import {
   QuantityStepper,
 } from "@/features/shop/components/buy-now-button"
 import { ProductPdfViewer } from "@/features/shop/components/product-pdf-viewer"
+import { MARKETING_NAV_CLEARANCE } from "@/lib/marketing-layout"
 
 const FALLBACK_IMAGE =
   "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=800&h=600&fit=crop"
@@ -27,7 +28,7 @@ export function ProductDetailView({ product, idOrSlug }: ProductDetailViewProps)
   const [quantity, setQuantity] = useState(1)
 
   return (
-    <div className="container mx-auto px-4 py-10 md:py-14">
+    <div className={`container mx-auto px-4 py-10 md:py-14 ${MARKETING_NAV_CLEARANCE}`}>
       <div className="mb-6">
         <Button variant="ghost" size="sm" asChild>
           <Link href="/shop">← Back to shop</Link>

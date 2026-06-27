@@ -1,8 +1,10 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { Pencil, Plus, Trash2 } from "lucide-react"
+import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { DashboardTable } from "@/components/dashboard-table"
+import { TableRowActions } from "@/components/table-row-actions"
 import {
   Dialog,
   DialogContent,
@@ -15,7 +17,10 @@ import {
   useLazyListResourcesQuery,
 } from "@/features/resource/api"
 import { ResourceForm } from "@/features/resource/components/resource-upload-form"
-import { ResourceViewButton } from "@/features/resource/components/resource-view-button"
+import {
+  openResourceExternally,
+  ResourceViewDialog,
+} from "@/features/resource/components/resource-view-button"
 import {
   QuestionBankFilters,
   type QuestionBankFilterValues,
@@ -43,6 +48,7 @@ export function QuestionBankPanel() {
   const [filters, setFilters] = useState<QuestionBankFilterValues>(emptyFilters)
   const [addOpen, setAddOpen] = useState(false)
   const [editResource, setEditResource] = useState<ResourceItem | null>(null)
+  const [viewResource, setViewResource] = useState<ResourceItem | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -207,7 +213,7 @@ export function QuestionBankPanel() {
       {deleteError ? <p className="text-sm text-destructive">{deleteError}</p> : null}
       {loadError ? <p className="text-sm text-destructive">{loadError}</p> : null}
 
-      <div className="overflow-hidden rounded-xl border bg-card">
+      <DashboardTable className="bg-card">
         {showLoading ? (
           <p className="px-5 py-8 text-sm text-muted-foreground">Loading questions…</p>
         ) : rows.length === 0 ? (
@@ -215,8 +221,8 @@ export function QuestionBankPanel() {
             No questions match these filters. Add a question PDF to get started.
           </p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto scrollbar-slim">
+            <table className="w-full min-w-[900px] text-sm">
               <thead>
                 <tr className="border-b bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
                   <th className="px-4 py-3 font-medium">Title</th>
@@ -240,30 +246,25 @@ export function QuestionBankPanel() {
                       {new Date(resource.createdAt).toLocaleDateString()}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex shrink-0 gap-2">
-                        <ResourceViewButton resource={resource} className="rounded-xl" />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          className="rounded-xl"
-                          onClick={() => setEditResource(resource)}
-                          aria-label="Edit"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          className="rounded-xl text-destructive hover:text-destructive"
-                          disabled={deleting}
-                          onClick={() => void handleDelete(resource)}
-                          aria-label="Delete"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      <TableRowActions
+                        actions={[
+                          {
+                            label: "View",
+                            onClick: () => {
+                              if (!openResourceExternally(resource)) {
+                                setViewResource(resource)
+                              }
+                            },
+                          },
+                          { label: "Edit", onClick: () => setEditResource(resource) },
+                          {
+                            label: "Delete",
+                            destructive: true,
+                            disabled: deleting,
+                            onClick: () => void handleDelete(resource),
+                          },
+                        ]}
+                      />
                     </td>
                   </tr>
                 ))}
@@ -271,7 +272,17 @@ export function QuestionBankPanel() {
             </table>
           </div>
         )}
-      </div>
+      </DashboardTable>
+
+      {viewResource ? (
+        <ResourceViewDialog
+          resource={viewResource}
+          open
+          onOpenChange={(open) => {
+            if (!open) setViewResource(null)
+          }}
+        />
+      ) : null}
 
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
         <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">

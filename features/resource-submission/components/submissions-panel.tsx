@@ -1,10 +1,11 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { Check, X } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { DashboardTable } from "@/components/dashboard-table"
+import { TableRowActions } from "@/components/table-row-actions"
 import {
   Select,
   SelectContent,
@@ -147,7 +148,7 @@ export function SubmissionsPanel({ category, title }: SubmissionsPanelProps) {
 
       {actionError ? <p className="text-sm text-destructive">{actionError}</p> : null}
 
-      <div className="overflow-hidden rounded-xl border bg-card">
+      <DashboardTable className="bg-card">
         {isLoading ? (
           <p className="px-5 py-8 text-sm text-muted-foreground">Loading submissions…</p>
         ) : error ? (
@@ -157,8 +158,8 @@ export function SubmissionsPanel({ category, title }: SubmissionsPanelProps) {
             No submissions match these filters.
           </p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto scrollbar-slim">
+            <table className="w-full min-w-[800px] text-sm">
               <thead>
                 <tr className="border-b bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
                   <th className="px-4 py-3 font-medium">Student</th>
@@ -189,31 +190,25 @@ export function SubmissionsPanel({ category, title }: SubmissionsPanelProps) {
                       <Badge variant={statusVariant[item.status]}>{statusLabel[item.status]}</Badge>
                     </td>
                     <td className="px-4 py-3">
-                      {item.status === ResourceSubmissionStatus.PENDING ? (
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            className="rounded-xl"
-                            disabled={reviewing}
-                            onClick={() => void handleReview(item.id, "accept")}
-                          >
-                            <Check className="mr-1 h-4 w-4" />
-                            Accept
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="rounded-xl"
-                            disabled={reviewing}
-                            onClick={() => void handleReview(item.id, "reject")}
-                          >
-                            <X className="mr-1 h-4 w-4" />
-                            Reject
-                          </Button>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">Reviewed</span>
-                      )}
+                      <TableRowActions
+                        actions={
+                          item.status === ResourceSubmissionStatus.PENDING
+                            ? [
+                                {
+                                  label: "Accept",
+                                  disabled: reviewing,
+                                  onClick: () => void handleReview(item.id, "accept"),
+                                },
+                                {
+                                  label: "Reject",
+                                  destructive: true,
+                                  disabled: reviewing,
+                                  onClick: () => void handleReview(item.id, "reject"),
+                                },
+                              ]
+                            : []
+                        }
+                      />
                     </td>
                   </tr>
                 ))}
@@ -221,7 +216,7 @@ export function SubmissionsPanel({ category, title }: SubmissionsPanelProps) {
             </table>
           </div>
         )}
-      </div>
+      </DashboardTable>
     </div>
   )
 }
