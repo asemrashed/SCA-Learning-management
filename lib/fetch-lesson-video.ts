@@ -41,11 +41,10 @@ export async function fetchLessonEmbedHtml(
   accessToken: string | null | undefined,
   autoplay: boolean,
 ): Promise<string> {
-  const url = new URL(`${baseUrl}/lessons/${lessonId}/embed`)
-  url.searchParams.set('origin', window.location.origin)
-  if (autoplay) url.searchParams.set('autoplay', '1')
+  const params = new URLSearchParams({ origin: window.location.origin })
+  if (autoplay) params.set('autoplay', '1')
 
-  const res = await fetch(url.toString(), {
+  const res = await fetch(`${baseUrl}/lessons/${lessonId}/embed?${params}`, {
     headers: authHeaders(accessToken),
     credentials: 'include',
     cache: 'no-store',

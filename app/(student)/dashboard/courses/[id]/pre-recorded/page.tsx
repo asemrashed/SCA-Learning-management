@@ -14,7 +14,6 @@ export default function PreRecordedClassPage({
       enrollmentId={id}
       pageTitle="Prerecorded Video"
       lessonBasePath="pre-recorded"
-      curriculumSource="granted"
     />
   )
 }
