@@ -267,6 +267,7 @@ export interface AdminEnrollmentRequest {
   kind: EnrollmentKind
   status: EnrollmentStatus
   rollNumber: string | null
+  isBlocked: boolean
   enrolledAt: string
   student: { id: string; name: string; phone: string }
   batch: { id: string; title: string } | null
@@ -275,18 +276,31 @@ export interface AdminEnrollmentRequest {
   totalEnrollments: number
 }
 
-export interface ReviewEnrollmentInput {
-  action: 'approve' | 'reject'
-  rollNumber?: string
-}
+export type ReviewEnrollmentInput =
+  | { action: 'approve'; rollNumber: string; enrollmentFeeMinor?: number }
+  | { action: 'reject' }
+  | { action: 'remove' }
+  | { action: 'block' }
+  | { action: 'unblock' }
 
 export interface ManualEnrollmentInput {
+  studentId?: string
   name: string
   phone: string
   email?: string
   rollNumber: string
   batchId?: string
   courseId?: string
+  enrollmentFeeMinor?: number
+  firstMonthFeeMinor?: number
+  billingStartMonth?: string
+}
+
+export interface EnrollmentStudentSearchResult {
+  id: string
+  name: string
+  phone: string
+  email: string | null
 }
 
 export interface AdminEnrollmentOverview {
@@ -572,9 +586,22 @@ export interface UnpaidStudentRecord {
   paymentDeadline: string
   isPastDeadline: boolean
   isAccessBlocked: boolean
+  hasAccessGrant: boolean
   student: MonthlyPaymentStudent
   enrollment: MonthlyPaymentEnrollment
   currentMonthRequest: MonthlyPaymentRecord | null
+}
+
+export interface SetPaymentAccessInput {
+  billingMonth: string
+  action: 'grant' | 'revoke'
+}
+
+export interface PaymentAccessResult {
+  enrollmentId: string
+  billingMonth: string
+  hasAccessGrant: boolean
+  isAccessBlocked: boolean
 }
 
 export interface ReviewMonthlyPaymentInput {

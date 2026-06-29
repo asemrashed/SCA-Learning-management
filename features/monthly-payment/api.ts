@@ -4,7 +4,9 @@ import type {
   EnrollmentPaymentHistory,
   ListMonthlyPaymentsParams,
   MonthlyPaymentRecord,
+  PaymentAccessResult,
   ReviewMonthlyPaymentInput,
+  SetPaymentAccessInput,
   UnpaidStudentRecord,
 } from '@/types/api'
 import { baseQueryWithReauth } from '@/lib/apiClient'
@@ -78,6 +80,20 @@ export const monthlyPaymentApi = createApi({
           : []),
       ],
     }),
+    setPaymentAccess: builder.mutation<
+      { data: PaymentAccessResult },
+      { enrollmentId: string; body: SetPaymentAccessInput }
+    >({
+      query: ({ enrollmentId, body }) => ({
+        url: `/admin/monthly-payments/enrollments/${enrollmentId}/access`,
+        method: 'PATCH',
+        body,
+      }),
+      invalidatesTags: (_r, _e, { enrollmentId }) => [
+        { type: 'MonthlyPayment', id: 'UNPAID' },
+        { type: 'EnrollmentPaymentHistory', id: enrollmentId },
+      ],
+    }),
   }),
 })
 
@@ -88,4 +104,5 @@ export const {
   useListAdminMonthlyPaymentsQuery,
   useListUnpaidStudentsQuery,
   useReviewMonthlyPaymentMutation,
+  useSetPaymentAccessMutation,
 } = monthlyPaymentApi

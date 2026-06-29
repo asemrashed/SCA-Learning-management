@@ -13,6 +13,7 @@ import { useLoginMutation } from '@/features/auth/api'
 import { setCredentials } from '@/features/auth/authSlice'
 import { setSessionCookie } from '@/lib/auth-session'
 import { homePathForRole } from '@/lib/dashboard-nav'
+import { debugAgentLog } from '@/lib/debug-agent-log'
 
 const e164Phone = z
   .string()
@@ -49,7 +50,23 @@ export function LoginForm() {
       const result = await login({ phone: values.phone, password: values.password }).unwrap()
       dispatch(setCredentials({ accessToken: result.data.accessToken, user: result.data.user }))
       setSessionCookie()
-      const next = searchParams.get('next') || homePathForRole(result.data.user.role)
+      const nextParam = searchParams.get('next')
+      const roleHome = homePathForRole(result.data.user.role)
+      const next = nextParam || roleHome
+      // #region agent log
+      debugAgentLog(
+        'login-form.tsx:onSubmit',
+        'post-login redirect decision',
+        {
+          apiRole: result.data.user.role,
+          nextParam,
+          roleHome,
+          finalRedirect: next,
+          usedNextParam: Boolean(nextParam),
+        },
+        nextParam && nextParam !== roleHome ? 'B' : 'A',
+      )
+      // #endregion
       router.push(next)
       router.refresh()
     } catch (err: unknown) {

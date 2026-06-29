@@ -28,6 +28,7 @@ import {
   useListAdminMonthlyPaymentsQuery,
   useListUnpaidStudentsQuery,
   useReviewMonthlyPaymentMutation,
+  useSetPaymentAccessMutation,
 } from "@/features/monthly-payment/api"
 import { formatBdtMinor } from "@/lib/format-currency"
 import { DeliveryMode, EnrollmentKind, MonthlyPaymentStatus } from "@/types/api"
@@ -112,6 +113,7 @@ export function AdminPaymentsPanel({
     error: unpaidError,
   } = useListUnpaidStudentsQuery(filterParams)
   const [reviewPayment, { isLoading: reviewing }] = useReviewMonthlyPaymentMutation()
+  const [setPaymentAccess, { isLoading: settingAccess }] = useSetPaymentAccessMutation()
 
   const payments = data?.data ?? []
   const unpaidStudents = unpaidData?.data ?? []
@@ -149,6 +151,23 @@ export function AdminPaymentsPanel({
       await reviewPayment({ id, body: { action: "reject" } }).unwrap()
     } catch {
       setActionError("Could not reject payment.")
+    }
+  }
+
+  async function handleAccessToggle(
+    enrollmentId: string,
+    billingMonth: string,
+    action: "grant" | "revoke",
+  ) {
+    setActionError(null)
+    try {
+      await setPaymentAccess({ enrollmentId, body: { billingMonth, action } }).unwrap()
+    } catch {
+      setActionError(
+        action === "grant"
+          ? "Could not grant access."
+          : "Could not block access.",
+      )
     }
   }
 
@@ -318,7 +337,7 @@ export function AdminPaymentsPanel({
           </div>
         ) : (
           <DashboardTable>
-            <table className="w-full min-w-[800px] text-sm">
+            <table className="w-full min-w-[900px] text-sm">
               <thead className="bg-muted/50 text-left">
                 <tr>
                   <th className="px-4 py-3 font-medium">Student</th>
@@ -326,6 +345,7 @@ export function AdminPaymentsPanel({
                   <th className="px-4 py-3 font-medium">Month</th>
                   <th className="px-4 py-3 font-medium">Deadline</th>
                   <th className="px-4 py-3 font-medium">Status</th>
+                  {!readOnly ? <th className="px-4 py-3 font-medium">Access</th> : null}
                 </tr>
               </thead>
               <tbody>
@@ -346,7 +366,9 @@ export function AdminPaymentsPanel({
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-2">
                         <Badge variant="destructive">Unpaid</Badge>
-                        {item.isAccessBlocked ? (
+                        {item.hasAccessGrant ? (
+                          <Badge variant="outline">Access granted</Badge>
+                        ) : item.isAccessBlocked ? (
                           <Badge variant="outline">Access blocked</Badge>
                         ) : item.isPastDeadline ? null : (
                           <Badge variant="outline">Before deadline</Badge>
@@ -356,6 +378,47 @@ export function AdminPaymentsPanel({
                         ) : null}
                       </div>
                     </td>
+                    {!readOnly ? (
+                      <td className="px-4 py-3">
+                        {item.isPastDeadline ? (
+                          item.hasAccessGrant ? (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              disabled={settingAccess}
+                              onClick={() =>
+                                void handleAccessToggle(
+                                  item.enrollment.id,
+                                  item.billingMonth,
+                                  "revoke",
+                                )
+                              }
+                            >
+                              Block access
+                            </Button>
+                          ) : (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              disabled={settingAccess}
+                              onClick={() =>
+                                void handleAccessToggle(
+                                  item.enrollment.id,
+                                  item.billingMonth,
+                                  "grant",
+                                )
+                              }
+                            >
+                              Give access
+                            </Button>
+                          )
+                        ) : (
+                          <span className="text-xs text-muted-foreground">Before deadline</span>
+                        )}
+                      </td>
+                    ) : null}
                   </tr>
                 ))}
               </tbody>

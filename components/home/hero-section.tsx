@@ -62,8 +62,7 @@ export function HeroSection() {
             </h1>
 
             <p className="mx-auto mb-8 max-w-lg text-pretty text-base text-white/80 md:text-lg lg:mx-0">
-              Transform your career with premium live courses, hands-on projects,
-              and expert guidance from industry professionals.
+              Empowering BBA & MBA Students with Skills for Academic and Professional Success.
             </p>
 
             <div className="flex flex-col gap-4 sm:flex-row sm:justify-center lg:justify-start">

@@ -76,6 +76,7 @@ export function EnrollmentRequestsPanel() {
   const [manualOpen, setManualOpen] = useState(false)
   const [approveTarget, setApproveTarget] = useState<{ id: string; name: string } | null>(null)
   const [approveRoll, setApproveRoll] = useState("")
+  const [approveFee, setApproveFee] = useState("")
 
   const { data: overviewData, isLoading: overviewLoading } = useGetAdminEnrollmentOverviewQuery()
   const { data: paymentSummary, isLoading: paymentSummaryLoading } = useGetAdminPaymentSummaryQuery()
@@ -96,16 +97,34 @@ export function EnrollmentRequestsPanel() {
     setPage(1)
   }
 
-  async function handleApprove(id: string, rollNumber: string) {
+  async function handleApprove(id: string, rollNumber: string, feeRaw: string) {
     if (!rollNumber.trim()) {
       setActionError("Enter a roll number before approving.")
       return
     }
+    let enrollmentFeeMinor: number | undefined
+    const feeTrimmed = feeRaw.trim()
+    if (feeTrimmed) {
+      const major = Number(feeTrimmed)
+      if (Number.isNaN(major) || major <= 0) {
+        setActionError("Enter a valid enrollment fee amount.")
+        return
+      }
+      enrollmentFeeMinor = Math.round(major * 100)
+    }
     setActionError(null)
     try {
-      await reviewEnrollment({ id, body: { action: "approve", rollNumber: rollNumber.trim() } }).unwrap()
+      await reviewEnrollment({
+        id,
+        body: {
+          action: "approve",
+          rollNumber: rollNumber.trim(),
+          ...(enrollmentFeeMinor ? { enrollmentFeeMinor } : {}),
+        },
+      }).unwrap()
       setApproveTarget(null)
       setApproveRoll("")
+      setApproveFee("")
     } catch {
       setActionError("Could not approve enrollment.")
     }
@@ -118,6 +137,113 @@ export function EnrollmentRequestsPanel() {
     } catch {
       setActionError("Could not reject enrollment.")
     }
+  }
+
+  async function handleRemove(id: string, studentName: string) {
+    if (!confirm(`Remove enrollment for ${studentName}? They will lose access to this course.`)) {
+      return
+    }
+    setActionError(null)
+    try {
+      await reviewEnrollment({ id, body: { action: "remove" } }).unwrap()
+    } catch {
+      setActionError("Could not remove enrollment.")
+    }
+  }
+
+  async function handleBlock(id: string, studentName: string) {
+    if (!confirm(`Block ${studentName} from this course?`)) {
+      return
+    }
+    setActionError(null)
+    try {
+      await reviewEnrollment({ id, body: { action: "block" } }).unwrap()
+    } catch {
+      setActionError("Could not block enrollment.")
+    }
+  }
+
+  async function handleUnblock(id: string) {
+    setActionError(null)
+    try {
+      await reviewEnrollment({ id, body: { action: "unblock" } }).unwrap()
+    } catch {
+      setActionError("Could not unblock enrollment.")
+    }
+  }
+
+  function enrollmentActions(item: (typeof requests)[number]) {
+    if (item.status === EnrollmentStatus.PENDING) {
+      return [
+        {
+          label: "Approve",
+          disabled: reviewing,
+          onClick: () => {
+            setApproveTarget({ id: item.id, name: item.student.name })
+            setApproveRoll("")
+            setApproveFee("")
+          },
+        },
+        {
+          label: "Reject",
+          destructive: true,
+          disabled: reviewing,
+          onClick: () => {
+            if (confirm(`Reject enrollment for ${item.student.name}?`)) {
+              void handleReject(item.id)
+            }
+          },
+        },
+      ]
+    }
+
+    if (item.status === EnrollmentStatus.ACTIVE) {
+      const actions = [
+        {
+          label: "Remove",
+          destructive: true,
+          disabled: reviewing,
+          onClick: () => {
+            void handleRemove(item.id, item.student.name)
+          },
+        },
+      ]
+      if (item.isBlocked) {
+        actions.unshift({
+          label: "Unblock",
+          destructive: false,
+          disabled: reviewing,
+          onClick: () => {
+            void handleUnblock(item.id)
+          },
+        })
+      } else {
+        actions.unshift({
+          label: "Block",
+          destructive: true,
+          disabled: reviewing,
+          onClick: () => {
+            void handleBlock(item.id, item.student.name)
+          },
+        })
+      }
+      return actions
+    }
+
+    if (item.status === EnrollmentStatus.COMPLETED) {
+      return [
+        {
+          label: "Remove",
+          destructive: true,
+          disabled: reviewing,
+          onClick: () => {
+            void handleRemove(item.id, item.student.name)
+          },
+        },
+      ]
+    }
+
+    return []
   }
 
   return (
@@ -215,35 +341,13 @@ export function EnrollmentRequestsPanel() {
                       ) : null}
                     </td>
                     <td className="px-4 py-3">
-                      <Badge variant={statusBadgeVariant(item.status)}>{item.status}</Badge>
+                      <Badge variant={statusBadgeVariant(item.status)}>
+                        {item.status}
+                        {item.isBlocked ? " · Blocked" : ""}
+                      </Badge>
                     </td>
                     <td className="px-4 py-3">
-                      <TableRowActions
-                        actions={
-                          item.status === EnrollmentStatus.PENDING
-                            ? [
-                                {
-                                  label: "Approve",
-                                  disabled: reviewing,
-                                  onClick: () => {
-                                    setApproveTarget({ id: item.id, name: item.student.name })
-                                    setApproveRoll("")
-                                  },
-                                },
-                                {
-                                  label: "Reject",
-                                  destructive: true,
-                                  disabled: reviewing,
-                                  onClick: () => {
-                                    if (confirm(`Reject enrollment for ${item.student.name}?`)) {
-                                      void handleReject(item.id)
-                                    }
-                                  },
-                                },
-                              ]
-                            : []
-                        }
-                      />
+                      <TableRowActions actions={enrollmentActions(item)} />
                     </td>
                   </tr>
                 ))}
@@ -300,6 +404,7 @@ export function EnrollmentRequestsPanel() {
           if (!open) {
             setApproveTarget(null)
             setApproveRoll("")
+            setApproveFee("")
           }
         }}
       >
@@ -307,15 +412,30 @@ export function EnrollmentRequestsPanel() {
           <DialogHeader>
             <DialogTitle>Approve enrollment</DialogTitle>
             <DialogDescription>
-              Enter a roll number for {approveTarget?.name ?? "this student"}.
+              Enter a roll number and optional enrollment fee for {approveTarget?.name ?? "this student"}.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-2">
-            <Input
-              placeholder="Roll number"
-              value={approveRoll}
-              onChange={(e) => setApproveRoll(e.target.value)}
-            />
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <Input
+                placeholder="Roll number"
+                value={approveRoll}
+                onChange={(e) => setApproveRoll(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="Enrollment fee (৳, optional)"
+                value={approveFee}
+                onChange={(e) => setApproveFee(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Shown as enrollment fee in the student&apos;s payment history.
+              </p>
+            </div>
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setApproveTarget(null)}>
@@ -326,7 +446,7 @@ export function EnrollmentRequestsPanel() {
               disabled={reviewing}
               onClick={() => {
                 if (approveTarget) {
-                  void handleApprove(approveTarget.id, approveRoll)
+                  void handleApprove(approveTarget.id, approveRoll, approveFee)
                 }
               }}
             >

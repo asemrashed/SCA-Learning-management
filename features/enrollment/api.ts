@@ -8,6 +8,7 @@ import type {
   ListAdminEnrollmentsParams,
   ReviewEnrollmentInput,
   ManualEnrollmentInput,
+  EnrollmentStudentSearchResult,
   PaginationMeta,
 } from '@/types/api'
 import { baseQueryWithReauth } from '@/lib/apiClient'
@@ -79,6 +80,15 @@ export const enrollmentApi = createApi({
         { type: 'EnrollmentList', id: 'LIST' },
       ],
     }),
+    searchEnrollmentStudents: builder.query<
+      { data: EnrollmentStudentSearchResult[] },
+      { search: string; limit?: number }
+    >({
+      query: (params) => ({
+        url: '/admin/enrollments/students/search',
+        params,
+      }),
+    }),
   }),
 })
 
@@ -90,4 +100,6 @@ export const {
   useGetAdminEnrollmentOverviewQuery,
   useReviewEnrollmentRequestMutation,
   useCreateManualEnrollmentMutation,
+  useSearchEnrollmentStudentsQuery,
+  useLazySearchEnrollmentStudentsQuery,
 } = enrollmentApi

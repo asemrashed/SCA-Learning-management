@@ -6,6 +6,7 @@ import { useSelector } from 'react-redux'
 import type { RootState } from '@/store'
 import { Role } from '@/types/api'
 import { homePathForRole } from '@/lib/dashboard-nav'
+import { debugAgentLog } from '@/lib/debug-agent-log'
 
 interface RoleGuardProps {
   allow: Role[]
@@ -30,10 +31,27 @@ export function RoleGuard({ allow, children }: RoleGuardProps) {
     if (!user) return
 
     if (!allow.includes(user.role)) {
-      router.replace(homePathForRole(user.role))
+      const redirectTo = homePathForRole(user.role)
+      // #region agent log
+      debugAgentLog(
+        'role-guard.tsx',
+        'role mismatch redirect',
+        { userRole: user.role, allowedRoles: allow, redirectTo },
+        'F',
+      )
+      // #endregion
+      router.replace(redirectTo)
       return
     }
 
+    // #region agent log
+    debugAgentLog(
+      'role-guard.tsx',
+      'access granted',
+      { userRole: user.role, allowedRoles: allow },
+      'F',
+    )
+    // #endregion
     setReady(true)
   }, [authReady, accessToken, user, allow, router])
 
