@@ -69,8 +69,7 @@ export function LoginForm() {
         'post-fix',
       )
       // #endregion
-      router.push(next)
-      router.refresh()
+      router.replace(next)
     } catch (err: unknown) {
       const apiErr = err as { data?: { error?: { message?: string } }; status?: number }
       setErrorMessage(

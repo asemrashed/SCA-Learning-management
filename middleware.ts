@@ -24,6 +24,18 @@ export function middleware(request: NextRequest) {
     const loginUrl = new URL('/login', request.url)
     loginUrl.searchParams.set('next', pathname)
     // #region agent log
+    console.log(
+      '[DEBUG-1a583d]',
+      JSON.stringify({
+        sessionId: '1a583d',
+        location: 'middleware.ts',
+        message: 'unauthenticated protected route redirect',
+        data: { pathname, redirectTo: loginUrl.pathname + loginUrl.search },
+        hypothesisId: 'B',
+        runId: 'post-fix',
+        timestamp: Date.now(),
+      }),
+    )
     debugAgentLog(
       'middleware.ts',
       'unauthenticated protected route redirect',
@@ -36,8 +48,37 @@ export function middleware(request: NextRequest) {
 
   if (isAuthPage && hasSession) {
     const role = roleFromCookie(request)
-    const redirectTarget = role ? homePathForRole(role) : '/dashboard'
+    if (!role) {
+      // #region agent log
+      console.log(
+        '[DEBUG-1a583d]',
+        JSON.stringify({
+          sessionId: '1a583d',
+          location: 'middleware.ts',
+          message: 'auth page with session but no role cookie — pass through',
+          data: { pathname, hasSession },
+          hypothesisId: 'A',
+          runId: 'post-fix',
+          timestamp: Date.now(),
+        }),
+      )
+      // #endregion
+      return NextResponse.next()
+    }
+    const redirectTarget = homePathForRole(role)
     // #region agent log
+    console.log(
+      '[DEBUG-1a583d]',
+      JSON.stringify({
+        sessionId: '1a583d',
+        location: 'middleware.ts',
+        message: 'authenticated auth-page redirect',
+        data: { pathname, hasSession, role, redirectTarget },
+        hypothesisId: 'A',
+        runId: 'post-fix',
+        timestamp: Date.now(),
+      }),
+    )
     debugAgentLog(
       'middleware.ts',
       'authenticated auth-page redirect',
