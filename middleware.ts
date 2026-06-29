@@ -1,10 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import {
-  ROLE_COOKIE_NAME,
-  SESSION_COOKIE_NAME,
-  STUDENT_VIEW_COOKIE_NAME,
-} from '@/lib/auth-session'
+import { ROLE_COOKIE_NAME, SESSION_COOKIE_NAME } from '@/lib/auth-session'
 import { homePathForRole } from '@/lib/dashboard-nav'
 import { Role } from '@/types/api'
 
@@ -36,21 +32,7 @@ export function middleware(request: NextRequest) {
   if (hasSession && pathname.startsWith('/dashboard')) {
     const role = roleFromCookie(request)
     if (isStaffRole(role)) {
-      const grantStudentView = request.nextUrl.searchParams.get('studentView') === '1'
-      if (grantStudentView) {
-        const cleanUrl = request.nextUrl.clone()
-        cleanUrl.searchParams.delete('studentView')
-        const response = NextResponse.redirect(cleanUrl)
-        response.cookies.set(STUDENT_VIEW_COOKIE_NAME, '1', {
-          path: '/',
-          maxAge: 60 * 60 * 4,
-          sameSite: 'lax',
-        })
-        return response
-      }
-      if (!request.cookies.has(STUDENT_VIEW_COOKIE_NAME)) {
-        return NextResponse.redirect(new URL(homePathForRole(role), request.url))
-      }
+      return NextResponse.redirect(new URL(homePathForRole(role), request.url))
     }
   }
 

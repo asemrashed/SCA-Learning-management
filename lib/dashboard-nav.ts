@@ -4,7 +4,6 @@ import {
   ClipboardList,
   CreditCard,
   FileText,
-  GraduationCap,
   Layers,
   LayoutDashboard,
   LayoutGrid,
@@ -77,10 +76,7 @@ export const adminShellNav: ShellNavGroup[] = [
   },
   {
     group: 'Account',
-    items: [
-      { href: '/profile', label: 'Profile', icon: User },
-      { href: '/dashboard?studentView=1', label: 'Student view', icon: GraduationCap },
-    ],
+    items: [{ href: '/profile', label: 'Profile', icon: User }],
   },
 ]
 
@@ -98,10 +94,7 @@ export const superAdminShellNav: ShellNavGroup[] = [
   },
   {
     group: 'Account',
-    items: [
-      { href: '/profile', label: 'Profile', icon: User },
-      { href: '/dashboard?studentView=1', label: 'Student view', icon: GraduationCap },
-    ],
+    items: [{ href: '/profile', label: 'Profile', icon: User }],
   },
 ]
 
