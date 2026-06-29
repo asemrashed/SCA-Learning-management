@@ -12,7 +12,7 @@ import { PasswordInput } from '@/components/auth/password-input'
 import { useLoginMutation } from '@/features/auth/api'
 import { setCredentials } from '@/features/auth/authSlice'
 import { setSessionCookie } from '@/lib/auth-session'
-import { homePathForRole } from '@/lib/dashboard-nav'
+import { homePathForRole, resolvePostLoginRedirect } from '@/lib/dashboard-nav'
 import { debugAgentLog } from '@/lib/debug-agent-log'
 
 const e164Phone = z
@@ -49,10 +49,10 @@ export function LoginForm() {
     try {
       const result = await login({ phone: values.phone, password: values.password }).unwrap()
       dispatch(setCredentials({ accessToken: result.data.accessToken, user: result.data.user }))
-      setSessionCookie()
+      setSessionCookie(result.data.user.role)
       const nextParam = searchParams.get('next')
       const roleHome = homePathForRole(result.data.user.role)
-      const next = nextParam || roleHome
+      const next = resolvePostLoginRedirect(result.data.user.role, nextParam)
       // #region agent log
       debugAgentLog(
         'login-form.tsx:onSubmit',
@@ -63,8 +63,10 @@ export function LoginForm() {
           roleHome,
           finalRedirect: next,
           usedNextParam: Boolean(nextParam),
+          overrodeNextParam: Boolean(nextParam && nextParam !== next),
         },
-        nextParam && nextParam !== roleHome ? 'B' : 'A',
+        nextParam && nextParam !== next ? 'B' : 'A',
+        'post-fix',
       )
       // #endregion
       router.push(next)

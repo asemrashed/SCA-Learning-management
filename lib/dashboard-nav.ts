@@ -116,6 +116,26 @@ export function homePathForRole(role: Role): string {
   }
 }
 
+/** Post-login destination: honor ?next= only when it matches the signed-in role. */
+export function resolvePostLoginRedirect(role: Role, nextParam: string | null): string {
+  const roleHome = homePathForRole(role)
+  if (!nextParam) return roleHome
+
+  if (nextParam === '/dashboard' || nextParam.startsWith('/dashboard/')) {
+    return role === Role.STUDENT ? nextParam : roleHome
+  }
+
+  if (nextParam.startsWith('/super-admin')) {
+    return role === Role.SUPER_ADMIN ? nextParam : roleHome
+  }
+
+  if (nextParam.startsWith('/admin')) {
+    return role === Role.SUPER_ADMIN || role === Role.ADMIN ? nextParam : roleHome
+  }
+
+  return nextParam
+}
+
 const staffOverviewHrefs = new Set(['/admin', '/super-admin'])
 
 /** Sidebar destinations shown as linked cards on the staff dashboard overview. */

@@ -1,10 +1,18 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { SESSION_COOKIE_NAME } from '@/lib/auth-session'
+import { ROLE_COOKIE_NAME, SESSION_COOKIE_NAME } from '@/lib/auth-session'
+import { homePathForRole } from '@/lib/dashboard-nav'
 import { debugAgentLog } from '@/lib/debug-agent-log'
+import { Role } from '@/types/api'
 
 const protectedPrefixes = ['/dashboard', '/admin', '/super-admin']
 const authPaths = ['/login', '/register']
+
+function roleFromCookie(request: NextRequest): Role | null {
+  const raw = request.cookies.get(ROLE_COOKIE_NAME)?.value
+  if (raw === Role.STUDENT || raw === Role.ADMIN || raw === Role.SUPER_ADMIN) return raw
+  return null
+}
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -27,13 +35,15 @@ export function middleware(request: NextRequest) {
   }
 
   if (isAuthPage && hasSession) {
-    const redirectTarget = '/dashboard'
+    const role = roleFromCookie(request)
+    const redirectTarget = role ? homePathForRole(role) : '/dashboard'
     // #region agent log
     debugAgentLog(
       'middleware.ts',
       'authenticated auth-page redirect',
-      { pathname, hasSession, redirectTarget },
+      { pathname, hasSession, role, redirectTarget },
       'A',
+      'post-fix',
     )
     // #endregion
     return NextResponse.redirect(new URL(redirectTarget, request.url))
