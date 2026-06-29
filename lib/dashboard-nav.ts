@@ -79,7 +79,7 @@ export const adminShellNav: ShellNavGroup[] = [
     group: 'Account',
     items: [
       { href: '/profile', label: 'Profile', icon: User },
-      { href: '/dashboard', label: 'Student view', icon: GraduationCap },
+      { href: '/dashboard?studentView=1', label: 'Student view', icon: GraduationCap },
     ],
   },
 ]
@@ -100,7 +100,7 @@ export const superAdminShellNav: ShellNavGroup[] = [
     group: 'Account',
     items: [
       { href: '/profile', label: 'Profile', icon: User },
-      { href: '/dashboard', label: 'Student view', icon: GraduationCap },
+      { href: '/dashboard?studentView=1', label: 'Student view', icon: GraduationCap },
     ],
   },
 ]

@@ -7,7 +7,6 @@ import { clearSessionCookie, hasSessionCookie, setSessionCookie } from '@/lib/au
 import { markAuthReady } from '@/lib/auth-ready'
 import { bootstrapRefreshSession } from '@/lib/apiClient'
 import type { AppDispatch } from '@/store'
-import { debugAgentLog } from '@/lib/debug-agent-log'
 
 export function AuthBootstrap() {
   const dispatch = useDispatch<AppDispatch>()
@@ -23,26 +22,12 @@ export function AuthBootstrap() {
     }
 
     if (!hasSessionCookie()) {
-      // #region agent log
-      debugAgentLog('auth-bootstrap.tsx', 'no session cookie', {}, 'E')
-      // #endregion
       finish()
       return
     }
 
     bootstrapRefreshSession()
       .then((result) => {
-        // #region agent log
-        debugAgentLog(
-          'auth-bootstrap.tsx',
-          'bootstrap refresh result',
-          {
-            status: result.status,
-            role: result.status === 'ok' ? result.data.user.role : null,
-          },
-          'E',
-        )
-        // #endregion
         if (result.status === 'ok') {
           setSessionCookie(result.data.user.role)
           dispatch(

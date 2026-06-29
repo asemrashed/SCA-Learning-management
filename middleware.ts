@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { ROLE_COOKIE_NAME, SESSION_COOKIE_NAME } from '@/lib/auth-session'
+import {
+  ROLE_COOKIE_NAME,
+  SESSION_COOKIE_NAME,
+  STUDENT_VIEW_COOKIE_NAME,
+} from '@/lib/auth-session'
 import { homePathForRole } from '@/lib/dashboard-nav'
-import { debugAgentLog } from '@/lib/debug-agent-log'
 import { Role } from '@/types/api'
 
 const protectedPrefixes = ['/dashboard', '/admin', '/super-admin']
@@ -14,6 +17,10 @@ function roleFromCookie(request: NextRequest): Role | null {
   return null
 }
 
+function isStaffRole(role: Role | null): role is Role.ADMIN | Role.SUPER_ADMIN {
+  return role === Role.ADMIN || role === Role.SUPER_ADMIN
+}
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const hasSession = request.cookies.has(SESSION_COOKIE_NAME)
@@ -23,71 +30,36 @@ export function middleware(request: NextRequest) {
   if (isProtected && !hasSession) {
     const loginUrl = new URL('/login', request.url)
     loginUrl.searchParams.set('next', pathname)
-    // #region agent log
-    console.log(
-      '[DEBUG-1a583d]',
-      JSON.stringify({
-        sessionId: '1a583d',
-        location: 'middleware.ts',
-        message: 'unauthenticated protected route redirect',
-        data: { pathname, redirectTo: loginUrl.pathname + loginUrl.search },
-        hypothesisId: 'B',
-        runId: 'post-fix',
-        timestamp: Date.now(),
-      }),
-    )
-    debugAgentLog(
-      'middleware.ts',
-      'unauthenticated protected route redirect',
-      { pathname, redirectTo: loginUrl.pathname + loginUrl.search },
-      'B',
-    )
-    // #endregion
     return NextResponse.redirect(loginUrl)
+  }
+
+  if (hasSession && pathname.startsWith('/dashboard')) {
+    const role = roleFromCookie(request)
+    if (isStaffRole(role)) {
+      const grantStudentView = request.nextUrl.searchParams.get('studentView') === '1'
+      if (grantStudentView) {
+        const cleanUrl = request.nextUrl.clone()
+        cleanUrl.searchParams.delete('studentView')
+        const response = NextResponse.redirect(cleanUrl)
+        response.cookies.set(STUDENT_VIEW_COOKIE_NAME, '1', {
+          path: '/',
+          maxAge: 60 * 60 * 4,
+          sameSite: 'lax',
+        })
+        return response
+      }
+      if (!request.cookies.has(STUDENT_VIEW_COOKIE_NAME)) {
+        return NextResponse.redirect(new URL(homePathForRole(role), request.url))
+      }
+    }
   }
 
   if (isAuthPage && hasSession) {
     const role = roleFromCookie(request)
     if (!role) {
-      // #region agent log
-      console.log(
-        '[DEBUG-1a583d]',
-        JSON.stringify({
-          sessionId: '1a583d',
-          location: 'middleware.ts',
-          message: 'auth page with session but no role cookie — pass through',
-          data: { pathname, hasSession },
-          hypothesisId: 'A',
-          runId: 'post-fix',
-          timestamp: Date.now(),
-        }),
-      )
-      // #endregion
       return NextResponse.next()
     }
-    const redirectTarget = homePathForRole(role)
-    // #region agent log
-    console.log(
-      '[DEBUG-1a583d]',
-      JSON.stringify({
-        sessionId: '1a583d',
-        location: 'middleware.ts',
-        message: 'authenticated auth-page redirect',
-        data: { pathname, hasSession, role, redirectTarget },
-        hypothesisId: 'A',
-        runId: 'post-fix',
-        timestamp: Date.now(),
-      }),
-    )
-    debugAgentLog(
-      'middleware.ts',
-      'authenticated auth-page redirect',
-      { pathname, hasSession, role, redirectTarget },
-      'A',
-      'post-fix',
-    )
-    // #endregion
-    return NextResponse.redirect(new URL(redirectTarget, request.url))
+    return NextResponse.redirect(new URL(homePathForRole(role), request.url))
   }
 
   return NextResponse.next()
@@ -95,6 +67,7 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
+    '/dashboard',
     '/dashboard/:path*',
     '/admin/:path*',
     '/super-admin/:path*',

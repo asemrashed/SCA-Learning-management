@@ -12,8 +12,7 @@ import { PasswordInput } from '@/components/auth/password-input'
 import { useLoginMutation } from '@/features/auth/api'
 import { setCredentials } from '@/features/auth/authSlice'
 import { setSessionCookie } from '@/lib/auth-session'
-import { homePathForRole, resolvePostLoginRedirect } from '@/lib/dashboard-nav'
-import { debugAgentLog } from '@/lib/debug-agent-log'
+import { resolvePostLoginRedirect } from '@/lib/dashboard-nav'
 
 const e164Phone = z
   .string()
@@ -51,24 +50,7 @@ export function LoginForm() {
       dispatch(setCredentials({ accessToken: result.data.accessToken, user: result.data.user }))
       setSessionCookie(result.data.user.role)
       const nextParam = searchParams.get('next')
-      const roleHome = homePathForRole(result.data.user.role)
       const next = resolvePostLoginRedirect(result.data.user.role, nextParam)
-      // #region agent log
-      debugAgentLog(
-        'login-form.tsx:onSubmit',
-        'post-login redirect decision',
-        {
-          apiRole: result.data.user.role,
-          nextParam,
-          roleHome,
-          finalRedirect: next,
-          usedNextParam: Boolean(nextParam),
-          overrodeNextParam: Boolean(nextParam && nextParam !== next),
-        },
-        nextParam && nextParam !== next ? 'B' : 'A',
-        'post-fix',
-      )
-      // #endregion
       router.replace(next)
     } catch (err: unknown) {
       const apiErr = err as { data?: { error?: { message?: string } }; status?: number }
