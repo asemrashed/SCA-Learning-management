@@ -122,8 +122,7 @@ export function MediaSourceField({
 
       {mode === "upload" && !compact ? (
         <p className="text-xs text-muted-foreground">
-          Files upload to Cloudinary when credentials are configured; otherwise a placeholder URL is
-          returned for local dev.
+          Files are stored on the server. Large files may take a moment to upload.
         </p>
       ) : null}
     </div>
