@@ -21,8 +21,9 @@ export const uploadApi = createApi({
     >({
       query: ({ file, folder }) => {
         const body = new FormData()
-        body.append('file', file)
+        // folder must be sent before file so Multer can read it when choosing destination
         body.append('folder', folder)
+        body.append('file', file)
         return { url: '/uploads', method: 'POST', body }
       },
     }),

@@ -1,5 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    // Allow PDF/video uploads up to 1 GB through the /api proxy (matches nginx limit).
+    proxyClientMaxBodySize: '1024mb',
+  },
   images: {
     unoptimized: true,
   },
