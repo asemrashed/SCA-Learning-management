@@ -122,7 +122,7 @@ export function MediaSourceField({
 
       {mode === "upload" && !compact ? (
         <p className="text-xs text-muted-foreground">
-          Files are stored on the server. Large files may take a moment to upload.
+          Files are stored on the server (up to 1 GB). Large files may take several minutes to upload.
         </p>
       ) : null}
     </div>
