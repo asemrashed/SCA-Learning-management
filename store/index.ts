@@ -7,6 +7,7 @@ import { resourceApi } from '@/features/resource/api'
 import { liveclassApi } from '@/features/liveclass/api'
 import { uploadApi } from '@/features/upload/api'
 import { adminUserApi } from '@/features/admin-user/api'
+import { adminStudentApi } from '@/features/admin-student/api'
 import { shopApi } from '@/features/shop/api'
 import { categoryApi } from '@/features/category/api'
 import { monthlyPaymentApi } from '@/features/monthly-payment/api'
@@ -27,6 +28,7 @@ export const makeStore = () =>
         liveclassApi.middleware,
         uploadApi.middleware,
         adminUserApi.middleware,
+        adminStudentApi.middleware,
         shopApi.middleware,
         categoryApi.middleware,
         monthlyPaymentApi.middleware,

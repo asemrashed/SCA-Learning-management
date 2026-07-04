@@ -8,6 +8,7 @@ import { resourceApi } from '@/features/resource/api'
 import { liveclassApi } from '@/features/liveclass/api'
 import { uploadApi } from '@/features/upload/api'
 import { adminUserApi } from '@/features/admin-user/api'
+import { adminStudentApi } from '@/features/admin-student/api'
 import { shopApi } from '@/features/shop/api'
 import { categoryApi } from '@/features/category/api'
 import { monthlyPaymentApi } from '@/features/monthly-payment/api'
@@ -24,6 +25,7 @@ export const rootReducer = combineReducers({
   [liveclassApi.reducerPath]: liveclassApi.reducer,
   [uploadApi.reducerPath]: uploadApi.reducer,
   [adminUserApi.reducerPath]: adminUserApi.reducer,
+  [adminStudentApi.reducerPath]: adminStudentApi.reducer,
   [shopApi.reducerPath]: shopApi.reducer,
   [categoryApi.reducerPath]: categoryApi.reducer,
   [monthlyPaymentApi.reducerPath]: monthlyPaymentApi.reducer,

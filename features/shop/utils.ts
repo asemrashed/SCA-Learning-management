@@ -4,6 +4,8 @@ export const PRODUCT_TYPE_LABEL: Record<ProductType, string> = {
   [ProductType.BOOK]: 'Book',
   [ProductType.NOTES]: 'Notes',
   [ProductType.QUESTION_BANK]: 'Question bank',
+  [ProductType.MATH_SUGGESTION]: 'Math suggestion',
+  [ProductType.THEORY_SUGGESTION]: 'Theory suggestion',
   [ProductType.OTHER]: 'Other',
 }
 

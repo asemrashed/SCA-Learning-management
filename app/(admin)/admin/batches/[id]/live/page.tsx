@@ -1,33 +1,11 @@
-"use client"
+import { redirect } from "next/navigation"
 
-import Link from "next/link"
-import { use } from "react"
-import { Button } from "@/components/ui/button"
-import { BatchSessionManager } from "@/features/liveclass/components/batch-session-manager"
-import { useGetBatchQuery } from "@/features/batch/api"
-import { LIVE_COURSE } from "@/lib/product-vocabulary"
-
-export default function AdminBatchLivePage({
+/** Live class/session management is hidden; keep route for old bookmarks. */
+export default async function AdminBatchLivePage({
   params,
 }: {
   params: Promise<{ id: string }>
 }) {
-  const { id } = use(params)
-  const { data, isLoading, error } = useGetBatchQuery(id)
-  const batch = data?.data
-
-  return (
-    <div className="mx-auto max-w-5xl px-4 py-10">
-      <Button variant="ghost" size="sm" asChild className="mb-4">
-        <Link href={`/admin/batches/${id}`}>← {LIVE_COURSE} overview</Link>
-      </Button>
-      {isLoading ? (
-        <p className="text-muted-foreground">Loading…</p>
-      ) : error || !batch ? (
-        <p className="text-destructive">{LIVE_COURSE} not found.</p>
-      ) : (
-        <BatchSessionManager batchId={batch.id} batchTitle={batch.title} />
-      )}
-    </div>
-  )
+  const { id } = await params
+  redirect(`/admin/batches/${id}`)
 }

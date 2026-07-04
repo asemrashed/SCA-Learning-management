@@ -66,6 +66,7 @@ export function PreRecordedModuleLessons({
         hasVideo: l.hasVideo,
         hasDocument: l.hasDocument,
         content: l.content,
+        joinUrl: l.joinUrl,
         durationS: l.durationS,
         lectureDate: l.lectureDate,
       }))
@@ -160,6 +161,7 @@ export function RecordedModuleLessons({
         hasVideo: l.hasVideo,
         hasDocument: l.hasDocument,
         content: l.content,
+        joinUrl: l.joinUrl,
         durationS: l.durationS,
         lectureDate: l.lectureDate,
       }))

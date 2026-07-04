@@ -22,6 +22,7 @@ import {
 import { cn } from "@/lib/utils"
 import { EnrollButton } from "@/features/enrollment/components/enroll-button"
 import { isPreviewableLesson } from "@/features/enrollment/lib/lesson-view"
+import { LessonType } from "@/types/api"
 import { Calendar, Clock, Play } from "lucide-react"
 import { motion } from "framer-motion"
 
@@ -244,9 +245,15 @@ export function BatchDetailView({ idOrSlug }: BatchDetailViewProps) {
             hasDocument: previewLesson.hasDocument,
             content: previewLesson.content ?? null,
             videoUrl: previewLesson.videoUrl ?? null,
+            joinUrl: previewLesson.joinUrl ?? null,
+            lectureDate: previewLesson.lectureDate ?? null,
           }}
           title={previewLesson.title}
-          duration={formatDuration(previewLesson.durationS ?? null)}
+          duration={
+            previewLesson.type === LessonType.RECORDED
+              ? formatDuration(previewLesson.durationS ?? null)
+              : ""
+          }
         />
       ) : null}
     </>

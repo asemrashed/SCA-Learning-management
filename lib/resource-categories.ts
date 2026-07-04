@@ -28,6 +28,8 @@ export const PDF_RESOURCE_CATEGORIES = new Set<ResourceCategory>([
 export const SUBJECT_REQUIRED_CATEGORIES = new Set<ResourceCategory>([
   ResourceCategory.LECTURE_SHEET,
   ResourceCategory.SOLUTION_PDF,
+  ResourceCategory.MATH_SUGGESTION,
+  ResourceCategory.THEORY_SUGGESTION,
   ResourceCategory.EXAM,
   ResourceCategory.ASSIGNMENT,
   ResourceCategory.QUESTION_BANK,

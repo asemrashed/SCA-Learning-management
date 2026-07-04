@@ -203,7 +203,7 @@ export function LiveCurriculumModals({
             <>
               {showPreBatchCurriculum && sourceBatchId ? (
                 <CopyModulePicker
-                  sourceBatchId={sourceBatchId}
+                  source={{ batchId: sourceBatchId }}
                   contextSubjectTitle={contextSubjectTitle}
                   value={copyPick}
                   onChange={(_id, t) => {
@@ -228,7 +228,7 @@ export function LiveCurriculumModals({
             <>
               {showPreBatchCurriculum && sourceBatchId ? (
                 <CopyLessonPicker
-                  sourceBatchId={sourceBatchId}
+                  source={{ batchId: sourceBatchId }}
                   contextSubjectTitle={contextSubjectTitle}
                   contextModuleTitle={contextModuleTitle}
                   value={copyPick}

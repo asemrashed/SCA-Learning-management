@@ -165,7 +165,7 @@ export function ResultsPanel({ category, title }: ResultsPanelProps) {
                     <td className="px-4 py-3">
                       <p className="font-medium">{item.student.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {item.student.rollNumber ?? item.student.phone}
+                        {item.student.idNumber ?? item.student.phone}
                       </p>
                     </td>
                     <td className="px-4 py-3">{item.resource.title}</td>

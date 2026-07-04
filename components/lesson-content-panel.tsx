@@ -1,18 +1,25 @@
 "use client"
 
 import { LessonDocumentViewer } from "@/components/lesson-document-viewer"
+import { LessonLiveViewer } from "@/components/lesson-live-viewer"
 import { LessonTextViewer } from "@/components/lesson-text-viewer"
 import { LessonVideoPlayer } from "@/components/lesson-video-player"
 import { LessonViewerFrame } from "@/components/lesson-viewer-frame"
 import {
   isDocumentLesson,
+  isLiveLesson,
   isTextLesson,
   isVideoLesson,
+  liveLessonJoinUrl,
   type ViewableLessonFields,
 } from "@/features/enrollment/lib/lesson-view"
 
 interface LessonContentPanelProps {
-  lesson: ViewableLessonFields & { id: string; title: string }
+  lesson: ViewableLessonFields & {
+    id: string
+    title: string
+    lectureDate?: string | null
+  }
   autoPlay?: boolean
   variant?: "default" | "modal"
 }
@@ -22,6 +29,20 @@ export function LessonContentPanel({
   autoPlay = false,
   variant = "default",
 }: LessonContentPanelProps) {
+  if (isLiveLesson(lesson)) {
+    const joinUrl = liveLessonJoinUrl(lesson)!
+    return (
+      <LessonViewerFrame variant="content">
+        <LessonLiveViewer
+          key={lesson.id}
+          title={lesson.title}
+          joinUrl={joinUrl}
+          lectureDate={lesson.lectureDate}
+        />
+      </LessonViewerFrame>
+    )
+  }
+
   if (isVideoLesson(lesson)) {
     return (
       <LessonViewerFrame variant="video">

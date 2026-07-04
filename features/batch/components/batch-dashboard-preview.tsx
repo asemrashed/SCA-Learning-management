@@ -7,19 +7,13 @@ import { BatchCurriculum } from "@/features/batch/components/BatchCurriculum"
 import { useGetBatchQuery, useGetBatchCurriculumQuery } from "@/features/batch/api"
 import { BATCH_STATUS_LABEL } from "@/features/batch/utils"
 import { BATCH } from "@/lib/product-vocabulary"
-import { LiveSessionsPanel } from "@/features/liveclass/components/live-sessions-panel"
 import { formatBdtMinor } from "@/lib/format-currency"
-import { EnrollmentKind } from "@/types/api"
 
 interface BatchDashboardPreviewProps {
   batchId: string
-  liveManageHref: string
 }
 
-export function BatchDashboardPreview({
-  batchId,
-  liveManageHref,
-}: BatchDashboardPreviewProps) {
+export function BatchDashboardPreview({ batchId }: BatchDashboardPreviewProps) {
   const { data, isLoading, error } = useGetBatchQuery(batchId)
   const batch = data?.data
   const { data: curriculumData } = useGetBatchCurriculumQuery(batchId, { skip: !batch })
@@ -52,14 +46,9 @@ export function BatchDashboardPreview({
                 Edit curriculum
               </Link>
             </Button>
-            <Button asChild variant="outline" className="rounded-xl">
-              <Link href={liveManageHref}>Manage live classes</Link>
-            </Button>
           </div>
         </div>
       </div>
-
-      <LiveSessionsPanel kind={EnrollmentKind.BATCH} productId={batch.id} />
 
       {subjects.length ? (
         <section>

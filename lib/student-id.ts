@@ -1,6 +1,6 @@
-/** Display student ID from roll number or user id (temporary until dedicated student id field). */
-export function formatStudentId(rollNumber: string | null | undefined, userId: string): string {
-  if (rollNumber) return rollNumber
+/** Display student ID from assigned idNumber or a SCA-prefixed fallback from user id. */
+export function formatStudentId(idNumber: string | null | undefined, userId: string): string {
+  if (idNumber) return idNumber
   const suffix = userId.replace(/\D/g, '').slice(-6) || userId.slice(-6).toUpperCase()
-  return `SRD - ${suffix}`
+  return `SCA - ${suffix}`
 }

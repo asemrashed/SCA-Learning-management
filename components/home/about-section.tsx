@@ -13,9 +13,6 @@ const features = [
   "Lifetime access",
 ]
 
-const ABOUT_PERSON_IMAGE =
-  "https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=500&h=600&fit=crop"
-
 export function AboutSection() {
   return (
     <section className="bg-background py-20">
@@ -35,8 +32,8 @@ export function AboutSection() {
               <div className="relative flex h-80 w-80 items-center justify-center rounded-full bg-primary/20 md:h-96 md:w-96">
                 <div className="relative h-[85%] w-[85%] overflow-hidden rounded-full">
                   <Image
-                    src={ABOUT_PERSON_IMAGE}
-                    alt="Student with books and backpack"
+                    src="/images/about.png"
+                    alt="Academic director of Sharif Commerce Academy"
                     fill
                     className="object-cover object-center"
                   />
@@ -56,7 +53,7 @@ export function AboutSection() {
                     <GraduationCap className="h-6 w-6 text-secondary" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-foreground">25</p>
+                    <p className="text-2xl font-bold text-foreground">14</p>
                     <p className="text-sm text-muted-foreground">Years of experience</p>
                   </div>
                 </div>

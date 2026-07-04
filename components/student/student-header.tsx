@@ -23,8 +23,8 @@ export function StudentHeader({ clientIp }: StudentHeaderProps) {
     setMounted(true)
   }, [])
 
-  const rollNumber = data?.data?.find((e) => e.rollNumber)?.rollNumber ?? null
-  const studentId = user ? formatStudentId(rollNumber, user.id) : "—"
+  const idNumber = data?.data?.find((e) => e.idNumber)?.idNumber ?? null
+  const studentId = user ? formatStudentId(idNumber, user.id) : "—"
   const displayName = mounted ? (user?.name ?? "Student") : "Student"
   const studentIdDisplay = mounted ? studentId : "—"
 

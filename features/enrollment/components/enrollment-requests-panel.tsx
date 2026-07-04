@@ -29,10 +29,12 @@ import {
 } from "@/features/enrollment/api"
 import { useGetAdminPaymentSummaryQuery } from "@/features/monthly-payment/api"
 import { formatBdtMinor } from "@/lib/format-currency"
-import { EnrollmentKind, EnrollmentStatus } from "@/types/api"
+import { formatStudentId } from "@/lib/student-id"
+import { EnrollmentKind, EnrollmentStatus, type AdminEnrollmentRequest } from "@/types/api"
 import { deliveryModeLabel } from "@/lib/product-vocabulary"
 import { cn } from "@/lib/utils"
 import { ManualEnrollmentDialog } from "@/features/enrollment/components/manual-enrollment-dialog"
+import { Label } from "@/components/ui/label"
 
 const PAGE_SIZE = 10
 
@@ -44,13 +46,9 @@ const STATUS_FILTERS: { label: string; value: EnrollmentStatus | "ALL" }[] = [
   { label: "Completed", value: EnrollmentStatus.COMPLETED },
 ]
 
-function productTitle(item: {
-  kind: EnrollmentKind
-  batch: { title: string; course?: { title: string } } | null
-  course: { title: string } | null
-}): string {
+function productTitle(item: AdminEnrollmentRequest): string {
   return item.kind === EnrollmentKind.BATCH
-    ? `${item.batch!.course?.title ?? item.batch!.title} · ${item.batch!.title}`
+    ? `${item.batch!.course.title} · ${item.batch!.title}`
     : item.course!.title
 }
 
@@ -74,8 +72,8 @@ export function EnrollmentRequestsPanel() {
   const [page, setPage] = useState(1)
   const [actionError, setActionError] = useState<string | null>(null)
   const [manualOpen, setManualOpen] = useState(false)
-  const [approveTarget, setApproveTarget] = useState<{ id: string; name: string } | null>(null)
-  const [approveRoll, setApproveRoll] = useState("")
+  const [approveTarget, setApproveTarget] = useState<AdminEnrollmentRequest | null>(null)
+  const [approveId, setApproveId] = useState("")
   const [approveFee, setApproveFee] = useState("")
 
   const { data: overviewData, isLoading: overviewLoading } = useGetAdminEnrollmentOverviewQuery()
@@ -97,33 +95,34 @@ export function EnrollmentRequestsPanel() {
     setPage(1)
   }
 
-  async function handleApprove(id: string, rollNumber: string, feeRaw: string) {
-    if (!rollNumber.trim()) {
-      setActionError("Enter a roll number before approving.")
+  async function handleApprove(item: AdminEnrollmentRequest, idNumber: string, feeRaw: string) {
+    const feeTrimmed = feeRaw.trim()
+    if (!feeTrimmed) {
+      setActionError("Enter an enrollment fee.")
       return
     }
-    let enrollmentFeeMinor: number | undefined
-    const feeTrimmed = feeRaw.trim()
-    if (feeTrimmed) {
-      const major = Number(feeTrimmed)
-      if (Number.isNaN(major) || major <= 0) {
-        setActionError("Enter a valid enrollment fee amount.")
-        return
-      }
-      enrollmentFeeMinor = Math.round(major * 100)
+    const major = Number(feeTrimmed)
+    if (Number.isNaN(major) || major <= 0) {
+      setActionError("Enter a valid enrollment fee amount.")
+      return
+    }
+    const enrollmentFeeMinor = Math.round(major * 100)
+    if (item.priceMinor > 0 && enrollmentFeeMinor > item.priceMinor) {
+      setActionError(`Fee cannot exceed ${formatBdtMinor(item.priceMinor)}.`)
+      return
     }
     setActionError(null)
     try {
       await reviewEnrollment({
-        id,
+        id: item.id,
         body: {
           action: "approve",
-          rollNumber: rollNumber.trim(),
-          ...(enrollmentFeeMinor ? { enrollmentFeeMinor } : {}),
+          idNumber: idNumber.trim() || formatStudentId(null, item.student.id),
+          enrollmentFeeMinor,
         },
       }).unwrap()
       setApproveTarget(null)
-      setApproveRoll("")
+      setApproveId("")
       setApproveFee("")
     } catch {
       setActionError("Could not approve enrollment.")
@@ -179,9 +178,12 @@ export function EnrollmentRequestsPanel() {
           label: "Approve",
           disabled: reviewing,
           onClick: () => {
-            setApproveTarget({ id: item.id, name: item.student.name })
-            setApproveRoll("")
-            setApproveFee("")
+            setActionError(null)
+            setApproveTarget(item)
+            setApproveId(formatStudentId(item.idNumber, item.student.id))
+            setApproveFee(
+              item.defaultFeeMinor != null ? String(item.defaultFeeMinor / 100) : "",
+            )
           },
         },
         {
@@ -304,7 +306,7 @@ export function EnrollmentRequestsPanel() {
                   <th className="px-4 py-3 font-medium">Student</th>
                   <th className="px-4 py-3 font-medium">Course / Batch</th>
                   <th className="px-4 py-3 font-medium">Mode</th>
-                  <th className="px-4 py-3 font-medium">Roll</th>
+                  <th className="px-4 py-3 font-medium">ID</th>
                   <th className="px-4 py-3 font-medium">Requested</th>
                   <th className="px-4 py-3 font-medium">Seats</th>
                   <th className="px-4 py-3 font-medium">Status</th>
@@ -324,7 +326,7 @@ export function EnrollmentRequestsPanel() {
                         {deliveryModeLabel(item.kind === EnrollmentKind.BATCH ? "LIVE" : "RECORDED")}
                       </Badge>
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground">{item.rollNumber ?? "—"}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{item.idNumber ?? "—"}</td>
                     <td className="px-4 py-3 text-muted-foreground">
                       {new Date(item.enrolledAt).toLocaleString()}
                     </td>
@@ -403,7 +405,7 @@ export function EnrollmentRequestsPanel() {
         onOpenChange={(open) => {
           if (!open) {
             setApproveTarget(null)
-            setApproveRoll("")
+            setApproveId("")
             setApproveFee("")
           }
         }}
@@ -412,30 +414,66 @@ export function EnrollmentRequestsPanel() {
           <DialogHeader>
             <DialogTitle>Approve enrollment</DialogTitle>
             <DialogDescription>
-              Enter a roll number and optional enrollment fee for {approveTarget?.name ?? "this student"}.
+              Confirm ID and fee for {approveTarget?.student.name ?? "this student"}.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-2">
-              <Input
-                placeholder="Roll number"
-                value={approveRoll}
-                onChange={(e) => setApproveRoll(e.target.value)}
-              />
+              <Label htmlFor="approve-id">Student ID</Label>
+              <Input id="approve-id" value={approveId} readOnly className="bg-muted" />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="approve-fee">Enrollment fee (৳)</Label>
               <Input
+                id="approve-fee"
                 type="number"
                 min="0"
                 step="0.01"
-                placeholder="Enrollment fee (৳, optional)"
+                max={
+                  approveTarget && approveTarget.priceMinor > 0
+                    ? approveTarget.priceMinor / 100
+                    : undefined
+                }
+                placeholder="Enrollment fee"
                 value={approveFee}
                 onChange={(e) => setApproveFee(e.target.value)}
               />
+              {approveTarget?.kind === EnrollmentKind.BATCH && approveTarget.priceMinor > 0 ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setApproveFee(
+                        approveTarget.defaultFeeMinor != null
+                          ? String(approveTarget.defaultFeeMinor / 100)
+                          : "1020",
+                      )
+                    }
+                  >
+                    Default (৳1,020)
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setApproveFee(String(approveTarget.priceMinor / 100))}
+                  >
+                    Full amount ({formatBdtMinor(approveTarget.priceMinor)})
+                  </Button>
+                </div>
+              ) : null}
               <p className="text-xs text-muted-foreground">
-                Shown as enrollment fee in the student&apos;s payment history.
+                {approveTarget?.kind === EnrollmentKind.BATCH
+                  ? "Default is ৳1,020. Full amount unlocks all access with no monthly fees."
+                  : "Defaults to the full course price."}
+                {approveTarget && approveTarget.priceMinor > 0
+                  ? ` Max ${formatBdtMinor(approveTarget.priceMinor)}.`
+                  : ""}
               </p>
             </div>
+            {actionError ? <p className="text-sm text-destructive">{actionError}</p> : null}
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setApproveTarget(null)}>
@@ -446,7 +484,7 @@ export function EnrollmentRequestsPanel() {
               disabled={reviewing}
               onClick={() => {
                 if (approveTarget) {
-                  void handleApprove(approveTarget.id, approveRoll, approveFee)
+                  void handleApprove(approveTarget, approveId, approveFee)
                 }
               }}
             >

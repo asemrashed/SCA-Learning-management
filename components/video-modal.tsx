@@ -10,7 +10,11 @@ import { LessonContentPanel } from "@/components/lesson-content-panel"
 import type { ViewableLessonFields } from "@/features/enrollment/lib/lesson-view"
 import { LessonType } from "@/types/api"
 
-export type PreviewLesson = ViewableLessonFields & { id: string; title: string }
+export type PreviewLesson = ViewableLessonFields & {
+  id: string
+  title: string
+  lectureDate?: string | null
+}
 
 interface VideoModalProps {
   isOpen: boolean

@@ -12,16 +12,18 @@ import { PasswordInput } from '@/components/auth/password-input'
 import { useRegisterMutation } from '@/features/auth/api'
 import { setCredentials } from '@/features/auth/authSlice'
 import { setSessionCookie } from '@/lib/auth-session'
+import { isBdE164Phone, normalizeBdPhone } from '@/lib/phone'
 
-const e164Phone = z
+const bdPhone = z
   .string()
   .trim()
-  .regex(/^\+8801[3-9]\d{8}$/, 'Use BD format: +8801XXXXXXXXX')
+  .min(1, 'WhatsApp number is required')
+  .refine((val) => isBdE164Phone(normalizeBdPhone(val)), 'Enter a valid BD mobile (01XXXXXXXXX)')
 
 const registerSchema = z
   .object({
     name: z.string().trim().min(2, 'Name must be at least 2 characters').max(100),
-    phone: e164Phone,
+    phone: bdPhone,
     email: z.string().trim().email('Enter a valid email address'),
     password: z.string().trim().min(8, 'Password must be at least 8 characters'),
     confirmPassword: z.string().trim(),
@@ -45,7 +47,7 @@ export function RegisterForm() {
     formState: { errors },
   } = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
-    defaultValues: { phone: '+880' },
+    defaultValues: { phone: '' },
   })
 
   const onSubmit = async (values: RegisterFormValues) => {
@@ -53,7 +55,7 @@ export function RegisterForm() {
     try {
       const result = await registerUser({
         name: values.name,
-        phone: values.phone,
+        phone: normalizeBdPhone(values.phone),
         email: values.email,
         password: values.password,
       }).unwrap()
@@ -119,7 +121,7 @@ export function RegisterForm() {
             id="phone"
             type="tel"
             autoComplete="tel"
-            placeholder="+8801712345678"
+            placeholder="01XXXXXXXXX"
             className="w-full rounded-lg border border-gray-300 px-4 py-3 text-secondary placeholder:text-gray-400 transition-all duration-200 ease-in-out focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary"
             {...register('phone')}
           />

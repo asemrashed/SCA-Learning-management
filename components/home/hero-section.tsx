@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 import { LIVE_COURSE_CATALOG_HREF } from "@/lib/product-vocabulary"
 import { MARKETING_NAV_BLEED } from "@/lib/marketing-layout"
 import { motion } from "framer-motion"
-import heroImage from "@/public/heroChr.png"
+import { BRAND_SUBTAGLINE } from "@/lib/brand"
 
 const floatingIcons = [
   { Icon: BookOpen, className: "left-[8%] top-[22%] h-10 w-10 md:h-12 md:w-12" },
@@ -16,9 +16,6 @@ const floatingIcons = [
   { Icon: GraduationCap, className: "left-[15%] bottom-[32%] h-8 w-8 md:h-10 md:w-10" },
   { Icon: Rocket, className: "right-[18%] bottom-[36%] h-9 w-9 md:h-11 md:w-11" },
 ]
-
-const HERO_PERSON_IMAGE =
-  "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&h=600&fit=crop"
 
 export function HeroSection() {
   return (
@@ -56,9 +53,7 @@ export function HeroSection() {
             className="text-center lg:text-left"
           >
             <h1 className="mb-6 text-balance text-4xl font-bold tracking-tight md:text-5xl lg:text-[3.25rem] lg:leading-[1.15]">
-              Master New Skills,
-              <br />
-              Advance with Confidence
+              {BRAND_SUBTAGLINE}
             </h1>
 
             <p className="mx-auto mb-8 max-w-lg text-pretty text-base text-white/80 md:text-lg lg:mx-0">
@@ -97,8 +92,8 @@ export function HeroSection() {
               <div className="relative flex h-72 w-72 items-center justify-center rounded-full bg-primary/30 md:h-80 md:w-80 lg:h-96 lg:w-96">
                 <div className="relative h-[88%] w-[88%] overflow-hidden rounded-full border-4 border-primary/50">
                   <Image
-                    src={heroImage}
-                    alt="Professional learner with laptop"
+                    src="/images/hero.jpeg"
+                    alt="Your trusted partner for academic success"
                     fill
                     className="object-cover object-top"
                     priority
@@ -115,10 +110,10 @@ export function HeroSection() {
                 <div className="flex items-center gap-3">
                   <div className="flex -space-x-2">
                     {[
-                      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=40&h=40&fit=crop&crop=face",
-                      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face",
-                      "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=40&h=40&fit=crop&crop=face",
-                      "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face",
+                      "https://images.unsplash.com/photo-1607990281513-2c110a25bd8c?w=40&h=40&fit=crop&crop=face",
+                      "https://images.unsplash.com/photo-1594744803329-e58b31de8bf5?w=40&h=40&fit=crop&crop=face",
+                      "https://images.unsplash.com/photo-1615109398623-88346a601842?w=40&h=40&fit=crop&crop=face",
+                      "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=40&h=40&fit=crop&crop=face",
                     ].map((src, i) => (
                       <div
                         key={i}
@@ -128,7 +123,7 @@ export function HeroSection() {
                       </div>
                     ))}
                   </div>
-                  <span className="text-sm font-semibold text-foreground">32k+ Learners</span>
+                  <span className="text-sm font-semibold text-foreground">15k+ Learners</span>
                 </div>
               </motion.div>
             </div>

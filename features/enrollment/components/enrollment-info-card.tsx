@@ -35,12 +35,12 @@ export function EnrollmentInfoCard({ enrollment }: EnrollmentInfoCardProps) {
     <section className="rounded-[20px] bg-card p-6 shadow-sm">
       <h2 className="mb-4 text-xl font-bold text-foreground">Your enrollment</h2>
       <dl className="grid gap-4 sm:grid-cols-2">
-        {enrollment.rollNumber ? (
+        {enrollment.idNumber ? (
           <div className="flex gap-3">
             <Hash className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
             <div>
-              <dt className="text-sm text-muted-foreground">Roll number</dt>
-              <dd className="font-medium text-foreground">{enrollment.rollNumber}</dd>
+              <dt className="text-sm text-muted-foreground">ID</dt>
+              <dd className="font-medium text-foreground">{enrollment.idNumber}</dd>
             </div>
           </div>
         ) : null}

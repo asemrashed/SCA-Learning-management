@@ -4,25 +4,30 @@ import {
   MapPin,
   Phone,
   Facebook,
-  Instagram,
-  Twitter,
+  Youtube,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { BrandLogo } from "@/components/brand-logo"
-import { BRAND_EMAIL, BRAND_PHONE } from "@/lib/brand"
+import {
+  BRAND_ADDRESS,
+  BRAND_EMAIL,
+  BRAND_FACEBOOK_URL,
+  BRAND_PHONE,
+  BRAND_YOUTUBE_URL,
+} from "@/lib/brand"
 import { LIVE_COURSE_CATALOG_HREF, LIVE_COURSES } from "@/lib/product-vocabulary"
 
 const usefulLinks = [
   { href: LIVE_COURSE_CATALOG_HREF, label: LIVE_COURSES },
   { href: "/about", label: "About Us" },
   { href: "/contact", label: "Contact Us" },
-  { href: "/blog", label: "Blog" },
+  { href: "/shop", label: "Shop" },
 ]
 
 const supportLinks = [
-  { href: "/help", label: "Documentation" },
   { href: LIVE_COURSE_CATALOG_HREF, label: `Available ${LIVE_COURSES.toLowerCase()}` },
-  { href: "/community", label: "Forum" },
+  { href: "/terms", label: "Terms & Conditions" },
+  { href: "/privacy-policy", label: "Privacy Policy" },
 ]
 
 export function Footer() {
@@ -82,13 +87,22 @@ export function Footer() {
               </p>
               <div className="flex gap-3">
                 {[
-                  { icon: Facebook, label: "Facebook" },
-                  { icon: Instagram, label: "Instagram" },
-                  { icon: Twitter, label: "Twitter" },
-                ].map(({ icon: Icon, label }) => (
+                  {
+                    icon: Facebook,
+                    label: "Facebook",
+                    href: BRAND_FACEBOOK_URL,
+                  },
+                  {
+                    icon: Youtube,
+                    label: "YouTube",
+                    href: BRAND_YOUTUBE_URL,
+                  },
+                ].map(({ icon: Icon, label, href }) => (
                   <Link
                     key={label}
-                    href="#"
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     aria-label={label}
                     className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary/80"
                   >
@@ -138,11 +152,7 @@ export function Footer() {
               <ul className="space-y-4">
                 <li className="flex flex-col items-center text-center lg:flex-row lg:items-start lg:text-left gap-2 lg:gap-3 text-sm text-secondary-foreground/70">
                   <MapPin className="h-4 w-4 shrink-0 text-primary" />
-                  <span>
-                    Ka-6/a, Navana Sylvania, Baridhara Road,
-                    <br />
-                    Nadda, Gulshan-2, Dhaka-1212
-                  </span>
+                  <span>{BRAND_ADDRESS}</span>
                 </li>
                 <li className="flex flex-col items-center text-center lg:flex-row lg:items-start lg:text-left gap-2 lg:gap-3 text-sm text-secondary-foreground/70">
                   <Mail className="h-4 w-4 shrink-0 text-primary" />

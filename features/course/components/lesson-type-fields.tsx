@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -49,6 +49,87 @@ function hourMinuteToDuration(hours: string, minutes: string): number | null {
   return total > 0 ? total : null
 }
 
+/** API stores `yyyy-mm-dd`; UI shows `dd/mm/yyyy`. */
+function isoToDisplayDate(iso: string): string {
+  if (!iso) return ""
+  const match = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (!match) return iso
+  return `${match[3]}/${match[2]}/${match[1]}`
+}
+
+function displayDateToIso(display: string): string | null {
+  const trimmed = display.trim()
+  if (!trimmed) return ""
+  const match = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
+  if (!match) return null
+  const day = Number(match[1])
+  const month = Number(match[2])
+  const year = Number(match[3])
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null
+  const date = new Date(year, month - 1, day)
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return null
+  }
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`
+}
+
+function LectureDateField({
+  id,
+  value,
+  onChange,
+}: {
+  id: string
+  value: string
+  onChange: (iso: string) => void
+}) {
+  const [display, setDisplay] = useState(() => isoToDisplayDate(value))
+  const [invalid, setInvalid] = useState(false)
+
+  useEffect(() => {
+    setDisplay(isoToDisplayDate(value))
+    setInvalid(false)
+  }, [value])
+
+  function commit(raw: string) {
+    const iso = displayDateToIso(raw)
+    if (iso === null) {
+      setInvalid(raw.trim().length > 0)
+      return
+    }
+    setInvalid(false)
+    setDisplay(iso ? isoToDisplayDate(iso) : "")
+    onChange(iso)
+  }
+
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={id}>Date</Label>
+      <Input
+        id={id}
+        type="text"
+        inputMode="numeric"
+        placeholder="dd/mm/yyyy"
+        value={display}
+        onChange={(e) => {
+          setDisplay(e.target.value)
+          setInvalid(false)
+        }}
+        onBlur={() => commit(display)}
+        aria-invalid={invalid}
+      />
+      {invalid ? (
+        <p className="text-xs text-destructive">Use dd/mm/yyyy (e.g. 04/07/2026).</p>
+      ) : (
+        <p className="text-xs text-muted-foreground">Format: dd/mm/yyyy</p>
+      )}
+    </div>
+  )
+}
+
 interface LessonTypeFieldsProps {
   lesson: LessonForm
   onChange: (lesson: LessonForm) => void
@@ -66,6 +147,7 @@ export function LessonTypeFields({
 }: LessonTypeFieldsProps) {
   const { hours, minutes } = durationToHourMinute(lesson.durationS)
   const normalizedTypeRef = useRef(false)
+  const isRecorded = lesson.type === LessonType.RECORDED
 
   useEffect(() => {
     if (normalizedTypeRef.current) return
@@ -77,6 +159,9 @@ export function LessonTypeFields({
 
   function handleTypeChange(type: LessonType) {
     const next: LessonForm = { ...lesson, type }
+    if (type !== LessonType.RECORDED) {
+      next.durationS = null
+    }
     if (type === LessonType.TEXT) {
       next.videoUrl = ""
     } else if (type === LessonType.DOCUMENT) {
@@ -96,18 +181,14 @@ export function LessonTypeFields({
   return (
     <>
       {showLectureDate ? (
-        <div className="space-y-2">
-          <Label htmlFor={`${idPrefix}-date`}>Date</Label>
-          <Input
-            id={`${idPrefix}-date`}
-            type="date"
-            value={lesson.lectureDate}
-            onChange={(e) => onChange({ ...lesson, lectureDate: e.target.value })}
-          />
-        </div>
+        <LectureDateField
+          id={`${idPrefix}-date`}
+          value={lesson.lectureDate}
+          onChange={(iso) => onChange({ ...lesson, lectureDate: iso })}
+        />
       ) : null}
 
-      <div className="grid gap-2 sm:grid-cols-2">
+      <div className={isRecorded ? "grid gap-2 sm:grid-cols-2" : undefined}>
         <div className="space-y-2">
           <Label>Type</Label>
           <Select value={lesson.type} onValueChange={(v) => handleTypeChange(v as LessonType)}>
@@ -123,32 +204,34 @@ export function LessonTypeFields({
             </SelectContent>
           </Select>
         </div>
-        <div className="space-y-2">
-          <Label>Duration (optional)</Label>
-          <div className="flex items-center gap-2">
-            <Input
-              id={`${idPrefix}-duration-hours`}
-              type="number"
-              min={0}
-              placeholder="0"
-              value={hours}
-              onChange={(e) => handleDurationChange("hours", e.target.value)}
-              aria-label="Hours"
-            />
-            <span className="text-sm text-muted-foreground">h</span>
-            <Input
-              id={`${idPrefix}-duration-minutes`}
-              type="number"
-              min={0}
-              max={59}
-              placeholder="0"
-              value={minutes}
-              onChange={(e) => handleDurationChange("minutes", e.target.value)}
-              aria-label="Minutes"
-            />
-            <span className="text-sm text-muted-foreground">m</span>
+        {isRecorded ? (
+          <div className="space-y-2">
+            <Label>Duration (optional)</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                id={`${idPrefix}-duration-hours`}
+                type="number"
+                min={0}
+                placeholder="0"
+                value={hours}
+                onChange={(e) => handleDurationChange("hours", e.target.value)}
+                aria-label="Hours"
+              />
+              <span className="text-sm text-muted-foreground">h</span>
+              <Input
+                id={`${idPrefix}-duration-minutes`}
+                type="number"
+                min={0}
+                max={59}
+                placeholder="0"
+                value={minutes}
+                onChange={(e) => handleDurationChange("minutes", e.target.value)}
+                aria-label="Minutes"
+              />
+              <span className="text-sm text-muted-foreground">m</span>
+            </div>
           </div>
-        </div>
+        ) : null}
       </div>
 
       {lesson.type === LessonType.RECORDED ? (
@@ -165,15 +248,16 @@ export function LessonTypeFields({
       ) : null}
 
       {lesson.type === LessonType.LIVE ? (
-        <MediaSourceField
-          id={`${idPrefix}-video`}
-          label="Video"
-          value={lesson.videoUrl}
-          onChange={(url) => onChange({ ...lesson, videoUrl: url })}
-          folder="videos"
-          accept="video/*"
-          placeholder="Video URL or YouTube link"
-        />
+        <div className="space-y-2">
+          <Label htmlFor={`${idPrefix}-join-url`}>Zoom / Meet link</Label>
+          <Input
+            id={`${idPrefix}-join-url`}
+            type="url"
+            value={lesson.videoUrl}
+            onChange={(e) => onChange({ ...lesson, videoUrl: e.target.value })}
+            placeholder="https://zoom.us/j/… or https://meet.google.com/…"
+          />
+        </div>
       ) : null}
 
       {lesson.type === LessonType.TEXT ? (

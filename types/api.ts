@@ -69,6 +69,7 @@ export interface CourseLesson {
   isPreview: boolean
   hasVideo: boolean
   hasDocument: boolean
+  joinUrl?: string | null
   videoUrl?: string | null
   content?: string | null
 }
@@ -211,7 +212,7 @@ export interface EnrollmentListItem {
     thumbnail: string | null
   } | null
   status: EnrollmentStatus
-  rollNumber: string | null
+  idNumber: string | null
 }
 
 export interface EnrollmentLesson {
@@ -221,6 +222,7 @@ export interface EnrollmentLesson {
   hasVideo: boolean
   hasDocument: boolean
   content: string | null
+  joinUrl: string | null
   durationS: number | null
   lectureDate: string | null
   order: number
@@ -245,7 +247,7 @@ export interface EnrollmentDetail {
   kind: EnrollmentKind
   deliveryMode: DeliveryMode
   status: EnrollmentStatus
-  rollNumber: string | null
+  idNumber: string | null
   enrolledAt: string
   completedAt: string | null
   batch: { id: string; title: string; courseId?: string; endDate?: string | null } | null
@@ -266,18 +268,21 @@ export interface AdminEnrollmentRequest {
   id: string
   kind: EnrollmentKind
   status: EnrollmentStatus
-  rollNumber: string | null
+  idNumber: string | null
   isBlocked: boolean
+  isFullyPaid: boolean
   enrolledAt: string
   student: { id: string; name: string; phone: string }
-  batch: { id: string; title: string } | null
+  batch: { id: string; title: string; course: { id: string; title: string } } | null
   course: { id: string; title: string } | null
+  priceMinor: number
+  defaultFeeMinor: number | null
   totalSeats: number | null
   totalEnrollments: number
 }
 
 export type ReviewEnrollmentInput =
-  | { action: 'approve'; rollNumber: string; enrollmentFeeMinor?: number }
+  | { action: 'approve'; idNumber?: string; enrollmentFeeMinor?: number }
   | { action: 'reject' }
   | { action: 'remove' }
   | { action: 'block' }
@@ -288,7 +293,7 @@ export interface ManualEnrollmentInput {
   name: string
   phone: string
   email?: string
-  rollNumber: string
+  idNumber: string
   batchId?: string
   courseId?: string
   enrollmentFeeMinor?: number
@@ -301,6 +306,7 @@ export interface EnrollmentStudentSearchResult {
   name: string
   phone: string
   email: string | null
+  idNumber: string | null
 }
 
 export interface AdminEnrollmentOverview {
@@ -315,6 +321,48 @@ export interface ListAdminEnrollmentsParams {
   status?: EnrollmentStatus
   page?: number
   pageSize?: number
+}
+
+export interface AdminStudentListItem {
+  id: string
+  enrollmentId: string
+  name: string
+  avatarUrl: string | null
+  phone: string
+  email: string | null
+  isActive: boolean
+  idNumber: string | null
+  isBlocked: boolean
+  course: { id: string; title: string; deliveryMode: DeliveryMode } | null
+  batch: { id: string; title: string } | null
+  paidAmountMinor: number
+  totalAmountMinor: number
+  status: EnrollmentStatus
+  enrolledAt: string
+}
+
+export interface ListAdminStudentsParams {
+  page?: number
+  pageSize?: number
+  search?: string
+  courseId?: string
+  batchId?: string
+  sort?: string
+}
+
+export interface CreateAdminStudentInput {
+  name: string
+  phone: string
+  password: string
+  email?: string | null
+}
+
+export interface UpdateAdminStudentInput {
+  name?: string
+  phone?: string
+  email?: string | null
+  avatarUrl?: string | null
+  isActive?: boolean
 }
 
 export interface AdminPaymentSummary {
@@ -532,7 +580,8 @@ export interface MonthlyPaymentEnrollment {
   id: string
   kind: EnrollmentKind
   status: EnrollmentStatus
-  rollNumber: string | null
+  idNumber: string | null
+  isFullyPaid: boolean
   courseTitle: string
   batchTitle: string | null
   courseId: string | null
@@ -543,7 +592,7 @@ export interface MonthlyPaymentStudent {
   id: string
   name: string
   phone: string
-  rollNumber: string | null
+  idNumber: string | null
 }
 
 export interface MonthlyPaymentRecord {
@@ -560,7 +609,7 @@ export interface MonthlyPaymentRecord {
 
 export interface EnrollmentPaymentHistoryItem {
   id: string
-  type: 'MONTHLY' | 'ENROLLMENT'
+  type: 'MONTHLY' | 'ENROLLMENT' | 'FULL'
   billingMonth: string | null
   amountMinor: number
   status: string
@@ -575,6 +624,7 @@ export interface EnrollmentPaymentHistory {
   isPastDeadline: boolean
   isAccessBlocked: boolean
   isCurrentMonthPaid: boolean
+  isFullyPaid: boolean
   canRequestCurrentMonth: boolean
   currentMonthRequest: MonthlyPaymentRecord | null
   whatsappUrl: string
@@ -623,6 +673,8 @@ export enum ProductType {
   BOOK = 'BOOK',
   NOTES = 'NOTES',
   QUESTION_BANK = 'QUESTION_BANK',
+  MATH_SUGGESTION = 'MATH_SUGGESTION',
+  THEORY_SUGGESTION = 'THEORY_SUGGESTION',
   OTHER = 'OTHER',
 }
 
@@ -662,11 +714,11 @@ export interface ResourceSubmissionRecord {
     id: string
     name: string
     phone: string
-    rollNumber: string | null
+    idNumber: string | null
   }
   enrollment: {
     id: string
-    rollNumber: string | null
+    idNumber: string | null
     courseTitle: string
     batchTitle: string | null
   }

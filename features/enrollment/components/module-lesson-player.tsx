@@ -26,13 +26,9 @@ function formatDuration(seconds: number | null | undefined): string {
 
 function formatLectureDate(iso: string | null | undefined): string {
   if (!iso) return ""
-  const [year, month, day] = iso.split("-").map(Number)
-  if (!year || !month || !day) return iso
-  return new Date(year, month - 1, day).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  })
+  const match = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (!match) return iso
+  return `${match[3]}/${match[2]}/${match[1]}`
 }
 
 function LessonRow({
@@ -61,7 +57,7 @@ function LessonRow({
           ) : null}
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          {lesson.durationS ? (
+          {lesson.type === LessonType.RECORDED && lesson.durationS ? (
             <span className="text-xs text-muted-foreground">
               {formatDuration(lesson.durationS)}
             </span>

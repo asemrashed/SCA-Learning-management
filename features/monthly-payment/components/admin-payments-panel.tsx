@@ -34,9 +34,21 @@ import { formatBdtMinor } from "@/lib/format-currency"
 import { DeliveryMode, EnrollmentKind, MonthlyPaymentStatus } from "@/types/api"
 
 function formatBillingMonth(billingMonth: string): string {
+  if (billingMonth === "ENROLLMENT") return "Enrollment"
   const [year, month] = billingMonth.split("-")
   const date = new Date(Number(year), Number(month) - 1, 1)
   return date.toLocaleDateString("en-GB", { month: "long", year: "numeric" })
+}
+
+function paymentStatusLabel(item: {
+  billingMonth: string
+  status: MonthlyPaymentStatus
+  enrollment: { isFullyPaid: boolean }
+}): string {
+  if (item.enrollment.isFullyPaid && item.billingMonth === "ENROLLMENT") {
+    return "Full paid"
+  }
+  return item.status
 }
 
 function currentBillingMonthLabel(): string {
@@ -203,7 +215,7 @@ export function AdminPaymentsPanel({
 
       <Input
         className="w-full sm:flex-1"
-        placeholder="Search name, phone, roll, or ID"
+        placeholder="Search name, phone, or ID"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
       />
@@ -269,7 +281,7 @@ export function AdminPaymentsPanel({
                       <div className="font-medium">{item.student.name}</div>
                       <div className="text-xs text-muted-foreground">
                         {item.student.phone}
-                        {item.student.rollNumber ? ` · Roll ${item.student.rollNumber}` : ""}
+                        {item.student.idNumber ? ` · ID ${item.student.idNumber}` : ""}
                       </div>
                     </td>
                     <td className="px-4 py-3">{productTitle(item)}</td>
@@ -283,7 +295,15 @@ export function AdminPaymentsPanel({
                       {item.amountMinor != null ? formatBdtMinor(item.amountMinor) : "—"}
                     </td>
                     <td className="px-4 py-3">
-                      <Badge>{item.status}</Badge>
+                      <Badge
+                        variant={
+                          item.enrollment.isFullyPaid && item.billingMonth === "ENROLLMENT"
+                            ? "default"
+                            : "secondary"
+                        }
+                      >
+                        {paymentStatusLabel(item)}
+                      </Badge>
                     </td>
                     <td className="px-4 py-3">
                       <TableRowActions
@@ -355,7 +375,7 @@ export function AdminPaymentsPanel({
                       <div className="font-medium">{item.student.name}</div>
                       <div className="text-xs text-muted-foreground">
                         {item.student.phone}
-                        {item.student.rollNumber ? ` · Roll ${item.student.rollNumber}` : ""}
+                        {item.student.idNumber ? ` · ID ${item.student.idNumber}` : ""}
                       </div>
                     </td>
                     <td className="px-4 py-3">{productTitle(item)}</td>

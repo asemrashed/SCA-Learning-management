@@ -25,9 +25,14 @@ import {
   useApplyBatchCurriculumMutation,
   useCreateCourseMutation,
   useGetCourseQuery,
+  useListCoursesQuery,
   useUpdateCourseMutation,
 } from "@/features/course/api"
-import { useCreateBatchUnderCourseMutation, useGetBatchCurriculumQuery } from "@/features/batch/api"
+import {
+  useCreateBatchUnderCourseMutation,
+  useGetBatchCurriculumQuery,
+  useListBatchesByCourseQuery,
+} from "@/features/batch/api"
 import { fromDatetimeLocal } from "@/features/batch/datetime-local"
 import { useListCategoriesQuery } from "@/features/category/api"
 import {
@@ -82,6 +87,10 @@ export function CourseAdminForm({ courseId }: CourseAdminFormProps) {
   const [applyBatchIds, setApplyBatchIds] = useState<string[]>([])
   const [showPreBatchCurriculum, setShowPreBatchCurriculum] = useState(false)
   const [sourceBatchId, setSourceBatchId] = useState("")
+  const [showPreviousCurriculum, setShowPreviousCurriculum] = useState(false)
+  const [copySourceCourseId, setCopySourceCourseId] = useState("")
+  const [copySourceBatchId, setCopySourceBatchId] = useState("")
+  const [copySourceSubjectId, setCopySourceSubjectId] = useState("")
   const [faq, setFaq] = useState<CourseFaqItem[]>([])
   const [error, setError] = useState<string | null>(null)
   const [formReady, setFormReady] = useState(!isEdit)
@@ -91,6 +100,31 @@ export function CourseAdminForm({ courseId }: CourseAdminFormProps) {
     sort: "order:asc",
   })
   const categoryOptions = categoriesData?.data ?? []
+
+  const { data: allCoursesData } = useListCoursesQuery(
+    { pageSize: 100, sort: "title:asc" },
+    { skip: !showPreviousCurriculum },
+  )
+  const copySourceCourses = (allCoursesData?.data ?? []).filter((c) => c.id !== courseId)
+  const selectedCopyCourse = copySourceCourses.find((c) => c.id === copySourceCourseId)
+  const copySourceIsLive = selectedCopyCourse?.deliveryMode === DeliveryMode.LIVE
+  const { data: copySourceBatchesData } = useListBatchesByCourseQuery(copySourceCourseId, {
+    skip: !copySourceCourseId || !copySourceIsLive,
+  })
+  const copySourceBatches = copySourceBatchesData?.data ?? []
+  const { data: copySourceCurriculumData } = useGetBatchCurriculumQuery(copySourceBatchId, {
+    skip: !copySourceBatchId || !copySourceIsLive,
+  })
+  const copySourceSubjects = copySourceCurriculumData?.data ?? []
+
+  const recordedCopySource =
+    showPreviousCurriculum && copySourceCourseId && selectedCopyCourse
+      ? copySourceIsLive
+        ? copySourceBatchId && copySourceSubjectId
+          ? { batchId: copySourceBatchId, subjectId: copySourceSubjectId }
+          : undefined
+        : { courseId: copySourceCourseId }
+      : undefined
 
   const courseBatches = data?.data?.batches ?? []
   const sourceBatchOptions = courseBatches.filter((b) => b.id !== primaryBatchId)
@@ -548,7 +582,121 @@ export function CourseAdminForm({ courseId }: CourseAdminFormProps) {
           )}
         </div>
       ) : (
-        <ModulesEditor modules={modules} onChange={setModules} />
+        <div className="space-y-4">
+          <div className="space-y-4 rounded-xl border bg-card p-6">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3 className="text-base font-semibold">Curriculum</h3>
+                <p className="text-sm text-muted-foreground">
+                  Add chapters and lessons. Optionally copy titles from a previous live batch or
+                  recorded course (e.g. when publishing a finished live program as recorded).
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant={showPreviousCurriculum ? "default" : "outline"}
+                size="sm"
+                onClick={() => {
+                  setShowPreviousCurriculum((v) => {
+                    const next = !v
+                    if (!next) {
+                      setCopySourceCourseId("")
+                      setCopySourceBatchId("")
+                      setCopySourceSubjectId("")
+                    }
+                    return next
+                  })
+                }}
+              >
+                Show previous curriculum
+              </Button>
+            </div>
+            {showPreviousCurriculum ? (
+              <div className="grid gap-3 rounded-lg border border-dashed bg-muted/30 p-4 sm:grid-cols-2">
+                <div className="space-y-2 sm:col-span-2">
+                  <Label>Copy from course</Label>
+                  <Select
+                    value={copySourceCourseId || "none"}
+                    onValueChange={(v) => {
+                      setCopySourceCourseId(v === "none" ? "" : v)
+                      setCopySourceBatchId("")
+                      setCopySourceSubjectId("")
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select course" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Select course</SelectItem>
+                      {copySourceCourses.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.title} ({deliveryModeLabel(c.deliveryMode)})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {copySourceIsLive ? (
+                  <>
+                    <div className="space-y-2">
+                      <Label>Batch</Label>
+                      <Select
+                        value={copySourceBatchId || "none"}
+                        onValueChange={(v) => {
+                          setCopySourceBatchId(v === "none" ? "" : v)
+                          setCopySourceSubjectId("")
+                        }}
+                        disabled={!copySourceCourseId}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select batch" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Select batch</SelectItem>
+                          {copySourceBatches.map((b) => (
+                            <SelectItem key={b.id} value={b.id}>
+                              {b.title}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Subject</Label>
+                      <Select
+                        value={copySourceSubjectId || "none"}
+                        onValueChange={(v) => setCopySourceSubjectId(v === "none" ? "" : v)}
+                        disabled={!copySourceBatchId}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select subject" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Select subject</SelectItem>
+                          {copySourceSubjects.map((s) => (
+                            <SelectItem key={s.id} value={s.id}>
+                              {s.title}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </>
+                ) : null}
+                <p className="text-xs text-muted-foreground sm:col-span-2">
+                  When adding a chapter or lesson below, you can copy names from this source. For a
+                  live course, pick the subject whose chapters become this recorded curriculum.
+                </p>
+              </div>
+            ) : null}
+          </div>
+          <ModulesEditor
+            modules={modules}
+            onChange={setModules}
+            showPreviousCurriculum={Boolean(recordedCopySource)}
+            copySource={recordedCopySource}
+          />
+        </div>
       )}
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}

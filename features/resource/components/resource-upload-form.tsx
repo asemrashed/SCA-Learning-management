@@ -22,6 +22,7 @@ import {
   useCreateResourceMutation,
   useUpdateResourceMutation,
 } from "@/features/resource/api"
+import { PreviousResourcesPanel } from "@/features/resource/components/previous-resources-panel"
 import { getApiErrorMessage } from "@/lib/get-api-error-message"
 import { BATCH, CHAPTER } from "@/lib/product-vocabulary"
 import {
@@ -268,6 +269,34 @@ export function ResourceForm({
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
       {success ? <p className="text-sm text-green-700">{success}</p> : null}
+
+      {!isEdit ? (
+        <PreviousResourcesPanel
+          targetCourseId={courseIdForQuery}
+          targetPlacement={placement}
+          defaultCategory={category}
+          lockCategory={lockCategory}
+          isLiveTarget={isLive}
+          onLinked={() => {
+            setSuccess("Resource linked from previous file.")
+            onSuccess?.()
+          }}
+          onUseFile={(resource) => {
+            const fileUrl = resource.fileUrl?.trim()
+            if (!fileUrl) {
+              setError("That resource has no file URL to link.")
+              return
+            }
+            setTitle(resource.title)
+            setFileUrl(fileUrl)
+            setFileType((resource.fileType as "pdf" | "slide" | "link") ?? "pdf")
+            if (!lockCategory) {
+              setCategory(resource.category)
+            }
+            setSuccess("File linked — adjust placement and save.")
+          }}
+        />
+      ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2 sm:col-span-2">

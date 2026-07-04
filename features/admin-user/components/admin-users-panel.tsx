@@ -22,7 +22,7 @@ export function AdminUsersPanel() {
   const [updateUser] = useUpdateAdminUserMutation()
 
   const [name, setName] = useState("")
-  const [phone, setPhone] = useState("+880")
+  const [phone, setPhone] = useState("")
   const [password, setPassword] = useState("")
   const [formError, setFormError] = useState<string | null>(null)
 
@@ -34,7 +34,7 @@ export function AdminUsersPanel() {
     try {
       await createUser({ name, phone, password, role: Role.ADMIN }).unwrap()
       setName("")
-      setPhone("+880")
+      setPhone("")
       setPassword("")
     } catch (err: unknown) {
       const apiErr = err as { data?: { error?: { message?: string } } }
@@ -56,6 +56,7 @@ export function AdminUsersPanel() {
             id="admin-phone"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
+            placeholder="01XXXXXXXXX"
             required
           />
         </div>

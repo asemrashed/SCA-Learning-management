@@ -100,7 +100,7 @@ export function BatchManageList() {
         <div>
           <h1 className="text-2xl font-bold">{BATCHES}</h1>
           <p className="text-sm text-muted-foreground">
-            Yearly cohorts under live courses — schedule, price, and live sessions
+            Yearly cohorts under live courses — curriculum, schedule, and pricing
           </p>
         </div>
         {canCreateDelete ? (
@@ -231,7 +231,6 @@ export function BatchManageList() {
                       actions={[
                         { label: "Edit", href: `${BATCH_BASE}/${batch.id}/edit` },
                         { label: "View", href: `${BATCH_BASE}/${batch.id}` },
-                        { label: "Live", href: `${BATCH_BASE}/${batch.id}/live` },
                         {
                           label: "Delete",
                           destructive: true,

@@ -44,11 +44,17 @@ function formatBillingMonth(billingMonth: string): string {
 }
 
 function historyLabel(item: {
-  type: "MONTHLY" | "ENROLLMENT"
+  type: "MONTHLY" | "ENROLLMENT" | "FULL"
   billingMonth: string | null
 }): string {
+  if (item.type === "FULL") return "Full payment"
   if (item.type === "ENROLLMENT") return "Enrollment fee"
   return item.billingMonth ? formatBillingMonth(item.billingMonth) : "Monthly fee"
+}
+
+function historyStatusLabel(status: string): string {
+  if (status === "FULL_PAID") return "Full paid"
+  return status
 }
 
 function enrollmentTitle(enrollment: {
@@ -97,8 +103,9 @@ export function CoursePaymentHistory({ enrollmentId }: { enrollmentId: string })
 
   const currentRequest = history.currentMonthRequest
   const showPayButton =
-    history.canRequestCurrentMonth ||
-    currentRequest?.status === MonthlyPaymentStatus.REQUESTED
+    !history.isFullyPaid &&
+    (history.canRequestCurrentMonth ||
+      currentRequest?.status === MonthlyPaymentStatus.REQUESTED)
 
   return (
     <StudentPageShell title={productTitle}>
@@ -107,38 +114,50 @@ export function CoursePaymentHistory({ enrollmentId }: { enrollmentId: string })
       <div className="mb-6 rounded-xl border bg-card p-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-sm text-muted-foreground">Current billing period</p>
-            <p className="text-lg font-semibold">
-              {formatBillingMonth(history.currentBillingMonth)}
-            </p>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Payment deadline:{" "}
-              <span className="font-medium text-foreground">
-                {formatDeadline(history.paymentDeadline)}
-              </span>
-            </p>
-            {history.isAccessBlocked ? (
-              <p className="mt-2 text-sm font-medium text-destructive">
-                Course access is blocked until this month&apos;s fee is paid and approved.
-              </p>
-            ) : history.isPastDeadline ? null : !history.isCurrentMonthPaid ? (
-              <p className="mt-2 text-sm text-amber-700">
-                Pay by the deadline to keep uninterrupted course access.
-              </p>
-            ) : null}
-            {currentRequest?.status === MonthlyPaymentStatus.REQUESTED ? (
-              <p className="mt-1 text-sm text-amber-700">
-                Payment request sent — waiting for admin approval.
-              </p>
-            ) : currentRequest?.status === MonthlyPaymentStatus.APPROVED ? (
-              <p className="mt-1 text-sm text-emerald-700">
-                This month&apos;s fee is paid.
-              </p>
-            ) : currentRequest?.status === MonthlyPaymentStatus.REJECTED ? (
-              <p className="mt-1 text-sm text-destructive">
-                Last request was rejected. You can submit again.
-              </p>
-            ) : null}
+            {history.isFullyPaid ? (
+              <>
+                <p className="text-sm text-muted-foreground">Payment status</p>
+                <p className="text-lg font-semibold text-emerald-700">Full paid</p>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Full course fee received. Monthly payments are not required and access is not blocked.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-muted-foreground">Current billing period</p>
+                <p className="text-lg font-semibold">
+                  {formatBillingMonth(history.currentBillingMonth)}
+                </p>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Payment deadline:{" "}
+                  <span className="font-medium text-foreground">
+                    {formatDeadline(history.paymentDeadline)}
+                  </span>
+                </p>
+                {history.isAccessBlocked ? (
+                  <p className="mt-2 text-sm font-medium text-destructive">
+                    Course access is blocked until this month&apos;s fee is paid and approved.
+                  </p>
+                ) : history.isPastDeadline ? null : !history.isCurrentMonthPaid ? (
+                  <p className="mt-2 text-sm text-amber-700">
+                    Pay by the deadline to keep uninterrupted course access.
+                  </p>
+                ) : null}
+                {currentRequest?.status === MonthlyPaymentStatus.REQUESTED ? (
+                  <p className="mt-1 text-sm text-amber-700">
+                    Payment request sent — waiting for admin approval.
+                  </p>
+                ) : currentRequest?.status === MonthlyPaymentStatus.APPROVED ? (
+                  <p className="mt-1 text-sm text-emerald-700">
+                    This month&apos;s fee is paid.
+                  </p>
+                ) : currentRequest?.status === MonthlyPaymentStatus.REJECTED ? (
+                  <p className="mt-1 text-sm text-destructive">
+                    Last request was rejected. You can submit again.
+                  </p>
+                ) : null}
+              </>
+            )}
           </div>
           {showPayButton ? (
             <Button
@@ -152,9 +171,11 @@ export function CoursePaymentHistory({ enrollmentId }: { enrollmentId: string })
           ) : null}
         </div>
         {actionError ? <p className="mt-3 text-sm text-destructive">{actionError}</p> : null}
-        <p className="mt-3 text-xs text-muted-foreground">
-          Tap the button to send a payment request and open WhatsApp to contact the admin.
-        </p>
+        {!history.isFullyPaid ? (
+          <p className="mt-3 text-xs text-muted-foreground">
+            Tap the button to send a payment request and open WhatsApp to contact the admin.
+          </p>
+        ) : null}
       </div>
 
       {error ? (
@@ -189,13 +210,25 @@ export function CoursePaymentHistory({ enrollmentId }: { enrollmentId: string })
                   <TableCell className="font-medium">{historyLabel(item)}</TableCell>
                   <TableCell>
                     <Badge variant="secondary">
-                      {item.type === "ENROLLMENT" ? "Enrollment" : "Monthly"}
+                      {item.type === "FULL"
+                        ? "Full"
+                        : item.type === "ENROLLMENT"
+                          ? "Enrollment"
+                          : "Monthly"}
                     </Badge>
                   </TableCell>
                   <TableCell>{formatDate(item.paidAt ?? item.createdAt)}</TableCell>
                   <TableCell>
-                    <Badge variant={item.status === "APPROVED" || item.status === "PAID" ? "default" : "secondary"}>
-                      {item.status}
+                    <Badge
+                      variant={
+                        item.status === "APPROVED" ||
+                        item.status === "PAID" ||
+                        item.status === "FULL_PAID"
+                          ? "default"
+                          : "secondary"
+                      }
+                    >
+                      {historyStatusLabel(item.status)}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">{formatBdtMinor(item.amountMinor)}</TableCell>
@@ -212,10 +245,10 @@ export function CoursePaymentHistory({ enrollmentId }: { enrollmentId: string })
           {history.enrollment.courseTitle}
           {history.enrollment.batchTitle ? ` · ${history.enrollment.batchTitle}` : ""}
         </span>
-        {history.enrollment.rollNumber ? (
+        {history.enrollment.idNumber ? (
           <>
             {" "}
-            · Roll <span className="font-medium text-foreground">{history.enrollment.rollNumber}</span>
+            · ID <span className="font-medium text-foreground">{history.enrollment.idNumber}</span>
           </>
         ) : null}
       </p>

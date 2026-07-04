@@ -111,8 +111,8 @@ export function EnrollButton({ batchId, courseId, productTitle, className }: Enr
           <Check className="mr-2 h-5 w-5" />
           Enrolled
         </Button>
-        {existing.rollNumber ? (
-          <p className="mt-2 text-sm text-muted-foreground">Roll: {existing.rollNumber}</p>
+        {existing.idNumber ? (
+          <p className="mt-2 text-sm text-muted-foreground">ID: {existing.idNumber}</p>
         ) : null}
         <p className="mt-2">
           <Link
@@ -134,7 +134,7 @@ export function EnrollButton({ batchId, courseId, productTitle, className }: Enr
           Request submitted
         </Button>
         <p className="mt-2 text-sm text-muted-foreground">
-          An admin will review your request and assign your roll number.
+          An admin will review your request and assign your ID.
         </p>
         {error ? <p className="mt-2 text-sm text-destructive">{error}</p> : null}
       </div>

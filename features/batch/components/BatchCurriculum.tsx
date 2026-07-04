@@ -8,6 +8,7 @@ import { VideoModal, type PreviewLesson } from "@/components/video-modal"
 import { isPreviewableLesson } from "@/features/enrollment/lib/lesson-view"
 import { formatDuration } from "@/features/batch/utils"
 import type { CourseLesson, CourseSubject } from "@/types/api"
+import { LessonType } from "@/types/api"
 import { CHAPTERS } from "@/lib/product-vocabulary"
 
 interface BatchCurriculumProps {
@@ -41,8 +42,12 @@ export function BatchCurriculum({ subjects, adminMode = false }: BatchCurriculum
       hasDocument: lesson.hasDocument,
       content: lesson.content ?? null,
       videoUrl: lesson.videoUrl ?? null,
+      joinUrl: lesson.joinUrl ?? null,
+      lectureDate: lesson.lectureDate ?? null,
     })
-    setPreviewDuration(formatDuration(lesson.durationS))
+    setPreviewDuration(
+      lesson.type === LessonType.RECORDED ? formatDuration(lesson.durationS) : "",
+    )
   }
 
   if (!subjects.length) {
@@ -107,7 +112,9 @@ export function BatchCurriculum({ subjects, adminMode = false }: BatchCurriculum
                               </div>
                               <div className="flex shrink-0 items-center gap-2 justify-between sm:justify-end sm:pl-0 pl-6">
                                 <span className="text-xs text-muted-foreground">
-                                  {formatDuration(lesson.durationS)}
+                                  {lesson.type === LessonType.RECORDED
+                                    ? formatDuration(lesson.durationS)
+                                    : ""}
                                 </span>
                                 {canOpen ? (
                                   <Button

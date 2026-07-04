@@ -39,8 +39,8 @@ export function StudentProfileView() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const rollNumber = enrollmentsData?.data?.find((e) => e.rollNumber)?.rollNumber ?? null
-  const studentId = user ? formatStudentId(rollNumber, user.id) : "—"
+  const idNumber = enrollmentsData?.data?.find((e) => e.idNumber)?.idNumber ?? null
+  const studentId = user ? formatStudentId(idNumber, user.id) : "—"
 
   const openEdit = () => {
     if (!user) return

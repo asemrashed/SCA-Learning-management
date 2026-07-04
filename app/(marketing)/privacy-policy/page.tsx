@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { MarketingPageHero } from "@/components/marketing-page-hero"
+import { BRAND_EMAIL } from "@/lib/brand"
 
 export const metadata = {
   title: "Privacy Policy | Sharif Commerce Academy",
@@ -98,7 +99,7 @@ export default function PrivacyPolicyPage() {
                   Your Rights & Choices
                 </h2>
                 <p className="text-muted-foreground text-sm leading-relaxed pl-10">
-                  You have the right to request access to the personal data we hold about you, request updates to outdated details, or ask us to deactivate your account. If you want to request data deletion, please contact us at support@sharifcommerceacademy.com. Note that certain financial records of transactions must be preserved for accounting and tax purposes.
+                  You have the right to request access to the personal data we hold about you, request updates to outdated details, or ask us to deactivate your account. If you want to request data deletion, please contact us at {BRAND_EMAIL}. Note that certain financial records of transactions must be preserved for accounting and tax purposes.
                 </p>
               </section>
 

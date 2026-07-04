@@ -13,14 +13,16 @@ import { useLoginMutation } from '@/features/auth/api'
 import { setCredentials } from '@/features/auth/authSlice'
 import { setSessionCookie } from '@/lib/auth-session'
 import { resolvePostLoginRedirect } from '@/lib/dashboard-nav'
+import { isBdE164Phone, normalizeBdPhone } from '@/lib/phone'
 
-const e164Phone = z
+const bdPhone = z
   .string()
   .trim()
-  .regex(/^\+8801[3-9]\d{8}$/, 'Use BD format: +8801XXXXXXXXX')
+  .min(1, 'WhatsApp number is required')
+  .refine((val) => isBdE164Phone(normalizeBdPhone(val)), 'Enter a valid BD mobile (01XXXXXXXXX)')
 
 const loginSchema = z.object({
-  phone: e164Phone,
+  phone: bdPhone,
   password: z.string().trim().min(1, 'Password is required'),
   remember: z.boolean().optional(),
 })
@@ -40,13 +42,16 @@ export function LoginForm() {
     formState: { errors },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { phone: '+880', remember: false },
+    defaultValues: { phone: '', remember: false },
   })
 
   const onSubmit = async (values: LoginFormValues) => {
     setErrorMessage(null)
     try {
-      const result = await login({ phone: values.phone, password: values.password }).unwrap()
+      const result = await login({
+        phone: normalizeBdPhone(values.phone),
+        password: values.password,
+      }).unwrap()
       dispatch(setCredentials({ accessToken: result.data.accessToken, user: result.data.user }))
       setSessionCookie(result.data.user.role)
       const nextParam = searchParams.get('next')
@@ -88,7 +93,7 @@ export function LoginForm() {
             id="phone"
             type="tel"
             autoComplete="tel"
-            placeholder="+8801712345678"
+            placeholder="01XXXXXXXXX"
             className="w-full rounded-lg border border-gray-300 px-4 py-3 text-secondary placeholder:text-gray-400 transition-all duration-200 ease-in-out focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary"
             {...register('phone')}
           />

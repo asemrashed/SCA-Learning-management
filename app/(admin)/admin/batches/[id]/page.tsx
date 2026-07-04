@@ -12,10 +12,7 @@ export default function AdminBatchDetailPage({
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
-      <BatchDashboardPreview
-        batchId={id}
-        liveManageHref={`/admin/batches/${id}/live`}
-      />
+      <BatchDashboardPreview batchId={id} />
     </div>
   )
 }

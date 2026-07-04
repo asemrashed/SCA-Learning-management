@@ -81,8 +81,8 @@ export function EnrollmentList({ kind }: EnrollmentListProps) {
             <div className="p-5">
               <p className="mb-1 text-xs text-muted-foreground">{subtitle}</p>
               <h3 className="mb-3 line-clamp-2 font-semibold">{title}</h3>
-              {item.rollNumber ? (
-                <p className="mb-4 text-sm text-muted-foreground">Roll: {item.rollNumber}</p>
+              {item.idNumber ? (
+                <p className="mb-4 text-sm text-muted-foreground">ID: {item.idNumber}</p>
               ) : null}
               {canPlay ? (
                 <Button className="w-full rounded-xl" asChild>

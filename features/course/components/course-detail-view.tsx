@@ -15,7 +15,7 @@ import { formatBdtMinor } from "@/lib/format-currency"
 import { CHAPTERS, BROWSE_COURSES, COURSE_CATALOG_HREF, deliveryModeLabel } from "@/lib/product-vocabulary"
 import type { CourseDetail, CourseLesson, CourseModule } from "@/types/api"
 import { CurriculumTree } from "./curriculum-tree"
-import { DeliveryMode } from "@/types/api"
+import { DeliveryMode, LessonType } from "@/types/api"
 import { formatBatchDate, BATCH_STATUS_LABEL } from "@/features/batch/utils"
 import { isPreviewableLesson } from "@/features/enrollment/lib/lesson-view"
 import { useGetCourseQuery } from "@/features/course/api"
@@ -360,9 +360,15 @@ function CourseDetailContent({ course }: { course: CourseDetail }) {
               hasDocument: previewLesson.hasDocument,
               content: previewLesson.content ?? null,
               videoUrl: previewLesson.videoUrl ?? null,
+              joinUrl: previewLesson.joinUrl ?? null,
+              lectureDate: previewLesson.lectureDate ?? null,
             }}
             title={previewLesson.title}
-            duration={formatLessonDuration(previewLesson.durationS)}
+            duration={
+              previewLesson.type === LessonType.RECORDED
+                ? formatLessonDuration(previewLesson.durationS)
+                : ""
+            }
           />
         ) : null}
       </div>

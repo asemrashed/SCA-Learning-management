@@ -11,6 +11,7 @@ import {
   Trophy,
 } from "lucide-react"
 import {
+  BRAND_ADDRESS,
   BRAND_NAME,
   BRAND_PHONE,
   BRAND_SUBTAGLINE,
@@ -357,7 +358,7 @@ export default function AboutPage() {
 
           <p className="mt-6 flex items-center justify-center gap-2 text-sm text-secondary-foreground/70">
             <MapPin className="h-4 w-4" />
-            Address: Saver, Dhaka
+            Address: {BRAND_ADDRESS}
           </p>
 
           <p className="mt-8 text-sm font-medium text-primary">

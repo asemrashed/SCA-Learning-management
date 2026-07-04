@@ -7,6 +7,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
+  CopyLessonPicker,
+  CopyModulePicker,
+  type CurriculumCopySource,
+} from "@/features/course/components/copy-from-batch-picker"
+import {
   LiveCurriculumModals,
   type LiveCurriculumModal,
 } from "@/features/course/components/live-curriculum-modals"
@@ -68,7 +73,7 @@ export function newModule(order: number): ModuleForm {
     key: formKey("module"),
     title: "",
     order,
-    lessons: [newLesson(0)],
+    lessons: [],
   }
 }
 
@@ -77,7 +82,7 @@ export function newSubject(order: number): SubjectForm {
     key: formKey("subject"),
     title: "",
     order,
-    modules: [newModule(0)],
+    modules: [],
   }
 }
 
@@ -137,7 +142,8 @@ export function SubjectsEditor({
         <div>
           <h2 className="text-lg font-semibold">Subjects, {CHAPTERS.toLowerCase()} & lessons</h2>
           <p className="text-sm text-muted-foreground">
-            Subject → {CHAPTER} → Lesson
+            Subject → {CHAPTER} → Lesson. Chapters can be saved without lessons so you can attach
+            lecture sheets and suggestions first.
           </p>
         </div>
         <Button
@@ -311,9 +317,20 @@ export function SubjectsEditor({
 interface ModulesEditorProps {
   modules: ModuleForm[]
   onChange: (modules: ModuleForm[]) => void
+  showPreviousCurriculum?: boolean
+  copySource?: CurriculumCopySource
 }
 
-export function ModulesEditor({ modules, onChange }: ModulesEditorProps) {
+export function ModulesEditor({
+  modules,
+  onChange,
+  showPreviousCurriculum = false,
+  copySource,
+}: ModulesEditorProps) {
+  const [moduleCopyPick, setModuleCopyPick] = useState<Record<string, string>>({})
+  const [lessonCopyPick, setLessonCopyPick] = useState<Record<string, string>>({})
+  const canCopy = showPreviousCurriculum && Boolean(copySource?.batchId || copySource?.courseId)
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -333,7 +350,21 @@ export function ModulesEditor({ modules, onChange }: ModulesEditorProps) {
         <div key={mod.key} className="space-y-3 rounded-xl border bg-card p-4">
           <div className="flex items-start gap-2">
             <div className="flex-1 space-y-2">
-              <Label>{CHAPTER} {mi + 1} title</Label>
+              {canCopy && copySource ? (
+                <CopyModulePicker
+                  source={copySource}
+                  value={moduleCopyPick[mod.key] ?? ""}
+                  onChange={(id, title) => {
+                    setModuleCopyPick((prev) => ({ ...prev, [mod.key]: id }))
+                    onChange(
+                      modules.map((m, i) => (i === mi ? { ...m, title } : m)),
+                    )
+                  }}
+                />
+              ) : null}
+              <Label>
+                {CHAPTER} {mi + 1} title
+              </Label>
               <Input
                 value={mod.title}
                 onChange={(e) =>
@@ -354,30 +385,42 @@ export function ModulesEditor({ modules, onChange }: ModulesEditorProps) {
             </Button>
           </div>
 
-          {mod.lessons.map((lesson, li) => (
-            <LessonRow
-              key={lesson.key}
-              showLectureDate
-              lesson={lesson}
-              onChange={(next) =>
-                onChange(
-                  modules.map((m, i) =>
-                    i === mi
-                      ? { ...m, lessons: m.lessons.map((l, j) => (j === li ? next : l)) }
-                      : m,
-                  ),
-                )
-              }
-              onRemove={() =>
-                onChange(
-                  modules.map((m, i) =>
-                    i === mi ? { ...m, lessons: m.lessons.filter((_, j) => j !== li) } : m,
-                  ),
-                )
-              }
-              canRemove={mod.lessons.length > 1}
-            />
-          ))}
+          {mod.lessons.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No lessons yet. You can save this {CHAPTER.toLowerCase()} and attach resources first.
+            </p>
+          ) : (
+            mod.lessons.map((lesson, li) => (
+              <LessonRow
+                key={lesson.key}
+                showLectureDate
+                lesson={lesson}
+                copySource={canCopy ? copySource : undefined}
+                copyPick={lessonCopyPick[lesson.key] ?? ""}
+                onCopyPick={(id) =>
+                  setLessonCopyPick((prev) => ({ ...prev, [lesson.key]: id }))
+                }
+                contextModuleTitle={mod.title}
+                onChange={(next) =>
+                  onChange(
+                    modules.map((m, i) =>
+                      i === mi
+                        ? { ...m, lessons: m.lessons.map((l, j) => (j === li ? next : l)) }
+                        : m,
+                    ),
+                  )
+                }
+                onRemove={() =>
+                  onChange(
+                    modules.map((m, i) =>
+                      i === mi ? { ...m, lessons: m.lessons.filter((_, j) => j !== li) } : m,
+                    ),
+                  )
+                }
+                canRemove
+              />
+            ))
+          )}
 
           <Button
             type="button"
@@ -406,12 +449,20 @@ function LessonRow({
   onRemove,
   canRemove,
   showLectureDate = false,
+  copySource,
+  copyPick = "",
+  onCopyPick,
+  contextModuleTitle = "",
 }: {
   lesson: LessonForm
   onChange: (lesson: LessonForm) => void
   onRemove: () => void
   canRemove: boolean
   showLectureDate?: boolean
+  copySource?: CurriculumCopySource
+  copyPick?: string
+  onCopyPick?: (id: string) => void
+  contextModuleTitle?: string
 }) {
   return (
     <div className="space-y-2 rounded-lg border border-dashed p-3">
@@ -421,6 +472,17 @@ function LessonRow({
           Remove
         </Button>
       </div>
+      {copySource ? (
+        <CopyLessonPicker
+          source={copySource}
+          contextModuleTitle={contextModuleTitle}
+          value={copyPick}
+          onChange={(fields) => {
+            onCopyPick?.("picked")
+            onChange({ ...lesson, ...fields })
+          }}
+        />
+      ) : null}
       <Input
         placeholder="Lesson title"
         value={lesson.title}
@@ -446,46 +508,50 @@ function LessonRow({
   )
 }
 
+function lessonToPayload(lesson: LessonForm, order: number) {
+  return {
+    title: lesson.title.trim(),
+    type: lesson.type,
+    order,
+    isPreview: lesson.isPreview,
+    videoUrl: lesson.videoUrl.trim() || null,
+    content: lesson.content.trim() || null,
+    durationS:
+      lesson.type === LessonType.RECORDED && lesson.durationS
+        ? Number(lesson.durationS)
+        : null,
+    ...(lesson.lectureDate.trim() ? { lectureDate: lesson.lectureDate.trim() } : {}),
+  }
+}
+
 export function subjectsToPayload(subjects: SubjectForm[]) {
-  return subjects.map((subject, si) => ({
-    title: subject.title,
-    order: si,
-    modules: subject.modules.map((mod, mi) => ({
-      title: mod.title,
-      order: mi,
-      lessons: mod.lessons.map((lesson, li) => ({
-        title: lesson.title,
-        type: lesson.type,
-        order: li,
-        isPreview: lesson.isPreview,
-        videoUrl: lesson.videoUrl.trim() || null,
-        content: lesson.content.trim() || null,
-        durationS: lesson.durationS ? Number(lesson.durationS) : null,
-        ...(lesson.lectureDate.trim()
-          ? { lectureDate: lesson.lectureDate.trim() }
-          : {}),
-      })),
-    })),
-  }))
+  return subjects
+    .filter((subject) => subject.title.trim())
+    .map((subject, si) => ({
+      title: subject.title.trim(),
+      order: si,
+      modules: subject.modules
+        .filter((mod) => mod.title.trim())
+        .map((mod, mi) => ({
+          title: mod.title.trim(),
+          order: mi,
+          lessons: mod.lessons
+            .filter((lesson) => lesson.title.trim())
+            .map((lesson, li) => lessonToPayload(lesson, li)),
+        })),
+    }))
 }
 
 export function modulesToPayload(modules: ModuleForm[]) {
-  return modules.map((mod, mi) => ({
-    title: mod.title,
-    order: mi,
-    lessons: mod.lessons.map((lesson, li) => ({
-      title: lesson.title,
-      type: lesson.type,
-      order: li,
-      isPreview: lesson.isPreview,
-      videoUrl: lesson.videoUrl.trim() || null,
-      content: lesson.content.trim() || null,
-      durationS: lesson.durationS ? Number(lesson.durationS) : null,
-      ...(lesson.lectureDate.trim()
-        ? { lectureDate: lesson.lectureDate.trim() }
-        : {}),
-    })),
-  }))
+  return modules
+    .filter((mod) => mod.title.trim())
+    .map((mod, mi) => ({
+      title: mod.title.trim(),
+      order: mi,
+      lessons: mod.lessons
+        .filter((lesson) => lesson.title.trim())
+        .map((lesson, li) => lessonToPayload(lesson, li)),
+    }))
 }
 
 export function subjectsFromApi(
@@ -513,24 +579,22 @@ export function subjectsFromApi(
     key: formKey("subject"),
     title: subject.title,
     order: subject.order,
-    modules: (subject.modules?.length ? subject.modules : [{ title: "", order: 0, lessons: [] }]).map(
-      (mod) => ({
-        key: formKey("module"),
-        title: mod.title,
-        order: mod.order,
-        lessons: (mod.lessons?.length ? mod.lessons : [{ title: "", order: 0 }]).map((lesson) => ({
-          key: formKey("lesson"),
-          title: lesson.title,
-          type: lesson.type ?? LessonType.RECORDED,
-          order: lesson.order ?? 0,
-          isPreview: lesson.isPreview ?? false,
-          videoUrl: lesson.videoUrl ?? "",
-          content: lesson.content ?? "",
-          durationS: lesson.durationS ?? null,
-          lectureDate: lesson.lectureDate ?? "",
-        })),
-      }),
-    ),
+    modules: (subject.modules ?? []).map((mod) => ({
+      key: formKey("module"),
+      title: mod.title,
+      order: mod.order,
+      lessons: (mod.lessons ?? []).map((lesson) => ({
+        key: formKey("lesson"),
+        title: lesson.title,
+        type: lesson.type ?? LessonType.RECORDED,
+        order: lesson.order ?? 0,
+        isPreview: lesson.isPreview ?? false,
+        videoUrl: lesson.videoUrl ?? "",
+        content: lesson.content ?? "",
+        durationS: lesson.durationS ?? null,
+        lectureDate: lesson.lectureDate ?? "",
+      })),
+    })),
   }))
 }
 

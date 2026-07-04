@@ -29,7 +29,7 @@ import { deliveryModeLabel } from "@/lib/product-vocabulary"
 import { DeliveryMode, type EnrollmentStudentSearchResult } from "@/types/api"
 import { cn } from "@/lib/utils"
 
-const DEFAULT_FIRST_MONTH_FEE_MAJOR = "1000"
+const DEFAULT_FIRST_MONTH_FEE_MAJOR = "1020"
 
 interface ManualEnrollmentDialogProps {
   open: boolean
@@ -78,6 +78,7 @@ function StudentSuggestions({
             <span className="mt-0.5 block text-xs text-muted-foreground">
               {student.phone}
               {student.email ? ` · ${student.email}` : ""}
+              {student.idNumber ? ` · ID ${student.idNumber}` : ""}
             </span>
           </button>
         </li>
@@ -91,7 +92,7 @@ export function ManualEnrollmentDialog({ open, onOpenChange }: ManualEnrollmentD
   const [name, setName] = useState("")
   const [phone, setPhone] = useState("")
   const [email, setEmail] = useState("")
-  const [rollNumber, setRollNumber] = useState("")
+  const [idNumber, setIdNumber] = useState("")
   const [enrollmentFee, setEnrollmentFee] = useState("")
   const [firstMonthFee, setFirstMonthFee] = useState(DEFAULT_FIRST_MONTH_FEE_MAJOR)
   const [billingStartMonth, setBillingStartMonth] = useState(currentBillingMonth())
@@ -138,7 +139,7 @@ export function ManualEnrollmentDialog({ open, onOpenChange }: ManualEnrollmentD
     setFormError(null)
     setStudentId(undefined)
     setNameSearch("")
-    setRollNumber("")
+    setIdNumber("")
     setEnrollmentFee("")
     setFirstMonthFee(DEFAULT_FIRST_MONTH_FEE_MAJOR)
     setBillingStartMonth(currentBillingMonth())
@@ -185,6 +186,7 @@ export function ManualEnrollmentDialog({ open, onOpenChange }: ManualEnrollmentD
     setName(student.name)
     setPhone(student.phone)
     setEmail(student.email ?? "")
+    setIdNumber(student.idNumber ?? "")
     setNameSearch(student.name)
     setShowNameSuggestions(false)
   }
@@ -208,8 +210,8 @@ export function ManualEnrollmentDialog({ open, onOpenChange }: ManualEnrollmentD
     event.preventDefault()
     setFormError(null)
 
-    if (!name.trim() || !phone.trim() || !rollNumber.trim()) {
-      setFormError("Name, phone, and roll number are required.")
+    if (!name.trim() || !phone.trim() || !idNumber.trim()) {
+      setFormError("Name, phone, and ID are required.")
       return
     }
     if (!courseId) {
@@ -244,7 +246,7 @@ export function ManualEnrollmentDialog({ open, onOpenChange }: ManualEnrollmentD
         name: name.trim(),
         phone: phone.trim(),
         email: email.trim() || undefined,
-        rollNumber: rollNumber.trim(),
+        idNumber: idNumber.trim(),
         ...(deliveryMode === DeliveryMode.LIVE
           ? { batchId, billingStartMonth, firstMonthFeeMinor }
           : { courseId, ...(enrollmentFeeMinor ? { enrollmentFeeMinor } : {}) }),
@@ -254,7 +256,7 @@ export function ManualEnrollmentDialog({ open, onOpenChange }: ManualEnrollmentD
       setName("")
       setPhone("")
       setEmail("")
-      setRollNumber("")
+      setIdNumber("")
       setEnrollmentFee("")
       setFirstMonthFee(DEFAULT_FIRST_MONTH_FEE_MAJOR)
       setBillingStartMonth(currentBillingMonth())
@@ -277,7 +279,7 @@ export function ManualEnrollmentDialog({ open, onOpenChange }: ManualEnrollmentD
           <DialogTitle>New enrollment</DialogTitle>
           <DialogDescription>
             Select the student, then the course or batch. Pricing appears after you choose the
-            product. Roll number is assigned uniquely by you.
+            product. ID is assigned uniquely by you.
           </DialogDescription>
         </DialogHeader>
 
@@ -315,7 +317,7 @@ export function ManualEnrollmentDialog({ open, onOpenChange }: ManualEnrollmentD
                   setPhone(e.target.value)
                   resetStudentSelection()
                 }}
-                placeholder="01XXXXXXXXX or +8801XXXXXXXXX"
+                placeholder="01XXXXXXXXX"
                 required
               />
             </div>
@@ -458,12 +460,12 @@ export function ManualEnrollmentDialog({ open, onOpenChange }: ManualEnrollmentD
           ) : null}
 
           <div className="space-y-2">
-            <Label htmlFor="manual-roll">Roll number</Label>
+            <Label htmlFor="manual-id">ID</Label>
             <Input
-              id="manual-roll"
-              value={rollNumber}
-              onChange={(e) => setRollNumber(e.target.value)}
-              placeholder="Enter unique roll number"
+              id="manual-id"
+              value={idNumber}
+              onChange={(e) => setIdNumber(e.target.value)}
+              placeholder="Enter unique ID"
               required
               autoComplete="off"
             />

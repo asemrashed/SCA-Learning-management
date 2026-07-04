@@ -13,7 +13,7 @@ import { EnrollmentRecordingsPanel } from "@/features/liveclass/components/enrol
 import { EnrollmentResourcesPanel } from "@/features/resource/components/enrollment-resources-panel"
 import { enrollmentCourseId } from "@/features/enrollment/curriculum"
 import type { EnrollmentDetail, EnrollmentLesson } from "@/types/api"
-import { EnrollmentKind } from "@/types/api"
+import { EnrollmentKind, LessonType } from "@/types/api"
 
 function formatDuration(seconds: number | null): string {
   if (!seconds) return ""
@@ -48,7 +48,7 @@ function LessonRow({
       <div className="flex items-center justify-between gap-2">
         <span>{lesson.title}</span>
         <div className="flex shrink-0 items-center gap-2">
-          {lesson.durationS ? (
+          {lesson.type === LessonType.RECORDED && lesson.durationS ? (
             <span className="text-xs text-muted-foreground">
               {formatDuration(lesson.durationS)}
             </span>
@@ -157,8 +157,8 @@ export function EnrollmentPlayer({ enrollmentId }: { enrollmentId: string }) {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">{title}</h1>
-        {detail.rollNumber ? (
-          <p className="mt-2 text-sm text-muted-foreground">Roll: {detail.rollNumber}</p>
+        {detail.idNumber ? (
+          <p className="mt-2 text-sm text-muted-foreground">ID: {detail.idNumber}</p>
         ) : null}
       </div>
 

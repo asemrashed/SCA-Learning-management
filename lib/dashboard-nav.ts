@@ -4,6 +4,7 @@ import {
   ClipboardList,
   CreditCard,
   FileText,
+  GraduationCap,
   Layers,
   LayoutDashboard,
   LayoutGrid,
@@ -86,6 +87,7 @@ export const superAdminShellNav: ShellNavGroup[] = [
     items: [
       { href: '/super-admin', label: 'Overview', icon: LayoutDashboard },
       { href: '/super-admin/users', label: 'Admins', icon: Users },
+      { href: '/super-admin/students', label: 'Students', icon: GraduationCap },
     ],
   },
   {

@@ -73,7 +73,7 @@ export function StudentCoursesTable() {
                       : item.course!.title
                   const enrollmentLabel =
                     item.kind === EnrollmentKind.BATCH
-                      ? `${item.batch!.title}${item.rollNumber ? ` · ${item.rollNumber}` : ""}`
+                      ? `${item.batch!.title}${item.idNumber ? ` · ${item.idNumber}` : ""}`
                       : deliveryModeLabel(DeliveryMode.RECORDED)
 
                   return (
@@ -114,7 +114,7 @@ export function StudentCoursesTable() {
                   : item.course!.title
               const enrollmentLabel =
                 item.kind === EnrollmentKind.BATCH
-                  ? `${item.batch!.title}${item.rollNumber ? ` · ${item.rollNumber}` : ""}`
+                  ? `${item.batch!.title}${item.idNumber ? ` · ${item.idNumber}` : ""}`
                   : deliveryModeLabel(DeliveryMode.RECORDED)
 
               return (

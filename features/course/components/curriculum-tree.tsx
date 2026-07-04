@@ -8,6 +8,7 @@ import {
   isPreviewableLesson,
 } from "@/features/enrollment/lib/lesson-view"
 import type { CourseLesson, CourseModule } from "@/types/api"
+import { LessonType } from "@/types/api"
 
 function formatDuration(seconds: number | null): string {
   if (!seconds) return ""
@@ -45,8 +46,12 @@ export function CurriculumTree({
       hasDocument: lesson.hasDocument,
       content: lesson.content ?? null,
       videoUrl: lesson.videoUrl ?? null,
+      joinUrl: lesson.joinUrl ?? null,
+      lectureDate: lesson.lectureDate ?? null,
     })
-    setPreviewDuration(formatDuration(lesson.durationS))
+    setPreviewDuration(
+      lesson.type === LessonType.RECORDED ? formatDuration(lesson.durationS) : "",
+    )
   }
 
   return (
@@ -72,7 +77,7 @@ export function CurriculumTree({
                       {lesson.title}
                     </span>
                     <div className="flex shrink-0 items-center gap-2 justify-between text-muted-foreground sm:justify-end">
-                      {lesson.durationS ? (
+                      {lesson.type === LessonType.RECORDED && lesson.durationS ? (
                         <span className="text-xs">{formatDuration(lesson.durationS)}</span>
                       ) : null}
                       {canOpen ? (

@@ -144,7 +144,6 @@ export function CourseDashboardPreview({
                               href: `/admin/courses/${course.id}/edit?batchId=${batch.id}`,
                             },
                             { label: "Edit", href: `/admin/batches/${batch.id}/edit` },
-                            { label: "Live", href: `/admin/batches/${batch.id}/live` },
                           ]}
                         />
                       </td>
