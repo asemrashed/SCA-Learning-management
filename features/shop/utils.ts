@@ -15,6 +15,17 @@ export const ORDER_STATUS_LABEL: Record<string, string> = {
   CANCELLED: 'Cancelled',
 }
 
+export const PRODUCT_ACCESS_STATUS_LABEL: Record<string, string> = {
+  ACTIVE: 'Active',
+  BLOCKED: 'Blocked',
+  WITHDRAWN: 'Withdrawn',
+}
+
+export const PRODUCT_ACCESS_SOURCE_LABEL: Record<string, string> = {
+  ORDER: 'Order',
+  MANUAL: 'Manual sale',
+}
+
 export function slugifyTitle(title: string): string {
   return title
     .toLowerCase()

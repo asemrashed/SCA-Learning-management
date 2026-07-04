@@ -47,9 +47,13 @@ const STATUS_FILTERS: { label: string; value: EnrollmentStatus | "ALL" }[] = [
 ]
 
 function productTitle(item: AdminEnrollmentRequest): string {
-  return item.kind === EnrollmentKind.BATCH
-    ? `${item.batch!.course.title} · ${item.batch!.title}`
-    : item.course!.title
+  if (item.kind === EnrollmentKind.BATCH) {
+    const courseTitle = item.batch?.course?.title
+    const batchTitle = item.batch?.title
+    if (courseTitle && batchTitle) return `${courseTitle} · ${batchTitle}`
+    return courseTitle ?? batchTitle ?? "Unknown batch"
+  }
+  return item.course?.title ?? "Unknown course"
 }
 
 function statusBadgeVariant(status: EnrollmentStatus): "default" | "secondary" | "destructive" | "outline" {

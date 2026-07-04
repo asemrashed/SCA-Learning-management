@@ -14,7 +14,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useListEnrollmentsQuery } from "@/features/enrollment/api"
-import { useUpdateMeMutation } from "@/features/auth/api"
+import { useUpdateMeMutation, useRequestPasswordResetMutation } from "@/features/auth/api"
 import { useUploadFileMutation } from "@/features/upload/api"
 import { setCredentials } from "@/features/auth/authSlice"
 import { useAuthQuerySkip } from "@/features/auth/hooks"
@@ -30,9 +30,11 @@ export function StudentProfileView() {
   const { data: enrollmentsData } = useListEnrollmentsQuery(undefined, { skip: skipAuth })
 
   const [updateMe, { isLoading: isSaving }] = useUpdateMeMutation()
+  const [requestPasswordReset, { isLoading: isSendingReset }] = useRequestPasswordResetMutation()
   const [uploadFile, { isLoading: isUploading }] = useUploadFileMutation()
 
   const [editOpen, setEditOpen] = useState(false)
+  const [passwordResetSent, setPasswordResetSent] = useState(false)
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
@@ -73,7 +75,7 @@ export function StudentProfileView() {
     try {
       const result = await updateMe({
         name: name.trim(),
-        email: email.trim() || null,
+        email: email.trim(),
         avatarUrl,
       }).unwrap()
 
@@ -86,6 +88,17 @@ export function StudentProfileView() {
       setEditOpen(false)
     } catch {
       // Error surfaced by RTK; keep modal open
+    }
+  }
+
+  const handleChangePassword = async () => {
+    if (!user?.email) return
+    setPasswordResetSent(false)
+    try {
+      await requestPasswordReset({ email: user.email }).unwrap()
+      setPasswordResetSent(true)
+    } catch {
+      // RTK surfaces error
     }
   }
 
@@ -137,6 +150,29 @@ export function StudentProfileView() {
             </tbody>
           </table>
         </div>
+
+        {user.email && (
+          <div className="mt-6 rounded-xl border p-4">
+            <h2 className="text-sm font-semibold text-secondary">Password</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              We will email a secure link to <span className="font-medium text-secondary">{user.email}</span> so you can set a new password.
+            </p>
+            {passwordResetSent && (
+              <p className="mt-3 text-sm text-primary">
+                Reset link sent. Check your inbox and spam folder.
+              </p>
+            )}
+            <Button
+              type="button"
+              variant="outline"
+              className="mt-4"
+              onClick={handleChangePassword}
+              disabled={isSendingReset}
+            >
+              {isSendingReset ? "Sending…" : "Change password"}
+            </Button>
+          </div>
+        )}
       </StudentPageShell>
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
@@ -192,6 +228,7 @@ export function StudentProfileView() {
               <Input
                 id="profile-email"
                 type="email"
+                required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />

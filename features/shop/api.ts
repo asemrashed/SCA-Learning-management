@@ -10,17 +10,28 @@ import type {
   ReviewOrderInput,
   OrderStatus,
   ProductDigitalAccess,
+  GrantManualProductAccessInput,
+  AdminProductAccessItem,
+  UpdateProductAccessInput,
 } from '@/types/api'
 import { baseQueryWithReauth } from '@/lib/apiClient'
 
 export const shopApi = createApi({
   reducerPath: 'shopApi',
   baseQuery: baseQueryWithReauth,
-  tagTypes: ['Product', 'ProductList', 'Order', 'OrderList'],
+  tagTypes: ['Product', 'ProductList', 'Order', 'OrderList', 'ProductAccess'],
   endpoints: (builder) => ({
     listProducts: builder.query<
       ProductListResponse,
-      { page?: number; pageSize?: number; search?: string; type?: ProductType; sort?: string }
+      {
+        page?: number
+        pageSize?: number
+        search?: string
+        type?: ProductType
+        sort?: string
+        dateFrom?: string
+        dateTo?: string
+      }
     >({
       query: (params) => ({ url: '/products', params }),
       providesTags: (result) =>
@@ -99,6 +110,47 @@ export const shopApi = createApi({
         { type: 'OrderList', id: 'LIST' },
       ],
     }),
+    listStudentProductAccess: builder.query<
+      { data: AdminProductAccessItem[] },
+      { studentId: string }
+    >({
+      query: (params) => ({
+        url: '/admin/product-access',
+        params,
+      }),
+      providesTags: (_r, _e, { studentId }) => [
+        { type: 'ProductAccess', id: studentId },
+      ],
+    }),
+    grantManualProductAccess: builder.mutation<
+      { data: AdminProductAccessItem[] },
+      GrantManualProductAccessInput
+    >({
+      query: (body) => ({
+        url: '/admin/product-access',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: (_r, _e, { studentId }) => [
+        { type: 'ProductAccess', id: studentId },
+        { type: 'OrderList', id: 'ADMIN' },
+        { type: 'OrderList', id: 'LIST' },
+        { type: 'ProductList', id: 'LIST' },
+      ],
+    }),
+    updateProductAccess: builder.mutation<
+      { data: AdminProductAccessItem },
+      { id: string; body: UpdateProductAccessInput; studentId: string }
+    >({
+      query: ({ id, body }) => ({
+        url: `/admin/product-access/${id}`,
+        method: 'PATCH',
+        body,
+      }),
+      invalidatesTags: (_r, _e, { studentId }) => [
+        { type: 'ProductAccess', id: studentId },
+      ],
+    }),
   }),
 })
 
@@ -114,4 +166,7 @@ export const {
   useGetOrderQuery,
   useListAdminOrderRequestsQuery,
   useReviewOrderRequestMutation,
+  useListStudentProductAccessQuery,
+  useGrantManualProductAccessMutation,
+  useUpdateProductAccessMutation,
 } = shopApi

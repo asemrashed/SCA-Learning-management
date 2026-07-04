@@ -53,6 +53,26 @@ export const authApi = createApi({
       }),
       invalidatesTags: ['Me'],
     }),
+    requestPasswordReset: builder.mutation<
+      { data: { message: string } },
+      { email: string }
+    >({
+      query: (body) => ({
+        url: '/auth/request-password-reset',
+        method: 'POST',
+        body,
+      }),
+    }),
+    resetPassword: builder.mutation<
+      { data: { success: true } },
+      { token: string; newPassword: string }
+    >({
+      query: (body) => ({
+        url: '/auth/reset-password',
+        method: 'POST',
+        body,
+      }),
+    }),
   }),
 })
 
@@ -63,4 +83,6 @@ export const {
   useRefreshMutation,
   useLogoutMutation,
   useUpdateMeMutation,
+  useRequestPasswordResetMutation,
+  useResetPasswordMutation,
 } = authApi

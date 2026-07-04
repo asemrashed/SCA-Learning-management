@@ -35,6 +35,7 @@ export function LoginForm() {
   const dispatch = useDispatch()
   const [login, { isLoading }] = useLoginMutation()
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const resetSuccess = searchParams.get('reset') === 'success'
 
   const {
     register,
@@ -85,6 +86,12 @@ export function LoginForm() {
       }
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        {resetSuccess && (
+          <p className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-secondary">
+            Your password has been updated. Sign in with your new password.
+          </p>
+        )}
+
         <div>
           <label htmlFor="phone" className="mb-2 block text-sm font-semibold text-secondary">
             WhatsApp number

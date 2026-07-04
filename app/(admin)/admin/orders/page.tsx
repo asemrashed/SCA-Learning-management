@@ -1,4 +1,4 @@
-import { OrderRequestsPanel } from "@/features/shop/components/order-requests-panel"
+import { ShopAdminPanel } from "@/features/shop/components/shop-admin-panel"
 
 export default function AdminOrdersPage() {
   return (
@@ -6,10 +6,11 @@ export default function AdminOrdersPage() {
       <div className="mb-8">
         <h1 className="text-2xl font-bold">Shop orders</h1>
         <p className="text-sm text-muted-foreground">
-          After a student pays on WhatsApp, confirm the sale here to mark the order complete.
+          Confirm student shop requests, sell products manually after phone payment, or check and
+          manage a student&apos;s product access.
         </p>
       </div>
-      <OrderRequestsPanel />
+      <ShopAdminPanel />
     </div>
   )
 }

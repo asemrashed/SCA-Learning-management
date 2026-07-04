@@ -684,6 +684,17 @@ export enum OrderStatus {
   CANCELLED = 'CANCELLED',
 }
 
+export enum ProductAccessStatus {
+  ACTIVE = 'ACTIVE',
+  BLOCKED = 'BLOCKED',
+  WITHDRAWN = 'WITHDRAWN',
+}
+
+export enum ProductAccessSource {
+  ORDER = 'ORDER',
+  MANUAL = 'MANUAL',
+}
+
 export enum ResourceCategory {
   GENERAL = 'GENERAL',
   LECTURE_SHEET = 'LECTURE_SHEET',
@@ -798,6 +809,7 @@ export interface ProductListItem {
   type: ProductType
   priceMinor: number
   isPublished: boolean
+  createdAt: string
 }
 
 export interface ProductListResponse {
@@ -871,6 +883,32 @@ export interface AdminOrderRequest extends OrderListItem {
 
 export interface ReviewOrderInput {
   action: 'confirm' | 'cancel'
+}
+
+export interface GrantManualProductAccessInput {
+  studentId: string
+  productIds: string[]
+}
+
+export interface AdminProductAccessItem {
+  id: string
+  status: ProductAccessStatus
+  source: ProductAccessSource
+  grantedAt: string
+  updatedAt: string
+  orderId: string | null
+  product: {
+    id: string
+    title: string
+    slug: string
+    type: ProductType
+    priceMinor: number
+    thumbnail: string | null
+  }
+}
+
+export interface UpdateProductAccessInput {
+  action: 'block' | 'unblock' | 'withdraw'
 }
 
 export enum ReviewStatus {
