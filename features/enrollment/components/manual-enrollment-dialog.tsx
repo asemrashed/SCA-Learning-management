@@ -26,6 +26,7 @@ import {
   useLazySearchEnrollmentStudentsQuery,
 } from "@/features/enrollment/api"
 import { deliveryModeLabel } from "@/lib/product-vocabulary"
+import { formatStudentId } from "@/lib/student-id"
 import { DeliveryMode, type EnrollmentStudentSearchResult } from "@/types/api"
 import { cn } from "@/lib/utils"
 
@@ -186,7 +187,7 @@ export function ManualEnrollmentDialog({ open, onOpenChange }: ManualEnrollmentD
     setName(student.name)
     setPhone(student.phone)
     setEmail(student.email ?? "")
-    setIdNumber(student.idNumber ?? "")
+    setIdNumber(formatStudentId(student.idNumber, student.id))
     setNameSearch(student.name)
     setShowNameSuggestions(false)
   }
@@ -210,8 +211,8 @@ export function ManualEnrollmentDialog({ open, onOpenChange }: ManualEnrollmentD
     event.preventDefault()
     setFormError(null)
 
-    if (!name.trim() || !phone.trim() || !idNumber.trim()) {
-      setFormError("Name, phone, and ID are required.")
+    if (!name.trim() || !phone.trim()) {
+      setFormError("Name and phone are required.")
       return
     }
     if (!courseId) {
@@ -246,7 +247,7 @@ export function ManualEnrollmentDialog({ open, onOpenChange }: ManualEnrollmentD
         name: name.trim(),
         phone: phone.trim(),
         email: email.trim() || undefined,
-        idNumber: idNumber.trim(),
+        idNumber: idNumber.trim() || undefined,
         ...(deliveryMode === DeliveryMode.LIVE
           ? { batchId, billingStartMonth, firstMonthFeeMinor }
           : { courseId, ...(enrollmentFeeMinor ? { enrollmentFeeMinor } : {}) }),
@@ -465,8 +466,7 @@ export function ManualEnrollmentDialog({ open, onOpenChange }: ManualEnrollmentD
               id="manual-id"
               value={idNumber}
               onChange={(e) => setIdNumber(e.target.value)}
-              placeholder="Enter unique ID"
-              required
+              placeholder="Auto-filled when student is selected"
               autoComplete="off"
             />
           </div>

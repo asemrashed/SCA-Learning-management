@@ -6,7 +6,7 @@ import { User } from "lucide-react"
 import { useSelector } from "react-redux"
 import type { RootState } from "@/store/rootReducer"
 import { formatStudentId } from "@/lib/student-id"
-import { useListEnrollmentsQuery } from "@/features/enrollment/api"
+import { useGetMeQuery } from "@/features/auth/api"
 import { useAuthQuerySkip } from "@/features/auth/hooks"
 
 interface StudentHeaderProps {
@@ -17,15 +17,15 @@ export function StudentHeader({ clientIp }: StudentHeaderProps) {
   const [mounted, setMounted] = useState(false)
   const user = useSelector((state: RootState) => state.auth.user)
   const skipAuth = useAuthQuerySkip()
-  const { data } = useListEnrollmentsQuery(undefined, { skip: skipAuth })
+  const { data: meData } = useGetMeQuery(undefined, { skip: skipAuth })
+  const displayUser = meData?.data ?? user
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
-  const idNumber = data?.data?.find((e) => e.idNumber)?.idNumber ?? null
-  const studentId = user ? formatStudentId(idNumber, user.id) : "—"
-  const displayName = mounted ? (user?.name ?? "Student") : "Student"
+  const studentId = displayUser ? formatStudentId(displayUser.idNumber, displayUser.id) : "—"
+  const displayName = mounted ? (displayUser?.name ?? "Student") : "Student"
   const studentIdDisplay = mounted ? studentId : "—"
 
   return (
@@ -33,8 +33,8 @@ export function StudentHeader({ clientIp }: StudentHeaderProps) {
       <div className="flex items-center justify-between gap-4">
         <div className="flex min-w-0 items-center gap-4">
           <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full border-2 border-sky-300 bg-sky-100">
-            {user?.avatarUrl ? (
-              <Image src={user.avatarUrl} alt={displayName} fill className="object-cover" />
+            {displayUser?.avatarUrl ? (
+              <Image src={displayUser.avatarUrl} alt={displayName} fill className="object-cover" />
             ) : (
               <div className="flex h-full w-full items-center justify-center">
                 <User className="h-7 w-7 text-sky-600" />

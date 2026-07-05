@@ -13,8 +13,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useListEnrollmentsQuery } from "@/features/enrollment/api"
-import { useUpdateMeMutation, useRequestPasswordResetMutation } from "@/features/auth/api"
+import { useUpdateMeMutation, useRequestPasswordResetMutation, useGetMeQuery } from "@/features/auth/api"
 import { useUploadFileMutation } from "@/features/upload/api"
 import { setCredentials } from "@/features/auth/authSlice"
 import { useAuthQuerySkip } from "@/features/auth/hooks"
@@ -27,7 +26,8 @@ export function StudentProfileView() {
   const user = useSelector((state: RootState) => state.auth.user)
   const accessToken = useSelector((state: RootState) => state.auth.accessToken)
   const skipAuth = useAuthQuerySkip()
-  const { data: enrollmentsData } = useListEnrollmentsQuery(undefined, { skip: skipAuth })
+  const { data: meData } = useGetMeQuery(undefined, { skip: skipAuth })
+  const profileUser = meData?.data ?? user
 
   const [updateMe, { isLoading: isSaving }] = useUpdateMeMutation()
   const [requestPasswordReset, { isLoading: isSendingReset }] = useRequestPasswordResetMutation()
@@ -41,15 +41,14 @@ export function StudentProfileView() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const idNumber = enrollmentsData?.data?.find((e) => e.idNumber)?.idNumber ?? null
-  const studentId = user ? formatStudentId(idNumber, user.id) : "—"
+  const studentId = profileUser ? formatStudentId(profileUser.idNumber, profileUser.id) : "—"
 
   const openEdit = () => {
-    if (!user) return
-    setName(user.name)
-    setEmail(user.email ?? "")
-    setAvatarPreview(user.avatarUrl)
-    setAvatarUrl(user.avatarUrl)
+    if (!profileUser) return
+    setName(profileUser.name)
+    setEmail(profileUser.email ?? "")
+    setAvatarPreview(profileUser.avatarUrl)
+    setAvatarUrl(profileUser.avatarUrl)
     setEditOpen(true)
   }
 

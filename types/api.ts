@@ -12,6 +12,7 @@ export interface User {
   email: string | null
   role: Role
   avatarUrl: string | null
+  idNumber: string | null
   createdAt: string
 }
 
@@ -293,7 +294,7 @@ export interface ManualEnrollmentInput {
   name: string
   phone: string
   email?: string
-  idNumber: string
+  idNumber?: string
   batchId?: string
   courseId?: string
   enrollmentFeeMinor?: number
