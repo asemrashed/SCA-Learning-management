@@ -19,7 +19,7 @@ const floatingIcons = [
 
 export function HeroSection() {
   return (
-    <section className={cn("relative text-white h-[95dvh] lg:h-[90dvh]", MARKETING_NAV_BLEED)}>
+    <section className={cn("relative text-white flex flex-col min-h-[95dvh] md:min-h-[80dvh] lg:min-h-[70dvh] xl:min-h-[90dvh]", MARKETING_NAV_BLEED)}>
       {/* Background image — object-top keeps torn bottom edge in view */}
       <div className="absolute inset-0 -bottom-8 md:-bottom-22 -top-20">
         <Image
@@ -44,13 +44,13 @@ export function HeroSection() {
       </div>
 
       {/* Content — extra bottom padding reveals the torn paper shape */}
-      <div className="container relative z-10 mx-auto px-4 pb-20 pt-28 mt-20 md:mt-0 h-full flex items-center justify-center lg:pb-26 lg:pt-40">
-        <div className="grid items-center gap-12 lg:grid-cols-2">
+      <div className="container relative z-10 mx-auto px-4 pb-20 pt-36 mt-20 md:mt-0 md:pt-40 flex-1 flex flex-col lg:pb-26 lg:pt-48">
+        <div className="my-auto mx-auto grid w-full max-w-6xl items-center gap-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-10">
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6 }}
-            className="text-center lg:text-left"
+            className="min-w-0 text-center lg:pl-6 lg:text-left xl:pl-10"
           >
             <h1 className="mb-6 text-balance text-4xl font-bold tracking-tight md:text-5xl lg:text-[3.25rem] lg:leading-[1.15]">
               {BRAND_SUBTAGLINE}

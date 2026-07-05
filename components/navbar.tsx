@@ -77,7 +77,7 @@ export function Navbar({ variant = "default" }: NavbarProps) {
       </div>
 
       {/* Right Side Actions */}
-      <div className="hidden items-center gap-2 md:flex md:gap-3">
+      <div className="hidden items-center gap-2 lg:flex lg:gap-3">
         {!isFloating && (
           <>
             <Button variant="ghost" size="icon" className="text-muted-foreground">

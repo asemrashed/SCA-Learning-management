@@ -1,23 +1,19 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { Loader2, Maximize2, Minimize2, X, ZoomIn, ZoomOut } from "lucide-react"
 import { useSelector } from "react-redux"
 import type { RootState } from "@/store/rootReducer"
-import { Button } from "@/components/ui/button"
+import { PdfViewerShell, PDF_ZOOM_MAX, PDF_ZOOM_MIN, PDF_ZOOM_STEP } from "@/components/pdf-viewer-shell"
 import { fetchResourceStream, fetchSubmissionResultStream } from "@/lib/fetch-resource-stream"
+import { buildWatermarkLabel } from "@/lib/build-watermark-label"
 import { renderPdfToCanvases } from "@/lib/load-pdfjs"
-import { cn } from "@/lib/utils"
 
 const PDF_RENDER_SCALE = 1.35
-const ZOOM_MIN = 0.8
-const ZOOM_MAX = 2.5
-const ZOOM_STEP = 0.15
 
 interface SecurePdfViewerProps {
   resourceId?: string
   submissionId?: string
-  submissionStream?: 'student' | 'admin'
+  submissionStream?: "student" | "admin"
   title: string
   onClose?: () => void
   className?: string
@@ -26,20 +22,19 @@ interface SecurePdfViewerProps {
 export function SecurePdfViewer({
   resourceId,
   submissionId,
-  submissionStream = 'student',
+  submissionStream = "student",
   title,
   onClose,
   className,
 }: SecurePdfViewerProps) {
   const accessToken = useSelector((state: RootState) => state.auth.accessToken)
   const user = useSelector((state: RootState) => state.auth.user)
-  const shellRef = useRef<HTMLDivElement>(null)
   const pagesRef = useRef<HTMLDivElement>(null)
-  const pdfDataRef = useRef<ArrayBuffer | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [zoom, setZoom] = useState(1)
-  const [isFullscreen, setIsFullscreen] = useState(false)
+
+  const watermarkLabel = buildWatermarkLabel(undefined, undefined, user?.name, user?.phone)
 
   const renderPages = useCallback(async (data: ArrayBuffer) => {
     if (!pagesRef.current) return
@@ -56,7 +51,6 @@ export function SecurePdfViewer({
     let cancelled = false
     setLoading(true)
     setError(null)
-    pdfDataRef.current = null
 
     async function load() {
       try {
@@ -65,7 +59,6 @@ export function SecurePdfViewer({
           : await fetchResourceStream(resourceId!, accessToken!)
         const buffer = await blob.arrayBuffer()
         if (cancelled) return
-        pdfDataRef.current = buffer
         await renderPages(buffer)
       } catch (err) {
         if (!cancelled) {
@@ -80,148 +73,29 @@ export function SecurePdfViewer({
 
     return () => {
       cancelled = true
-      pdfDataRef.current = null
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resourceId, submissionId, submissionStream, accessToken, renderPages])
 
-  useEffect(() => {
-    function onFullscreenChange() {
-      const fullscreen = document.fullscreenElement === shellRef.current
-      setIsFullscreen(fullscreen)
-      if (!fullscreen) setZoom(1)
-    }
-    document.addEventListener("fullscreenchange", onFullscreenChange)
-    return () => document.removeEventListener("fullscreenchange", onFullscreenChange)
-  }, [])
-
-  useEffect(() => {
-    const style = document.createElement("style")
-    style.setAttribute("data-secure-pdf-viewer", "print-block")
-    style.textContent =
-      "@media print { [data-secure-pdf-viewer] { display: none !important; visibility: hidden !important; } }"
-    document.head.appendChild(style)
-    return () => {
-      style.remove()
-    }
-  }, [])
-
-  const blockShortcuts = useCallback((e: KeyboardEvent) => {
-    if ((e.ctrlKey || e.metaKey) && ["s", "p", "c", "a"].includes(e.key.toLowerCase())) {
-      e.preventDefault()
-    }
-  }, [])
-
-  useEffect(() => {
-    const el = shellRef.current
-    if (!el) return
-    el.addEventListener("keydown", blockShortcuts)
-    return () => el.removeEventListener("keydown", blockShortcuts)
-  }, [blockShortcuts])
-
-  async function toggleFullscreen() {
-    const el = shellRef.current
-    if (!el) return
-    if (document.fullscreenElement === el) {
-      await document.exitFullscreen()
-    } else {
-      await el.requestFullscreen()
-    }
-  }
-
-  const watermark = user?.name ?? "Student"
-
   return (
-    <div
-      ref={shellRef}
-      tabIndex={-1}
-      data-secure-pdf-viewer=""
-      className={cn(
-        "relative flex min-h-[70vh] flex-col overflow-hidden rounded-xl border bg-muted/30",
-        isFullscreen && "min-h-screen rounded-none border-0",
-        className,
-      )}
-      onContextMenu={(e) => e.preventDefault()}
-      onCopy={(e) => e.preventDefault()}
-      onCut={(e) => e.preventDefault()}
-      style={{ userSelect: "none" }}
+    <PdfViewerShell
+      title={title}
+      loading={loading}
+      error={error}
+      zoom={zoom}
+      onZoomIn={() => setZoom((z) => Math.min(PDF_ZOOM_MAX, z + PDF_ZOOM_STEP))}
+      onZoomOut={() => setZoom((z) => Math.max(PDF_ZOOM_MIN, z - PDF_ZOOM_STEP))}
+      onClose={onClose}
+      watermarkLabel={watermarkLabel}
+      guardEnabled={!loading && !error}
+      dataAttribute="data-secure-pdf-viewer"
+      className={className}
     >
-      <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b bg-background px-3 py-2">
-        <p className="min-w-0 truncate text-sm font-medium">{title}</p>
-        <div className="flex shrink-0 items-center gap-1">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            aria-label="Zoom out"
-            onClick={() => setZoom((z) => Math.max(ZOOM_MIN, z - ZOOM_STEP))}
-          >
-            <ZoomOut className="h-4 w-4" />
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            aria-label="Zoom in"
-            onClick={() => setZoom((z) => Math.min(ZOOM_MAX, z + ZOOM_STEP))}
-          >
-            <ZoomIn className="h-4 w-4" />
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            aria-label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
-            onClick={() => void toggleFullscreen()}
-          >
-            {isFullscreen ? (
-              <Minimize2 className="h-4 w-4" />
-            ) : (
-              <Maximize2 className="h-4 w-4" />
-            )}
-          </Button>
-          {onClose ? (
-            <Button type="button" variant="ghost" size="icon" onClick={onClose} aria-label="Close">
-              <X className="h-4 w-4" />
-            </Button>
-          ) : null}
-        </div>
-      </div>
-
-      <div className="relative min-h-0 flex-1 overflow-auto bg-zinc-200/80 dark:bg-zinc-900/50">
-        {loading ? (
-          <div className="flex min-h-[50vh] items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </div>
-        ) : null}
-
-        {error ? (
-          <div className="flex min-h-[40vh] items-center justify-center p-6 text-center text-sm text-destructive">
-            {error}
-          </div>
-        ) : null}
-
-        <div
-          ref={pagesRef}
-          className="relative mx-auto max-w-4xl px-2 py-4"
-          style={{ zoom }}
-          onDragStart={(e) => e.preventDefault()}
-        />
-
-        {!loading && !error ? (
-          <div
-            className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center opacity-[0.08]"
-            aria-hidden
-          >
-            <p className="rotate-[-24deg] text-4xl font-bold">{watermark}</p>
-          </div>
-        ) : null}
-      </div>
-
-      <p className="shrink-0 border-t bg-background px-4 py-2 text-center text-xs text-muted-foreground">
-        View-only canvas preview — text selection, download, and printing are disabled. Screenshots
-        cannot be blocked on the web.
-      </p>
-    </div>
+      <div
+        ref={pagesRef}
+        className="relative mx-auto max-w-4xl px-2 py-4"
+        onDragStart={(e) => e.preventDefault()}
+      />
+    </PdfViewerShell>
   )
 }

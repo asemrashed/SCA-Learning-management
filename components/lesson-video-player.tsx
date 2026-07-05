@@ -9,6 +9,7 @@ import { NativeFileVideoPlayer } from "@/components/native-file-video-player"
 import { SecureLessonPlayer } from "@/components/secure-lesson-player"
 import { VimeoEmbedPlayer } from "@/components/vimeo-embed-player"
 import { YoutubeEmbedPlayer } from "@/components/youtube-embed-player"
+import { buildWatermarkLabel } from "@/lib/build-watermark-label"
 
 interface LessonVideoPlayerProps {
   title: string
@@ -20,18 +21,6 @@ interface LessonVideoPlayerProps {
   variant?: "default" | "modal"
   studentName?: string | null
   studentPhone?: string | null
-}
-
-function buildWatermarkLabel(
-  studentName?: string | null,
-  studentPhone?: string | null,
-  fallbackName?: string | null,
-  fallbackPhone?: string | null,
-): string | null {
-  const name = studentName ?? fallbackName
-  const phone = studentPhone ?? fallbackPhone
-  const label = [name, phone].filter(Boolean).join(" | ")
-  return label || null
 }
 
 export function LessonVideoPlayer({

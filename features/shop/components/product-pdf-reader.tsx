@@ -1,11 +1,12 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { Loader2, Lock, Maximize2, Minimize2, ZoomIn, ZoomOut } from "lucide-react"
+import { Loader2, Lock } from "lucide-react"
 import { useSelector } from "react-redux"
 import type { RootState } from "@/store/rootReducer"
-import { Button } from "@/components/ui/button"
+import { PdfViewerShell, PDF_ZOOM_MAX, PDF_ZOOM_MIN, PDF_ZOOM_STEP } from "@/components/pdf-viewer-shell"
 import { fetchProductStream } from "@/lib/fetch-product-stream"
+import { buildWatermarkLabel } from "@/lib/build-watermark-label"
 import { renderPdfToCanvases } from "@/lib/load-pdfjs"
 import { cn } from "@/lib/utils"
 import { useGetProductDigitalAccessQuery } from "@/features/shop/api"
@@ -16,9 +17,6 @@ import {
 } from "@/features/shop/components/buy-now-button"
 
 const PDF_RENDER_SCALE = 1.35
-const ZOOM_MIN = 0.8
-const ZOOM_MAX = 2.5
-const ZOOM_STEP = 0.15
 
 export interface ProductPdfReaderProps {
   idOrSlug: string
@@ -39,14 +37,13 @@ export function ProductPdfReader({
   hideBuySection = false,
 }: ProductPdfReaderProps) {
   const accessToken = useSelector((state: RootState) => state.auth.accessToken)
-  const shellRef = useRef<HTMLDivElement>(null)
+  const user = useSelector((state: RootState) => state.auth.user)
   const pagesRef = useRef<HTMLDivElement>(null)
   const pdfDataRef = useRef<ArrayBuffer | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [totalPages, setTotalPages] = useState(0)
   const [zoom, setZoom] = useState(1)
-  const [isFullscreen, setIsFullscreen] = useState(false)
   const [quantity, setQuantity] = useState(1)
 
   const { data: accessData, isLoading: accessLoading } = useGetProductDigitalAccessQuery(idOrSlug)
@@ -54,6 +51,8 @@ export function ProductPdfReader({
   const hasFullAccess = hideBuySection || Boolean(access?.hasFullAccess)
   const showBuyPrompt =
     !hideBuySection && !access?.hasFullAccess && (access?.freePreviewPages ?? 0) > 0
+
+  const watermarkLabel = buildWatermarkLabel(undefined, undefined, user?.name, user?.phone)
 
   const renderPages = useCallback(
     async (data: ArrayBuffer) => {
@@ -108,50 +107,6 @@ export function ProductPdfReader({
     renderPages,
   ])
 
-  useEffect(() => {
-    function onFullscreenChange() {
-      const fullscreen = document.fullscreenElement === shellRef.current
-      setIsFullscreen(fullscreen)
-      if (!fullscreen) setZoom(1)
-    }
-    document.addEventListener("fullscreenchange", onFullscreenChange)
-    return () => document.removeEventListener("fullscreenchange", onFullscreenChange)
-  }, [])
-
-  useEffect(() => {
-    const style = document.createElement("style")
-    style.setAttribute("data-product-pdf-viewer", "print-block")
-    style.textContent =
-      "@media print { [data-product-pdf-viewer] { display: none !important; visibility: hidden !important; } }"
-    document.head.appendChild(style)
-    return () => {
-      style.remove()
-    }
-  }, [])
-
-  const blockShortcuts = useCallback((e: KeyboardEvent) => {
-    if ((e.ctrlKey || e.metaKey) && ["s", "p", "c", "a"].includes(e.key.toLowerCase())) {
-      e.preventDefault()
-    }
-  }, [])
-
-  useEffect(() => {
-    const el = shellRef.current
-    if (!el) return
-    el.addEventListener("keydown", blockShortcuts)
-    return () => el.removeEventListener("keydown", blockShortcuts)
-  }, [blockShortcuts])
-
-  async function toggleFullscreen() {
-    const el = shellRef.current
-    if (!el) return
-    if (document.fullscreenElement === el) {
-      await document.exitFullscreen()
-    } else {
-      await el.requestFullscreen()
-    }
-  }
-
   if (accessLoading) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center rounded-xl border bg-muted/30">
@@ -168,100 +123,45 @@ export function ProductPdfReader({
     )
   }
 
+  const footerText = showBuyPrompt
+    ? `Free preview — ${access?.freePreviewPages} page${access?.freePreviewPages === 1 ? "" : "s"} shown. Purchase to read the full document.`
+    : undefined
+
   return (
     <div className={cn("space-y-4", className)}>
-      <div
-        ref={shellRef}
-        tabIndex={-1}
-        data-product-pdf-viewer=""
-        className={cn(
-          "relative flex min-h-[70vh] flex-col overflow-hidden rounded-xl border bg-muted/30",
-          isFullscreen && "min-h-screen rounded-none border-0",
-        )}
-        onContextMenu={(e) => e.preventDefault()}
-        onCopy={(e) => e.preventDefault()}
-        onCut={(e) => e.preventDefault()}
-        style={{ userSelect: "none" }}
+      <PdfViewerShell
+        title={title}
+        loading={loading}
+        error={error}
+        zoom={zoom}
+        onZoomIn={() => setZoom((z) => Math.min(PDF_ZOOM_MAX, z + PDF_ZOOM_STEP))}
+        onZoomOut={() => setZoom((z) => Math.max(PDF_ZOOM_MIN, z - PDF_ZOOM_STEP))}
+        footerText={footerText}
+        watermarkLabel={watermarkLabel}
+        guardEnabled={!loading && !error}
+        dataAttribute="data-product-pdf-viewer"
       >
-        <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b bg-background px-3 py-2">
-          <p className="min-w-0 truncate text-sm font-medium">{title}</p>
-          <div className="flex shrink-0 items-center gap-1">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              aria-label="Zoom out"
-              onClick={() => setZoom((z) => Math.max(ZOOM_MIN, z - ZOOM_STEP))}
-            >
-              <ZoomOut className="h-4 w-4" />
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              aria-label="Zoom in"
-              onClick={() => setZoom((z) => Math.min(ZOOM_MAX, z + ZOOM_STEP))}
-            >
-              <ZoomIn className="h-4 w-4" />
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              aria-label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
-              onClick={() => void toggleFullscreen()}
-            >
-              {isFullscreen ? (
-                <Minimize2 className="h-4 w-4" />
-              ) : (
-                <Maximize2 className="h-4 w-4" />
-              )}
-            </Button>
-          </div>
-        </div>
+        <div
+          ref={pagesRef}
+          className="relative mx-auto max-w-4xl px-2 py-4"
+          onDragStart={(e) => e.preventDefault()}
+        />
 
-        <div className="relative min-h-0 flex-1 overflow-auto bg-zinc-200/80 dark:bg-zinc-900/50">
-          {loading ? (
-            <div className="flex min-h-[50vh] items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          ) : null}
-
-          {error ? (
-            <div className="flex min-h-[40vh] items-center justify-center p-6 text-center text-sm text-destructive">
-              {error}
-            </div>
-          ) : null}
-
-          <div
-            ref={pagesRef}
-            className="relative mx-auto max-w-4xl px-2 py-4"
-            style={{ zoom }}
-            onDragStart={(e) => e.preventDefault()}
-          />
-
-          {!loading && !error && showBuyPrompt ? (
-            <div className="mx-auto max-w-4xl px-2 pb-4">
-              <div className="relative overflow-hidden rounded-lg border bg-background/80">
-                <div className="flex min-h-[220px] flex-col items-center justify-center gap-3 bg-muted/60 p-8 backdrop-blur-sm">
-                  <Lock className="h-8 w-8 text-muted-foreground" />
-                  <p className="text-center text-sm font-medium text-muted-foreground">
-                    {totalPages > (access?.freePreviewPages ?? 0)
-                      ? `${totalPages - Math.ceil(access?.freePreviewPages ?? 0)} more page${totalPages - Math.ceil(access?.freePreviewPages ?? 0) === 1 ? "" : "s"} locked`
-                      : "Remaining content is locked"}
-                  </p>
-                </div>
+        {!loading && !error && showBuyPrompt ? (
+          <div className="mx-auto max-w-4xl px-2 pb-4">
+            <div className="relative overflow-hidden rounded-lg border bg-background/80">
+              <div className="flex min-h-[220px] flex-col items-center justify-center gap-3 bg-muted/60 p-8 backdrop-blur-sm">
+                <Lock className="h-8 w-8 text-muted-foreground" />
+                <p className="text-center text-sm font-medium text-muted-foreground">
+                  {totalPages > (access?.freePreviewPages ?? 0)
+                    ? `${totalPages - Math.ceil(access?.freePreviewPages ?? 0)} more page${totalPages - Math.ceil(access?.freePreviewPages ?? 0) === 1 ? "" : "s"} locked`
+                    : "Remaining content is locked"}
+                </p>
               </div>
             </div>
-          ) : null}
-        </div>
-
-        <p className="shrink-0 border-t bg-background px-4 py-2 text-center text-xs text-muted-foreground">
-          {showBuyPrompt
-            ? `Free preview — ${access?.freePreviewPages} page${access?.freePreviewPages === 1 ? "" : "s"} shown. Purchase to read the full document.`
-            : "View-only canvas preview — text selection, download, and printing are disabled."}
-        </p>
-      </div>
+          </div>
+        ) : null}
+      </PdfViewerShell>
 
       {showBuyPrompt ? (
         <div className="rounded-xl border bg-muted/40 p-6">
