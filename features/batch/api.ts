@@ -85,10 +85,14 @@ export const batchApi = createApi({
         { type: 'BatchList', id: 'LIST' },
       ],
     }),
-    deleteBatch: builder.mutation<{ data: { success: boolean } }, string>({
+    deleteBatch: builder.mutation<
+      { data: { success: boolean; deletedResources?: number } },
+      string
+    >({
       query: (id) => ({
         url: `/batches/${id}`,
         method: 'DELETE',
+        body: { confirm: 'DELETE' },
       }),
       invalidatesTags: [{ type: 'BatchList', id: 'LIST' }],
     }),

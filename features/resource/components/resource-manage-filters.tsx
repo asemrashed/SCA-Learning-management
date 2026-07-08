@@ -1,5 +1,6 @@
 "use client"
 
+import { FilterPills } from "@/components/filter-pills"
 import { Input } from "@/components/ui/input"
 import {
   Select,
@@ -28,6 +29,14 @@ interface ResourceManageFiltersProps {
   onChange: (values: ResourceManageFilterValues) => void
 }
 
+const CATEGORY_OPTIONS = [
+  { value: "", label: "All categories" },
+  ...Array.from(CONTENT_RESOURCE_CATEGORIES).map((cat) => ({
+    value: cat,
+    label: RESOURCE_CATEGORY_LABELS[cat as ResourceCategory],
+  })),
+]
+
 export function ResourceManageFilters({ values, onChange }: ResourceManageFiltersProps) {
   const { courseId, batchId, subjectId, moduleId, category, search } = values
   const { data: coursesData } = useListCoursesQuery({ pageSize: 100 })
@@ -44,121 +53,136 @@ export function ResourceManageFilters({ values, onChange }: ResourceManageFilter
   }
 
   return (
-    <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center">
-      <Select
-        value={courseId || "all"}
-        onValueChange={(v) =>
-          patch({
-            courseId: v === "all" ? "" : v,
-            batchId: "",
-            subjectId: "",
-            moduleId: "",
-          })
-        }
-      >
-        <SelectTrigger className="w-full lg:w-[180px]">
-          <SelectValue placeholder={COURSE} />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All {COURSE.toLowerCase()}s</SelectItem>
-          {(coursesData?.data ?? []).map((course) => (
-            <SelectItem key={course.id} value={course.id}>
-              {course.title}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+    <div className="mb-6 space-y-4">
+      <div className="hidden lg:block">
+        <FilterPills
+          options={CATEGORY_OPTIONS}
+          value={category}
+          onChange={(nextCategory) => patch({ category: nextCategory })}
+        />
+      </div>
 
-      <Select
-        value={batchId || "all"}
-        onValueChange={(v) =>
-          patch({
-            batchId: v === "all" ? "" : v,
-            subjectId: "",
-            moduleId: "",
-          })
-        }
-        disabled={!courseId}
-      >
-        <SelectTrigger className="w-full lg:w-[180px]">
-          <SelectValue
-            placeholder={courseId ? `All ${BATCH.toLowerCase()}es` : `Select ${COURSE.toLowerCase()} first`}
-          />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All {BATCH.toLowerCase()}es</SelectItem>
-          {batches.map((batch) => (
-            <SelectItem key={batch.id} value={batch.id}>
-              {batch.title}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      <Select
-        value={subjectId || "all"}
-        onValueChange={(v) => patch({ subjectId: v === "all" ? "" : v, moduleId: "" })}
-        disabled={!batchId}
-      >
-        <SelectTrigger className="w-full lg:w-[180px]">
-          <SelectValue
-            placeholder={batchId ? "All subjects" : `Select ${BATCH.toLowerCase()} first`}
-          />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All subjects</SelectItem>
-          {subjects.map((subject) => (
-            <SelectItem key={subject.id} value={subject.id}>
-              {subject.title}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      {modules.length > 0 ? (
+      <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center">
         <Select
-          value={moduleId || "all"}
-          onValueChange={(v) => patch({ moduleId: v === "all" ? "" : v })}
-          disabled={!subjectId}
+          value={courseId || "all"}
+          onValueChange={(v) =>
+            patch({
+              courseId: v === "all" ? "" : v,
+              batchId: "",
+              subjectId: "",
+              moduleId: "",
+            })
+          }
         >
           <SelectTrigger className="w-full lg:w-[180px]">
-            <SelectValue
-              placeholder={
-                subjectId ? `All ${CHAPTER.toLowerCase()}s` : "Select subject first"
-              }
-            />
+            <SelectValue placeholder={COURSE} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All {CHAPTER.toLowerCase()}s</SelectItem>
-            {modules.map((mod) => (
-              <SelectItem key={mod.id} value={mod.id}>
-                {mod.title}
+            <SelectItem value="all">All {COURSE.toLowerCase()}s</SelectItem>
+            {(coursesData?.data ?? []).map((course) => (
+              <SelectItem key={course.id} value={course.id}>
+                {course.title}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
-      ) : null}
 
-      <Select value={category || "all"} onValueChange={(v) => patch({ category: v === "all" ? "" : v })}>
-        <SelectTrigger className="w-full lg:w-[180px]">
-          <SelectValue placeholder="Category" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All categories</SelectItem>
-          {Array.from(CONTENT_RESOURCE_CATEGORIES).map((cat) => (
-            <SelectItem key={cat} value={cat}>
-              {RESOURCE_CATEGORY_LABELS[cat as ResourceCategory]}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+        <Select
+          value={batchId || "all"}
+          onValueChange={(v) =>
+            patch({
+              batchId: v === "all" ? "" : v,
+              subjectId: "",
+              moduleId: "",
+            })
+          }
+          disabled={!courseId}
+        >
+          <SelectTrigger className="w-full lg:w-[180px]">
+            <SelectValue
+              placeholder={courseId ? `All ${BATCH.toLowerCase()}es` : `Select ${COURSE.toLowerCase()} first`}
+            />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All {BATCH.toLowerCase()}es</SelectItem>
+            {batches.map((batch) => (
+              <SelectItem key={batch.id} value={batch.id}>
+                {batch.title}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-      <Input
-        className="w-full lg:min-w-[180px] lg:flex-1"
-        placeholder="Search title…"
-        value={search}
-        onChange={(e) => patch({ search: e.target.value })}
-      />
+        <Select
+          value={subjectId || "all"}
+          onValueChange={(v) => patch({ subjectId: v === "all" ? "" : v, moduleId: "" })}
+          disabled={!batchId}
+        >
+          <SelectTrigger className="w-full lg:w-[180px]">
+            <SelectValue
+              placeholder={batchId ? "All subjects" : `Select ${BATCH.toLowerCase()} first`}
+            />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All subjects</SelectItem>
+            {subjects.map((subject) => (
+              <SelectItem key={subject.id} value={subject.id}>
+                {subject.title}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {modules.length > 0 ? (
+          <Select
+            value={moduleId || "all"}
+            onValueChange={(v) => patch({ moduleId: v === "all" ? "" : v })}
+            disabled={!subjectId}
+          >
+            <SelectTrigger className="w-full lg:w-[180px]">
+              <SelectValue
+                placeholder={
+                  subjectId ? `All ${CHAPTER.toLowerCase()}s` : "Select subject first"
+                }
+              />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All {CHAPTER.toLowerCase()}s</SelectItem>
+              {modules.map((mod) => (
+                <SelectItem key={mod.id} value={mod.id}>
+                  {mod.title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : null}
+
+        <div className="lg:hidden">
+          <Select
+            value={category || "all"}
+            onValueChange={(v) => patch({ category: v === "all" ? "" : v })}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All categories</SelectItem>
+              {Array.from(CONTENT_RESOURCE_CATEGORIES).map((cat) => (
+                <SelectItem key={cat} value={cat}>
+                  {RESOURCE_CATEGORY_LABELS[cat as ResourceCategory]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <Input
+          className="w-full lg:min-w-[180px] lg:flex-1"
+          placeholder="Search title…"
+          value={search}
+          onChange={(e) => patch({ search: e.target.value })}
+        />
+      </div>
     </div>
   )
 }

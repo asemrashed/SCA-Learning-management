@@ -35,6 +35,7 @@ interface CurriculumPlacementPickerProps {
   fixedBatchId?: string
   requireBatch?: boolean
   subjectRequired?: boolean
+  moduleRequired?: boolean
   moduleLabel?: string
   lessonLabel?: string
   hideModuleLesson?: boolean
@@ -50,7 +51,8 @@ export function CurriculumPlacementPicker({
   fixedBatchId,
   requireBatch = false,
   subjectRequired = false,
-  moduleLabel = `${CHAPTER} (optional)`,
+  moduleRequired = false,
+  moduleLabel,
   lessonLabel = "Lesson (optional)",
   hideModuleLesson = false,
   subjectLabel,
@@ -123,6 +125,8 @@ export function CurriculumPlacementPicker({
   const showBatchPicker = isLive && !fixedBatchId && (requireBatch || batches.length > 0)
   const resolvedSubjectLabel =
     subjectLabel ?? (subjectRequired ? "Subject" : "Subject (optional)")
+  const resolvedModuleLabel =
+    moduleLabel ?? (moduleRequired ? CHAPTER : `${CHAPTER} (optional)`)
 
   return (
     <div className={className}>
@@ -231,7 +235,7 @@ export function CurriculumPlacementPicker({
       {!hideModuleLesson ? (
         <>
           <div className="space-y-2">
-            <Label>{moduleLabel}</Label>
+            <Label>{resolvedModuleLabel}</Label>
             <Select
               value={value.moduleId ?? NONE}
               onValueChange={(id) =>
@@ -248,7 +252,7 @@ export function CurriculumPlacementPicker({
                 <SelectValue placeholder={`Select ${CHAPTER.toLowerCase()}`} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={NONE}>None</SelectItem>
+                {!moduleRequired ? <SelectItem value={NONE}>None</SelectItem> : null}
                 {modules.map((m) => (
                   <SelectItem key={m.id} value={m.id}>
                     {m.title}

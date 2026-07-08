@@ -254,7 +254,7 @@ export function StaffDashboardOverview({ variant }: StaffDashboardOverviewProps)
             <StatCard
               icon={DollarSign}
               label="Total Revenue"
-              value={formatBdtMinor(totalRevenueMinor)}
+              value="0"
               isLoading={paymentSummaryLoading}
             />
             <StatCard

@@ -109,7 +109,7 @@ export function ExamCreateForm({
   const { data: courseData } = useGetCourseQuery(courseIdForQuery, { skip: !courseIdForQuery })
   const isLive = courseData?.data?.deliveryMode === DeliveryMode.LIVE
   const requireBatch = isLive && isBatchScopedCategory(ResourceCategory.EXAM)
-  const subjectRequired = isLive && isSubjectRequiredCategory(ResourceCategory.EXAM)
+  const subjectRequired = isLive && isSubjectRequiredCategory(ResourceCategory.EXAM, isLive)
 
   const qbFilterKey = useMemo(
     () => [source, qbFilters.courseId, qbFilters.batchId, qbFilters.subjectId].join(":"),

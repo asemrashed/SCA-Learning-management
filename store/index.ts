@@ -13,6 +13,7 @@ import { categoryApi } from '@/features/category/api'
 import { monthlyPaymentApi } from '@/features/monthly-payment/api'
 import { resourceSubmissionApi } from '@/features/resource-submission/api'
 import { reviewApi } from '@/features/review/api'
+import { curriculumApi } from '@/features/curriculum/api'
 import { rootReducer } from './rootReducer'
 
 export const makeStore = () =>
@@ -34,6 +35,7 @@ export const makeStore = () =>
         monthlyPaymentApi.middleware,
         resourceSubmissionApi.middleware,
         reviewApi.middleware,
+        curriculumApi.middleware,
       ),
   })
 

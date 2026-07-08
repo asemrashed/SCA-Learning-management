@@ -14,6 +14,7 @@ import { categoryApi } from '@/features/category/api'
 import { monthlyPaymentApi } from '@/features/monthly-payment/api'
 import { resourceSubmissionApi } from '@/features/resource-submission/api'
 import { reviewApi } from '@/features/review/api'
+import { curriculumApi } from '@/features/curriculum/api'
 
 export const rootReducer = combineReducers({
   auth: authReducer,
@@ -31,6 +32,7 @@ export const rootReducer = combineReducers({
   [monthlyPaymentApi.reducerPath]: monthlyPaymentApi.reducer,
   [resourceSubmissionApi.reducerPath]: resourceSubmissionApi.reducer,
   [reviewApi.reducerPath]: reviewApi.reducer,
+  [curriculumApi.reducerPath]: curriculumApi.reducer,
 })
 
 export type RootState = ReturnType<typeof rootReducer>

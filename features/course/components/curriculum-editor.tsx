@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Plus, Pencil, Trash2 } from "lucide-react"
+import { useSelector } from "react-redux"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -19,11 +20,24 @@ import {
   LessonTypeFields,
   RECORDED_COURSE_LESSON_TYPES,
 } from "@/features/course/components/lesson-type-fields"
+import {
+  CascadeDeleteDialog,
+  type CascadeDeletePreview,
+} from "@/components/cascade-delete-dialog"
+import {
+  useCascadeDeleteModuleMutation,
+  useCascadeDeleteSubjectMutation,
+  useLazyGetCascadeDeletePreviewQuery,
+} from "@/features/curriculum/api"
+import { getApiErrorMessage } from "@/lib/get-api-error-message"
+import { isSuperAdmin } from "@/lib/roles"
+import type { RootState } from "@/store"
 import { CHAPTER, CHAPTERS } from "@/lib/product-vocabulary"
 import { LessonType } from "@/types/api"
 
 export interface LessonForm {
   key: string
+  id?: string
   title: string
   type: LessonType
   videoUrl: string
@@ -36,6 +50,7 @@ export interface LessonForm {
 
 export interface ModuleForm {
   key: string
+  id?: string
   title: string
   order: number
   lessons: LessonForm[]
@@ -43,6 +58,7 @@ export interface ModuleForm {
 
 export interface SubjectForm {
   key: string
+  id?: string
   title: string
   order: number
   modules: ModuleForm[]
@@ -99,27 +115,115 @@ export function SubjectsEditor({
   showPreBatchCurriculum = false,
   sourceBatchId = "",
 }: SubjectsEditorProps) {
+  const user = useSelector((state: RootState) => state.auth.user)
+  const canCascadeDelete = user?.role !== undefined && isSuperAdmin(user.role)
   const [modal, setModal] = useState<LiveCurriculumModal>(null)
+  const [pendingDelete, setPendingDelete] = useState<
+    | { kind: "subject"; index: number; id: string; title: string }
+    | { kind: "module"; subjectIndex: number; moduleIndex: number; id: string; title: string }
+    | null
+  >(null)
+  const [preview, setPreview] = useState<CascadeDeletePreview | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+
+  const [fetchPreview, { isFetching: loadingPreview }] = useLazyGetCascadeDeletePreviewQuery()
+  const [deleteSubjectApi, { isLoading: deletingSubject }] = useCascadeDeleteSubjectMutation()
+  const [deleteModuleApi, { isLoading: deletingModule }] = useCascadeDeleteModuleMutation()
 
   function openModal(next: LiveCurriculumModal) {
     setModal(next)
   }
 
+  /** Unsaved draft rows can be dropped from the form; persisted rows need Super Admin cascade. */
   function removeSubject(index: number) {
-    onChange(subjects.filter((_, i) => i !== index))
+    const subject = subjects[index]
+    if (!subject) return
+    if (!subject.id) {
+      onChange(subjects.filter((_, i) => i !== index))
+      return
+    }
+    if (!canCascadeDelete) return
+    void openCascadeDelete({
+      kind: "subject",
+      index,
+      id: subject.id,
+      title: subject.title.trim() || "this subject",
+    })
   }
 
   function removeModule(subjectIndex: number, moduleIndex: number) {
-    onChange(
-      subjects.map((s, si) =>
-        si === subjectIndex
-          ? { ...s, modules: s.modules.filter((_, mi) => mi !== moduleIndex) }
-          : s,
-      ),
-    )
+    const mod = subjects[subjectIndex]?.modules[moduleIndex]
+    if (!mod) return
+    if (!mod.id) {
+      onChange(
+        subjects.map((s, si) =>
+          si === subjectIndex
+            ? { ...s, modules: s.modules.filter((_, mi) => mi !== moduleIndex) }
+            : s,
+        ),
+      )
+      return
+    }
+    if (!canCascadeDelete) return
+    void openCascadeDelete({
+      kind: "module",
+      subjectIndex,
+      moduleIndex,
+      id: mod.id,
+      title: mod.title.trim() || "this chapter",
+    })
+  }
+
+  async function openCascadeDelete(
+    target:
+      | { kind: "subject"; index: number; id: string; title: string }
+      | { kind: "module"; subjectIndex: number; moduleIndex: number; id: string; title: string },
+  ) {
+    setDeleteError(null)
+    setPreview(null)
+    setPendingDelete(target)
+    try {
+      const result = await fetchPreview(
+        target.kind === "subject" ? { subjectId: target.id } : { moduleId: target.id },
+      ).unwrap()
+      setPreview(result.data)
+    } catch (err) {
+      setDeleteError(getApiErrorMessage(err, "Could not load delete preview."))
+    }
+  }
+
+  async function confirmCascadeDelete() {
+    if (!pendingDelete) return
+    setDeleteError(null)
+    try {
+      if (pendingDelete.kind === "subject") {
+        await deleteSubjectApi(pendingDelete.id).unwrap()
+        onChange(subjects.filter((_, i) => i !== pendingDelete.index))
+      } else {
+        await deleteModuleApi(pendingDelete.id).unwrap()
+        onChange(
+          subjects.map((s, si) =>
+            si === pendingDelete.subjectIndex
+              ? {
+                  ...s,
+                  modules: s.modules.filter((_, mi) => mi !== pendingDelete.moduleIndex),
+                }
+              : s,
+          ),
+        )
+      }
+      setPendingDelete(null)
+      setPreview(null)
+    } catch (err) {
+      setDeleteError(getApiErrorMessage(err, "Could not delete."))
+    }
   }
 
   function removeLesson(subjectIndex: number, moduleIndex: number, lessonIndex: number) {
+    const lesson = subjects[subjectIndex]?.modules[moduleIndex]?.lessons[lessonIndex]
+    // Persisted lessons cannot be dropped via form save — must keep id in payload.
+    // Allow removing unsaved draft lessons only.
+    if (lesson?.id) return
     onChange(
       subjects.map((s, si) =>
         si === subjectIndex
@@ -182,6 +286,7 @@ export function SubjectsEditor({
                     variant="ghost"
                     size="sm"
                     onClick={() => removeSubject(si)}
+                    hidden={Boolean(subject.id) && !canCascadeDelete}
                   >
                     <Trash2 className="mr-1 h-3.5 w-3.5" />
                     Delete
@@ -229,6 +334,7 @@ export function SubjectsEditor({
                             variant="ghost"
                             size="sm"
                             onClick={() => removeModule(si, mi)}
+                            hidden={Boolean(mod.id) && !canCascadeDelete}
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
@@ -285,6 +391,7 @@ export function SubjectsEditor({
                                   size="icon"
                                   className="h-7 w-7"
                                   onClick={() => removeLesson(si, mi, li)}
+                                  hidden={Boolean(lesson.id)}
                                 >
                                   <Trash2 className="h-3.5 w-3.5" />
                                 </Button>
@@ -309,6 +416,28 @@ export function SubjectsEditor({
         onSave={onChange}
         showPreBatchCurriculum={showPreBatchCurriculum}
         sourceBatchId={sourceBatchId}
+      />
+
+      <CascadeDeleteDialog
+        open={Boolean(pendingDelete)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPendingDelete(null)
+            setPreview(null)
+            setDeleteError(null)
+          }
+        }}
+        title={
+          pendingDelete?.kind === "subject"
+            ? "Delete subject permanently?"
+            : "Delete chapter permanently?"
+        }
+        targetLabel={pendingDelete?.title ?? "this item"}
+        preview={preview}
+        loadingPreview={loadingPreview}
+        confirming={deletingSubject || deletingModule}
+        error={deleteError}
+        onConfirm={() => void confirmCascadeDelete()}
       />
     </div>
   )
@@ -378,8 +507,14 @@ export function ModulesEditor({
               variant="ghost"
               size="icon"
               className="mt-8 shrink-0"
+              hidden={Boolean(mod.id)}
               disabled={modules.length === 1}
               onClick={() => onChange(modules.filter((_, i) => i !== mi))}
+              title={
+                mod.id
+                  ? "Use Super Admin permanent delete for saved chapters"
+                  : `Remove draft ${CHAPTER.toLowerCase()}`
+              }
             >
               <Trash2 className="h-4 w-4" />
             </Button>
@@ -410,14 +545,15 @@ export function ModulesEditor({
                     ),
                   )
                 }
-                onRemove={() =>
+                onRemove={() => {
+                  if (lesson.id) return
                   onChange(
                     modules.map((m, i) =>
                       i === mi ? { ...m, lessons: m.lessons.filter((_, j) => j !== li) } : m,
                     ),
                   )
-                }
-                canRemove
+                }}
+                canRemove={!lesson.id}
               />
             ))
           )}
@@ -510,6 +646,7 @@ function LessonRow({
 
 function lessonToPayload(lesson: LessonForm, order: number) {
   return {
+    ...(lesson.id ? { id: lesson.id } : {}),
     title: lesson.title.trim(),
     type: lesson.type,
     order,
@@ -528,11 +665,13 @@ export function subjectsToPayload(subjects: SubjectForm[]) {
   return subjects
     .filter((subject) => subject.title.trim())
     .map((subject, si) => ({
+      ...(subject.id ? { id: subject.id } : {}),
       title: subject.title.trim(),
       order: si,
       modules: subject.modules
         .filter((mod) => mod.title.trim())
         .map((mod, mi) => ({
+          ...(mod.id ? { id: mod.id } : {}),
           title: mod.title.trim(),
           order: mi,
           lessons: mod.lessons
@@ -546,6 +685,7 @@ export function modulesToPayload(modules: ModuleForm[]) {
   return modules
     .filter((mod) => mod.title.trim())
     .map((mod, mi) => ({
+      ...(mod.id ? { id: mod.id } : {}),
       title: mod.title.trim(),
       order: mi,
       lessons: mod.lessons
@@ -556,12 +696,15 @@ export function modulesToPayload(modules: ModuleForm[]) {
 
 export function subjectsFromApi(
   subjects: {
+    id?: string
     title: string
     order: number
     modules?: {
+      id?: string
       title: string
       order: number
       lessons?: {
+        id?: string
         title: string
         type?: LessonType
         order?: number
@@ -576,15 +719,18 @@ export function subjectsFromApi(
 ): SubjectForm[] {
   if (!subjects.length) return []
   return subjects.map((subject) => ({
-    key: formKey("subject"),
+    key: subject.id ?? formKey("subject"),
+    id: subject.id,
     title: subject.title,
     order: subject.order,
     modules: (subject.modules ?? []).map((mod) => ({
-      key: formKey("module"),
+      key: mod.id ?? formKey("module"),
+      id: mod.id,
       title: mod.title,
       order: mod.order,
       lessons: (mod.lessons ?? []).map((lesson) => ({
-        key: formKey("lesson"),
+        key: lesson.id ?? formKey("lesson"),
+        id: lesson.id,
         title: lesson.title,
         type: lesson.type ?? LessonType.RECORDED,
         order: lesson.order ?? 0,
@@ -599,15 +745,32 @@ export function subjectsFromApi(
 }
 
 export function modulesFromApi(
-  modules: { title: string; order: number; lessons: { title: string; type?: LessonType; order?: number; isPreview?: boolean; videoUrl?: string | null; content?: string | null; durationS?: number | null; lectureDate?: string | null }[] }[],
+  modules: {
+    id?: string
+    title: string
+    order: number
+    lessons: {
+      id?: string
+      title: string
+      type?: LessonType
+      order?: number
+      isPreview?: boolean
+      videoUrl?: string | null
+      content?: string | null
+      durationS?: number | null
+      lectureDate?: string | null
+    }[]
+  }[],
 ): ModuleForm[] {
   if (!modules.length) return [newModule(0)]
   return modules.map((mod) => ({
-    key: formKey("module"),
+    key: mod.id ?? formKey("module"),
+    id: mod.id,
     title: mod.title,
     order: mod.order,
     lessons: (mod.lessons ?? []).map((lesson) => ({
-      key: formKey("lesson"),
+      key: lesson.id ?? formKey("lesson"),
+      id: lesson.id,
       title: lesson.title,
       type: lesson.type ?? LessonType.RECORDED,
       order: lesson.order ?? 0,

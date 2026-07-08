@@ -53,20 +53,27 @@ export function CourseResourcePage({
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [filters, setFilters] = useState<StudentResourceFilterValues>({
     subjectId: "",
-    moduleId: "",
   })
   const { data, isLoading, error } = useGetEnrollmentQuery(enrollmentId)
   const enrollment = data?.data
   const courseId = enrollment ? enrollmentCourseId(enrollment) : ""
   const batchId = enrollment ? enrollmentBatchId(enrollment) : null
 
+  const subjects = useMemo(() => {
+    if (!enrollment) return []
+    return getEnrollmentSubjects(enrollment)
+  }, [enrollment])
+
+  const subjectIds = useMemo(() => new Set(subjects.map((s) => s.id)), [subjects])
+
+  const effectiveSubjectId = filters.subjectId || subjects[0]?.id || ""
+
   const resourcesQuery = useListResourcesQuery(
     {
       courseId,
       ...(batchId ? { batchId } : {}),
       category,
-      ...(filters.subjectId ? { subjectId: filters.subjectId } : {}),
-      ...(filters.moduleId ? { moduleId: filters.moduleId } : {}),
+      ...(effectiveSubjectId ? { subjectId: effectiveSubjectId } : {}),
       pageSize: 100,
       sort: "createdAt:desc",
     },
@@ -105,11 +112,6 @@ export function CourseResourcePage({
     return map
   }, [submissionsQuery.data?.data])
 
-  const subjectIds = useMemo(() => {
-    if (!enrollment) return new Set<string>()
-    return new Set(getEnrollmentSubjects(enrollment).map((s) => s.id))
-  }, [enrollment])
-
   const items = useMemo(() => {
     const all = resourcesQuery.data?.data ?? []
     if (!enrollment) return all
@@ -143,7 +145,7 @@ export function CourseResourcePage({
 
   useEffect(() => {
     setActiveId(null)
-  }, [category, filters.subjectId, filters.moduleId])
+  }, [category, filters.subjectId])
 
   useEffect(() => {
     if (items.length > 0 && !activeId) {
@@ -211,6 +213,8 @@ export function CourseResourcePage({
         enrollment={enrollment}
         values={filters}
         onChange={setFilters}
+        hideScope
+        subjectDisplay="pills"
       />
 
       {resourcesQuery.isLoading ? (

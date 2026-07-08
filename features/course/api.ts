@@ -77,10 +77,14 @@ export const courseApi = createApi({
         { type: 'CourseList', id: 'LIST' },
       ],
     }),
-    deleteCourse: builder.mutation<{ data: { success: boolean } }, string>({
+    deleteCourse: builder.mutation<
+      { data: { success: boolean; deletedResources?: number } },
+      string
+    >({
       query: (id) => ({
         url: `/courses/${id}`,
         method: 'DELETE',
+        body: { confirm: 'DELETE' },
       }),
       invalidatesTags: [{ type: 'CourseList', id: 'LIST' }],
     }),

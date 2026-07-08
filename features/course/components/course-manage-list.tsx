@@ -19,9 +19,14 @@ import { isSuperAdmin } from "@/lib/roles"
 import type { RootState } from "@/store"
 import { useListCoursesQuery, useDeleteCourseMutation } from "@/features/course/api"
 import { useListCategoriesQuery } from "@/features/category/api"
+import { useLazyGetCascadeDeletePreviewQuery } from "@/features/curriculum/api"
+import {
+  CascadeDeleteDialog,
+  type CascadeDeletePreview,
+} from "@/components/cascade-delete-dialog"
+import { getApiErrorMessage } from "@/lib/get-api-error-message"
 import { COURSES, MANAGE_COURSES, NEW_COURSE, deliveryModeLabel } from "@/lib/product-vocabulary"
 import { DeliveryMode } from "@/types/api"
-import { cn } from "@/lib/utils"
 import { DashboardTable } from "@/components/dashboard-table"
 import { TableRowActions } from "@/components/table-row-actions"
 
@@ -35,6 +40,9 @@ export function CourseManageList() {
   const [debouncedSearch, setDebouncedSearch] = useState("")
   const [modeFilter, setModeFilter] = useState<ModeFilter>("all")
   const [categoryFilter, setCategoryFilter] = useState("all")
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; title: string } | null>(null)
+  const [preview, setPreview] = useState<CascadeDeletePreview | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search.trim()), 300)
@@ -54,9 +62,34 @@ export function CourseManageList() {
         ? categories.find((c) => c.id === categoryFilter)?.slug
         : undefined,
   })
-  const [deleteCourse] = useDeleteCourseMutation()
+  const [deleteCourse, { isLoading: deleting }] = useDeleteCourseMutation()
+  const [fetchPreview, { isFetching: loadingPreview }] = useLazyGetCascadeDeletePreviewQuery()
 
   const courses = data?.data ?? []
+
+  async function openDelete(course: { id: string; title: string }) {
+    setDeleteError(null)
+    setPreview(null)
+    setPendingDelete(course)
+    try {
+      const result = await fetchPreview({ courseId: course.id }).unwrap()
+      setPreview(result.data)
+    } catch (err) {
+      setDeleteError(getApiErrorMessage(err, "Could not load delete preview."))
+    }
+  }
+
+  async function confirmDelete() {
+    if (!pendingDelete) return
+    setDeleteError(null)
+    try {
+      await deleteCourse(pendingDelete.id).unwrap()
+      setPendingDelete(null)
+      setPreview(null)
+    } catch (err) {
+      setDeleteError(getApiErrorMessage(err, "Could not delete course."))
+    }
+  }
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
@@ -104,25 +137,25 @@ export function CourseManageList() {
         </Button>
       </div>
 
-      <div className="mb-6 flex flex-wrap items-center gap-3">
-        <div className="relative min-w-[200px] flex-1 max-w-md">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search courses…"
+            className="pl-9"
+            placeholder={`Search ${COURSES.toLowerCase()}…`}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
           />
         </div>
         <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-          <SelectTrigger className={cn("w-[180px]")}>
+          <SelectTrigger className="w-full sm:w-[200px]">
             <SelectValue placeholder="Category" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All categories</SelectItem>
-            {categories.map((cat) => (
-              <SelectItem key={cat.id} value={cat.id}>
-                {cat.title}
+            {categories.map((c) => (
+              <SelectItem key={c.id} value={c.id}>
+                {c.title}
               </SelectItem>
             ))}
           </SelectContent>
@@ -132,17 +165,18 @@ export function CourseManageList() {
       {isLoading ? (
         <p className="text-muted-foreground">Loading…</p>
       ) : error ? (
-        <p className="text-destructive">Could not load {COURSES.toLowerCase()}.</p>
+        <p className="text-destructive">Could not load courses.</p>
       ) : courses.length === 0 ? (
-        <p className="text-muted-foreground">No {COURSES.toLowerCase()} match your filters.</p>
+        <p className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
+          No courses yet.
+        </p>
       ) : (
-        <DashboardTable>
-          <table className="w-full min-w-[800px] text-sm">
+        <DashboardTable className="bg-card">
+          <table className="w-full min-w-[700px] text-sm">
             <thead className="bg-muted/50 text-left">
               <tr>
                 <th className="px-4 py-3 font-medium">Title</th>
                 <th className="px-4 py-3 font-medium">Mode</th>
-                <th className="px-4 py-3 font-medium">Category</th>
                 <th className="px-4 py-3 font-medium">Price</th>
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium">Actions</th>
@@ -151,20 +185,9 @@ export function CourseManageList() {
             <tbody>
               {courses.map((course) => (
                 <tr key={course.id} className="border-t">
-                  <td className="px-4 py-3">
-                    <div className="font-medium">{course.title}</div>
-                    <div className="text-xs text-muted-foreground">{course.slug}</div>
-                  </td>
+                  <td className="px-4 py-3 font-medium">{course.title}</td>
                   <td className="px-4 py-3">
                     <Badge variant="outline">{deliveryModeLabel(course.deliveryMode)}</Badge>
-                    {course.deliveryMode === DeliveryMode.LIVE && course.batchCount != null ? (
-                      <span className="ml-2 text-xs text-muted-foreground">
-                        {course.batchCount} batch{course.batchCount === 1 ? "" : "es"}
-                      </span>
-                    ) : null}
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {course.category ?? "—"}
                   </td>
                   <td className="px-4 py-3">
                     {course.deliveryMode === DeliveryMode.LIVE ? (
@@ -187,11 +210,7 @@ export function CourseManageList() {
                           label: "Delete",
                           destructive: true,
                           hidden: !canCreateDelete,
-                          onClick: () => {
-                            if (confirm(`Delete this course?`)) {
-                              void deleteCourse(course.id)
-                            }
-                          },
+                          onClick: () => void openDelete(course),
                         },
                       ]}
                     />
@@ -202,6 +221,24 @@ export function CourseManageList() {
           </table>
         </DashboardTable>
       )}
+
+      <CascadeDeleteDialog
+        open={Boolean(pendingDelete)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPendingDelete(null)
+            setPreview(null)
+            setDeleteError(null)
+          }
+        }}
+        title="Delete course permanently?"
+        targetLabel={pendingDelete?.title ?? "this course"}
+        preview={preview}
+        loadingPreview={loadingPreview}
+        confirming={deleting}
+        error={deleteError}
+        onConfirm={() => void confirmDelete()}
+      />
     </div>
   )
 }

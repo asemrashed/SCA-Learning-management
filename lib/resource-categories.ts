@@ -25,7 +25,25 @@ export const PDF_RESOURCE_CATEGORIES = new Set<ResourceCategory>([
   ResourceCategory.QUESTION_BANK,
 ])
 
+/** Must be placed on a chapter. */
+export const CHAPTER_REQUIRED_CATEGORIES = new Set<ResourceCategory>([
+  ResourceCategory.LECTURE_SHEET,
+  ResourceCategory.SOLUTION_PDF,
+])
+
+/** Chapter is optional; live courses still need batch + subject. */
+export const CHAPTER_OPTIONAL_CATEGORIES = new Set<ResourceCategory>([
+  ResourceCategory.MATH_SUGGESTION,
+  ResourceCategory.THEORY_SUGGESTION,
+])
+
 export const SUBJECT_REQUIRED_CATEGORIES = new Set<ResourceCategory>([
+  ResourceCategory.EXAM,
+  ResourceCategory.ASSIGNMENT,
+  ResourceCategory.QUESTION_BANK,
+])
+
+export const LIVE_SUBJECT_SCOPED_CATEGORIES = new Set<ResourceCategory>([
   ResourceCategory.LECTURE_SHEET,
   ResourceCategory.SOLUTION_PDF,
   ResourceCategory.MATH_SUGGESTION,
@@ -79,8 +97,21 @@ export function isContentResourceCategory(category: ResourceCategory): boolean {
   return CONTENT_RESOURCE_CATEGORIES.has(category)
 }
 
-export function isSubjectRequiredCategory(category: ResourceCategory): boolean {
-  return SUBJECT_REQUIRED_CATEGORIES.has(category)
+export function isChapterRequiredCategory(category: ResourceCategory): boolean {
+  return CHAPTER_REQUIRED_CATEGORIES.has(category)
+}
+
+export function isChapterOptionalCategory(category: ResourceCategory): boolean {
+  return CHAPTER_OPTIONAL_CATEGORIES.has(category)
+}
+
+export function isSubjectRequiredCategory(
+  category: ResourceCategory,
+  isLive: boolean,
+): boolean {
+  if (SUBJECT_REQUIRED_CATEGORIES.has(category)) return true
+  if (isLive && LIVE_SUBJECT_SCOPED_CATEGORIES.has(category)) return true
+  return false
 }
 
 export function isDeadlineCategory(category: ResourceCategory): boolean {

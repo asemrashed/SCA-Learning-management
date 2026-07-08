@@ -133,7 +133,7 @@ export function PreviousResourcesPanel({
       return
     }
 
-    if (isLiveTarget && isSubjectRequiredCategory(category) && !targetPlacement.subjectId) {
+    if (isLiveTarget && isSubjectRequiredCategory(category, true) && !targetPlacement.subjectId) {
       setError("Select a subject in the form below before linking.")
       return
     }

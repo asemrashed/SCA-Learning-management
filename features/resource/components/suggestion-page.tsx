@@ -6,6 +6,7 @@ import {
   enrollmentBatchId,
   enrollmentCourseId,
   enrollmentProductTitle,
+  getEnrollmentSubjects,
 } from "@/features/enrollment/curriculum"
 import { useListResourcesQuery } from "@/features/resource/api"
 import {
@@ -40,7 +41,6 @@ export function SuggestionPage({ enrollmentId: fixedEnrollmentId }: SuggestionPa
   )
   const [filters, setFilters] = useState<StudentResourceFilterValues>({
     subjectId: "",
-    moduleId: "",
   })
 
   const { data: enrollmentsData, isLoading: enrollmentsLoading } = useListEnrollmentsQuery(
@@ -77,13 +77,19 @@ export function SuggestionPage({ enrollmentId: fixedEnrollmentId }: SuggestionPa
   const courseId = enrollment ? enrollmentCourseId(enrollment) : ""
   const batchId = enrollment ? enrollmentBatchId(enrollment) : null
 
+  const subjects = useMemo(() => {
+    if (!enrollment) return []
+    return getEnrollmentSubjects(enrollment)
+  }, [enrollment])
+
+  const effectiveSubjectId = filters.subjectId || subjects[0]?.id || ""
+
   const resourcesQuery = useListResourcesQuery(
     {
       courseId,
       ...(batchId ? { batchId } : {}),
       category,
-      ...(filters.subjectId ? { subjectId: filters.subjectId } : {}),
-      ...(filters.moduleId ? { moduleId: filters.moduleId } : {}),
+      ...(effectiveSubjectId ? { subjectId: effectiveSubjectId } : {}),
       pageSize: 100,
       sort: "createdAt:desc",
     },
@@ -105,7 +111,7 @@ export function SuggestionPage({ enrollmentId: fixedEnrollmentId }: SuggestionPa
 
   useEffect(() => {
     setActiveId(null)
-    setFilters({ subjectId: "", moduleId: "" })
+    setFilters({ subjectId: "" })
   }, [category, enrollmentId])
 
   useEffect(() => {
@@ -180,6 +186,8 @@ export function SuggestionPage({ enrollmentId: fixedEnrollmentId }: SuggestionPa
         enrollment={enrollment}
         values={filters}
         onChange={setFilters}
+        hideScope={Boolean(fixedEnrollmentId)}
+        subjectDisplay="pills"
         enrollmentPicker={
           !fixedEnrollmentId && enrollmentOptions.length > 1
             ? {

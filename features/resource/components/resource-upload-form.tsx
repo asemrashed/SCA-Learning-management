@@ -29,6 +29,7 @@ import {
   ASSESSMENT_RESOURCE_CATEGORIES,
   CONTENT_RESOURCE_CATEGORIES,
   isBatchScopedCategory,
+  isChapterRequiredCategory,
   isDeadlineCategory,
   isPdfResourceCategory,
   isSubjectRequiredCategory,
@@ -112,7 +113,8 @@ export function ResourceForm({
   const isLive = courseData?.data?.deliveryMode === DeliveryMode.LIVE
 
   const pdfOnly = isPdfResourceCategory(category)
-  const subjectRequired = isSubjectRequiredCategory(category)
+  const subjectRequired = isSubjectRequiredCategory(category, isLive)
+  const chapterRequired = isChapterRequiredCategory(category)
   const requireBatch = isLive && isBatchScopedCategory(category)
   const showDeadline = isDeadlineCategory(category)
   const showMarks = category === ResourceCategory.QUESTION_BANK
@@ -170,6 +172,11 @@ export function ResourceForm({
 
     if (isLive && subjectRequired && !placement.subjectId) {
       setError("Please select a subject.")
+      return
+    }
+
+    if (chapterRequired && !placement.moduleId) {
+      setError(`Please select a ${CHAPTER.toLowerCase()}.`)
       return
     }
 
@@ -409,6 +416,7 @@ export function ResourceForm({
           fixedCourseId={fixedCourseId ?? resource?.courseId ?? undefined}
           requireBatch={requireBatch}
           subjectRequired={isLive && subjectRequired}
+          moduleRequired={chapterRequired}
         />
       </div>
 

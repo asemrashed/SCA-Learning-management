@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { Pencil, Plus } from "lucide-react"
+import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DashboardTable } from "@/components/dashboard-table"
 import { TableRowActions } from "@/components/table-row-actions"
@@ -12,6 +12,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
 import {
   useDeleteResourceMutation,
   useLazyListResourcesQuery,
@@ -28,12 +35,15 @@ import {
 import { useGetBatchQuery } from "@/features/batch/api"
 import { useTeachingProducts } from "@/features/resource/hooks/use-teaching-products"
 import { getApiErrorMessage } from "@/lib/get-api-error-message"
+import { cn } from "@/lib/utils"
 import {
   ASSESSMENT_RESOURCE_CATEGORIES,
   RESOURCE_CATEGORY_LABELS,
 } from "@/lib/resource-categories"
 import type { ResourceItem } from "@/types/api"
 import { ResourceCategory } from "@/types/api"
+
+const PAGE_SIZE = 20
 
 type ResourceRow = { resource: ResourceItem; productLabel: string }
 
@@ -115,6 +125,7 @@ export function ResourceManagePanel({
   const [viewResource, setViewResource] = useState<ResourceItem | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
   const [filters, setFilters] = useState<ResourceManageFilterValues>({
     courseId: fixedCourseId ?? "",
     batchId: fixedBatchId ?? "",
@@ -171,6 +182,23 @@ export function ResourceManagePanel({
     })
   }, [rows, filters])
 
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE))
+
+  const paginatedRows = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE
+    return filteredRows.slice(start, start + PAGE_SIZE)
+  }, [filteredRows, page])
+
+  useEffect(() => {
+    setPage(1)
+  }, [filters])
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages)
+    }
+  }, [page, totalPages])
+
   const hasProducts = scopeCourses.length > 0
   const showLoading = productsLoading || listLoading
 
@@ -206,7 +234,10 @@ export function ResourceManagePanel({
       {deleteError ? <p className="text-sm text-destructive">{deleteError}</p> : null}
 
       {!fixedCourseId && !fixedBatchId ? (
-        <ResourceManageFilters values={filters} onChange={setFilters} />
+        <ResourceManageFilters
+          values={filters}
+          onChange={setFilters}
+        />
       ) : null}
 
       <DashboardTable className="bg-card">
@@ -233,7 +264,7 @@ export function ResourceManagePanel({
               </tr>
             </thead>
             <tbody>
-              {filteredRows.map(({ resource, productLabel }) => (
+              {paginatedRows.map(({ resource, productLabel }) => (
                 <tr key={resource.id} className="border-t">
                   <td className="px-4 py-3 font-medium">{resource.title}</td>
                   <td className="px-4 py-3 text-muted-foreground">{productLabel}</td>
@@ -273,6 +304,48 @@ export function ResourceManagePanel({
           </table>
         )}
       </DashboardTable>
+
+      {filteredRows.length > PAGE_SIZE ? (
+        <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
+          <p className="text-sm text-muted-foreground">
+            Showing {(page - 1) * PAGE_SIZE + 1}–
+            {Math.min(page * PAGE_SIZE, filteredRows.length)} of {filteredRows.length}
+          </p>
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  href="#"
+                  className={cn(page <= 1 && "pointer-events-none opacity-50")}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    if (page > 1) setPage((p) => p - 1)
+                  }}
+                />
+              </PaginationItem>
+              <PaginationItem>
+                <span className="px-3 text-sm text-muted-foreground">
+                  Page {page} of {totalPages}
+                </span>
+              </PaginationItem>
+              <PaginationItem>
+                <PaginationNext
+                  href="#"
+                  className={cn(page >= totalPages && "pointer-events-none opacity-50")}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    if (page < totalPages) setPage((p) => p + 1)
+                  }}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
+      ) : filteredRows.length > 0 ? (
+        <p className="text-sm text-muted-foreground">
+          Showing {filteredRows.length} resource{filteredRows.length === 1 ? "" : "s"}
+        </p>
+      ) : null}
 
       {viewResource ? (
         <ResourceViewDialog

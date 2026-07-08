@@ -44,7 +44,6 @@ export function StudentAssessmentResults({ enrollmentId }: { enrollmentId: strin
   const [previewId, setPreviewId] = useState<string | null>(null)
   const [filters, setFilters] = useState<StudentResourceFilterValues>({
     subjectId: "",
-    moduleId: "",
   })
   const { data: enrollmentData, isLoading: enrollmentLoading } = useGetEnrollmentQuery(enrollmentId)
   const { data, isLoading, error } = useListStudentAssessmentResultsQuery(enrollmentId)

@@ -21,6 +21,12 @@ import type { BatchStatus } from "@/features/batch/types"
 import { BATCH_STATUS_LABEL } from "@/features/batch/utils"
 import { useListCoursesQuery } from "@/features/course/api"
 import { useListCategoriesQuery } from "@/features/category/api"
+import { useLazyGetCascadeDeletePreviewQuery } from "@/features/curriculum/api"
+import {
+  CascadeDeleteDialog,
+  type CascadeDeletePreview,
+} from "@/components/cascade-delete-dialog"
+import { getApiErrorMessage } from "@/lib/get-api-error-message"
 import { BATCH, BATCHES } from "@/lib/product-vocabulary"
 import { DeliveryMode } from "@/types/api"
 import { DashboardTable } from "@/components/dashboard-table"
@@ -51,6 +57,9 @@ export function BatchManageList() {
   const [categoryFilter, setCategoryFilter] = useState("all")
   const [yearFilter, setYearFilter] = useState("all")
   const [statusFilter, setStatusFilter] = useState("all")
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; title: string } | null>(null)
+  const [preview, setPreview] = useState<CascadeDeletePreview | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search.trim()), 300)
@@ -81,9 +90,34 @@ export function BatchManageList() {
     year: yearFilter !== "all" ? Number(yearFilter) : undefined,
     status: statusFilter !== "all" ? (statusFilter as BatchStatus) : undefined,
   })
-  const [deleteBatch] = useDeleteBatchMutation()
+  const [deleteBatch, { isLoading: deleting }] = useDeleteBatchMutation()
+  const [fetchPreview, { isFetching: loadingPreview }] = useLazyGetCascadeDeletePreviewQuery()
 
   const batches = data?.data ?? []
+
+  async function openDelete(batch: { id: string; title: string }) {
+    setDeleteError(null)
+    setPreview(null)
+    setPendingDelete(batch)
+    try {
+      const result = await fetchPreview({ batchId: batch.id }).unwrap()
+      setPreview(result.data)
+    } catch (err) {
+      setDeleteError(getApiErrorMessage(err, "Could not load delete preview."))
+    }
+  }
+
+  async function confirmDelete() {
+    if (!pendingDelete) return
+    setDeleteError(null)
+    try {
+      await deleteBatch(pendingDelete.id).unwrap()
+      setPendingDelete(null)
+      setPreview(null)
+    } catch (err) {
+      setDeleteError(getApiErrorMessage(err, "Could not delete batch."))
+    }
+  }
 
   const yearOptions = useMemo(() => {
     const years = new Set<string>()
@@ -235,11 +269,7 @@ export function BatchManageList() {
                           label: "Delete",
                           destructive: true,
                           hidden: !canCreateDelete,
-                          onClick: () => {
-                            if (confirm(`Delete this ${BATCH.toLowerCase()}?`)) {
-                              void deleteBatch(batch.id)
-                            }
-                          },
+                          onClick: () => void openDelete(batch),
                         },
                       ]}
                     />
@@ -250,6 +280,24 @@ export function BatchManageList() {
           </table>
         </DashboardTable>
       )}
+
+      <CascadeDeleteDialog
+        open={Boolean(pendingDelete)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPendingDelete(null)
+            setPreview(null)
+            setDeleteError(null)
+          }
+        }}
+        title={`Delete ${BATCH.toLowerCase()} permanently?`}
+        targetLabel={pendingDelete?.title ?? `this ${BATCH.toLowerCase()}`}
+        preview={preview}
+        loadingPreview={loadingPreview}
+        confirming={deleting}
+        error={deleteError}
+        onConfirm={() => void confirmDelete()}
+      />
     </div>
   )
 }
