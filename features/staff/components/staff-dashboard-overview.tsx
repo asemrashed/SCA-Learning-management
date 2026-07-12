@@ -198,10 +198,7 @@ export function StaffDashboardOverview({ variant }: StaffDashboardOverviewProps)
   const { data: batchesData, isLoading: batchesLoading } = useListBatchesQuery({ pageSize: 1 })
   const { data: enrollmentOverview, isLoading: enrollmentOverviewLoading } =
     useGetAdminEnrollmentOverviewQuery()
-  const { data: paymentSummary, isLoading: paymentSummaryLoading } = useGetAdminPaymentSummaryQuery(
-    undefined,
-    { skip: variant !== "super-admin" },
-  )
+  const { data: paymentSummary, isLoading: paymentSummaryLoading } = useGetAdminPaymentSummaryQuery()
   const { data: ordersData } = useListAdminOrderRequestsQuery({
     status: OrderStatus.PENDING,
   })
@@ -215,7 +212,6 @@ export function StaffDashboardOverview({ variant }: StaffDashboardOverviewProps)
   const batchTotal = batchesData?.meta.total ?? 0
   const overview = enrollmentOverview?.data
   const enrolledTotal = (overview?.active ?? 0) + (overview?.completed ?? 0)
-  const totalRevenueMinor = paymentSummary?.data.totalRevenueMinor ?? 0
   const totalDueMinor = paymentSummary?.data.totalDueMinor ?? 0
   const pendingOrders = ordersData?.data?.length ?? 0
   const pendingPayments = paymentsData?.meta.total ?? 0
@@ -249,22 +245,18 @@ export function StaffDashboardOverview({ variant }: StaffDashboardOverviewProps)
           value={variant === "super-admin" ? (overview?.total ?? 0) : enrolledTotal}
           isLoading={enrollmentOverviewLoading}
         />
-        {variant === "super-admin" ? (
-          <>
-            <StatCard
-              icon={DollarSign}
-              label="Total Revenue"
-              value="0"
-              isLoading={paymentSummaryLoading}
-            />
-            <StatCard
-              icon={Wallet}
-              label="Total Due"
-              value={formatBdtMinor(totalDueMinor)}
-              isLoading={paymentSummaryLoading}
-            />
-          </>
-        ) : null}
+        <StatCard
+          icon={DollarSign}
+          label="Total Revenue"
+          value="0"
+          isLoading={paymentSummaryLoading}
+        />
+        <StatCard
+          icon={Wallet}
+          label="Total Due"
+          value={formatBdtMinor(totalDueMinor)}
+          isLoading={paymentSummaryLoading}
+        />
       </div>
 
       <div className="mb-8 lg:hidden">

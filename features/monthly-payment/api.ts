@@ -1,6 +1,7 @@
 import { createApi } from '@reduxjs/toolkit/query/react'
 import type {
   AdminPaymentSummary,
+  CreateManualPaymentInput,
   EnrollmentPaymentHistory,
   ListMonthlyPaymentsParams,
   MonthlyPaymentRecord,
@@ -8,6 +9,7 @@ import type {
   ReviewMonthlyPaymentInput,
   SetPaymentAccessInput,
   UnpaidStudentRecord,
+  UpdateManualPaymentInput,
 } from '@/types/api'
 import { baseQueryWithReauth } from '@/lib/apiClient'
 
@@ -36,6 +38,51 @@ export const monthlyPaymentApi = createApi({
       invalidatesTags: (_r, _e, enrollmentId) => [
         { type: 'EnrollmentPaymentHistory', id: enrollmentId },
         { type: 'MonthlyPayment', id: 'LIST' },
+      ],
+    }),
+    getAdminEnrollmentPaymentHistory: builder.query<
+      { data: EnrollmentPaymentHistory },
+      string
+    >({
+      query: (enrollmentId) => `/admin/monthly-payments/enrollments/${enrollmentId}/payment-history`,
+      providesTags: (_r, _e, enrollmentId) => [
+        { type: 'EnrollmentPaymentHistory', id: enrollmentId },
+      ],
+    }),
+    createManualPayment: builder.mutation<
+      { data: MonthlyPaymentRecord },
+      CreateManualPaymentInput
+    >({
+      query: (body) => ({
+        url: '/admin/monthly-payments',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: (result) => [
+        { type: 'MonthlyPayment', id: 'LIST' },
+        { type: 'MonthlyPayment', id: 'UNPAID' },
+        { type: 'PaymentSummary', id: 'SUMMARY' },
+        ...(result
+          ? [{ type: 'EnrollmentPaymentHistory' as const, id: result.data.enrollment.id }]
+          : []),
+      ],
+    }),
+    updateManualPayment: builder.mutation<
+      { data: MonthlyPaymentRecord },
+      { id: string; body: UpdateManualPaymentInput }
+    >({
+      query: ({ id, body }) => ({
+        url: `/admin/monthly-payments/${id}/edit`,
+        method: 'PATCH',
+        body,
+      }),
+      invalidatesTags: (result) => [
+        { type: 'MonthlyPayment', id: 'LIST' },
+        { type: 'MonthlyPayment', id: 'UNPAID' },
+        { type: 'PaymentSummary', id: 'SUMMARY' },
+        ...(result
+          ? [{ type: 'EnrollmentPaymentHistory' as const, id: result.data.enrollment.id }]
+          : []),
       ],
     }),
     getAdminPaymentSummary: builder.query<{ data: AdminPaymentSummary }, void>({
@@ -99,7 +146,10 @@ export const monthlyPaymentApi = createApi({
 
 export const {
   useGetEnrollmentPaymentHistoryQuery,
+  useGetAdminEnrollmentPaymentHistoryQuery,
   useRequestMonthlyPaymentMutation,
+  useCreateManualPaymentMutation,
+  useUpdateManualPaymentMutation,
   useGetAdminPaymentSummaryQuery,
   useListAdminMonthlyPaymentsQuery,
   useListUnpaidStudentsQuery,

@@ -21,6 +21,7 @@ import { isPreviewableLesson } from "@/features/enrollment/lib/lesson-view"
 import { useGetCourseQuery } from "@/features/course/api"
 import { MARKETING_NAV_CLEARANCE, marketingHeroSection } from "@/lib/marketing-layout"
 import { cn } from "@/lib/utils"
+import { ShareButtons } from "@/components/ShareButtons"
 
 const COURSE_HERO_FALLBACK =
   "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=1200&h=600&fit=crop"
@@ -248,6 +249,9 @@ function CourseDetailContent({ course }: { course: CourseDetail }) {
                     </div>
                   ) : null}
                 </div>
+                <div className="mt-4">
+                  <ShareButtons />
+                </div>
               </div>
             </div>
           </div>
@@ -344,6 +348,7 @@ function CourseDetailContent({ course }: { course: CourseDetail }) {
                 productTitle={course.title}
                 className="mb-3 w-full rounded-xl text-lg"
               />
+              <ShareButtons />
             </div>
           </div>
         </div>

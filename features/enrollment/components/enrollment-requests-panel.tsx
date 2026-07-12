@@ -35,6 +35,8 @@ import { deliveryModeLabel } from "@/lib/product-vocabulary"
 import { cn } from "@/lib/utils"
 import { ManualEnrollmentDialog } from "@/features/enrollment/components/manual-enrollment-dialog"
 import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
+import { currentBillingMonthValue, formatBillingMonthLabel } from "@/lib/billing-month"
 
 const PAGE_SIZE = 10
 
@@ -79,6 +81,8 @@ export function EnrollmentRequestsPanel() {
   const [approveTarget, setApproveTarget] = useState<AdminEnrollmentRequest | null>(null)
   const [approveId, setApproveId] = useState("")
   const [approveFee, setApproveFee] = useState("")
+  const [approveMonth, setApproveMonth] = useState(currentBillingMonthValue())
+  const [approveFullPaid, setApproveFullPaid] = useState(false)
 
   const { data: overviewData, isLoading: overviewLoading } = useGetAdminEnrollmentOverviewQuery()
   const { data: paymentSummary, isLoading: paymentSummaryLoading } = useGetAdminPaymentSummaryQuery()
@@ -123,11 +127,14 @@ export function EnrollmentRequestsPanel() {
           action: "approve",
           idNumber: idNumber.trim() || formatStudentId(null, item.student.id),
           enrollmentFeeMinor,
+          ...(item.kind === EnrollmentKind.BATCH ? { billingMonth: approveMonth } : {}),
+          markFullyPaid: approveFullPaid,
         },
       }).unwrap()
       setApproveTarget(null)
       setApproveId("")
       setApproveFee("")
+      setApproveFullPaid(false)
     } catch {
       setActionError("Could not approve enrollment.")
     }
@@ -262,7 +269,7 @@ export function EnrollmentRequestsPanel() {
         <OverviewCard label="Completed" value={overview?.completed} isLoading={overviewLoading} />
         <OverviewCard
           label="Total Revenue"
-          value={formatBdtMinor(paymentSummary?.data.totalRevenueMinor ?? 0)}
+          value={'0'}
           isLoading={paymentSummaryLoading}
         />
         <OverviewCard
@@ -411,6 +418,7 @@ export function EnrollmentRequestsPanel() {
             setApproveTarget(null)
             setApproveId("")
             setApproveFee("")
+            setApproveFullPaid(false)
           }
         }}
       >
@@ -442,6 +450,20 @@ export function EnrollmentRequestsPanel() {
                 value={approveFee}
                 onChange={(e) => setApproveFee(e.target.value)}
               />
+              {approveTarget?.kind === EnrollmentKind.BATCH ? (
+                <div className="space-y-2">
+                  <Label htmlFor="approve-month">Billing month</Label>
+                  <Input
+                    id="approve-month"
+                    type="month"
+                    value={approveMonth}
+                    onChange={(e) => setApproveMonth(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    First tuition payment will be recorded for {formatBillingMonthLabel(approveMonth)}.
+                  </p>
+                </div>
+              ) : null}
               {approveTarget?.kind === EnrollmentKind.BATCH && approveTarget.priceMinor > 0 ? (
                 <div className="flex flex-wrap items-center gap-2">
                   <Button
@@ -477,6 +499,18 @@ export function EnrollmentRequestsPanel() {
                   : ""}
               </p>
             </div>
+            <label className="flex items-start gap-3 rounded-lg border p-3">
+              <Checkbox
+                checked={approveFullPaid}
+                onCheckedChange={(v) => setApproveFullPaid(v === true)}
+              />
+              <span className="space-y-1">
+                <span className="block text-sm font-medium">Full paid (admin waiver)</span>
+                <span className="block text-xs text-muted-foreground">
+                  Mark as fully paid even if the amount received is below the course price.
+                </span>
+              </span>
+            </label>
             {actionError ? <p className="text-sm text-destructive">{actionError}</p> : null}
           </div>
           <DialogFooter>

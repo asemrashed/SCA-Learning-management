@@ -1,11 +1,15 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import { useDispatch } from "react-redux"
+import { Plus } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { DashboardTable } from "@/components/dashboard-table"
-import { TableRowActions } from "@/components/table-row-actions"
+import { TableRowActions, type TableRowAction } from "@/components/table-row-actions"
 import {
   Dialog,
   DialogContent,
@@ -21,24 +25,33 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useListBatchesByCourseQuery, useListBatchesQuery } from "@/features/batch/api"
 import { useListCoursesQuery } from "@/features/course/api"
+import { useReviewEnrollmentRequestMutation } from "@/features/enrollment/api"
 import {
+  AdminPaymentFormDialog,
+  type AdminPaymentFormPrefill,
+} from "@/features/monthly-payment/components/admin-payment-form-dialog"
+import {
+  monthlyPaymentApi,
   useListAdminMonthlyPaymentsQuery,
   useListUnpaidStudentsQuery,
   useReviewMonthlyPaymentMutation,
   useSetPaymentAccessMutation,
 } from "@/features/monthly-payment/api"
+import {
+  currentBillingMonthValue,
+  formatBillingMonthLabel,
+} from "@/lib/billing-month"
 import { formatBdtMinor } from "@/lib/format-currency"
-import { DeliveryMode, EnrollmentKind, MonthlyPaymentStatus } from "@/types/api"
-
-function formatBillingMonth(billingMonth: string): string {
-  if (billingMonth === "ENROLLMENT") return "Enrollment"
-  const [year, month] = billingMonth.split("-")
-  const date = new Date(Number(year), Number(month) - 1, 1)
-  return date.toLocaleDateString("en-GB", { month: "long", year: "numeric" })
-}
+import {
+  DeliveryMode,
+  EnrollmentKind,
+  MonthlyPaymentStatus,
+  type MonthlyPaymentRecord,
+  type UnpaidStudentRecord,
+} from "@/types/api"
 
 function paymentStatusLabel(item: {
   billingMonth: string
@@ -49,12 +62,6 @@ function paymentStatusLabel(item: {
     return "Full paid"
   }
   return item.status
-}
-
-function currentBillingMonthLabel(): string {
-  const now = new Date()
-  const billingMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`
-  return formatBillingMonth(billingMonth)
 }
 
 function formatDeadline(iso: string): string {
@@ -82,23 +89,37 @@ interface AdminPaymentsPanelProps {
   readOnly?: boolean
 }
 
+const PAYMENT_TABS = [
+  { value: MonthlyPaymentStatus.REQUESTED, label: "Pending" },
+  { value: MonthlyPaymentStatus.APPROVED, label: "Approved" },
+  { value: MonthlyPaymentStatus.REJECTED, label: "Rejected" },
+  { value: "unpaid" as const, label: "Unpaid students" },
+]
+
 export function AdminPaymentsPanel({
   defaultStatus = MonthlyPaymentStatus.REQUESTED,
   readOnly = false,
 }: AdminPaymentsPanelProps) {
-  const [status, setStatus] = useState<MonthlyPaymentStatus | "ALL">(defaultStatus)
+  const dispatch = useDispatch()
+  const [activeTab, setActiveTab] = useState<MonthlyPaymentStatus | "unpaid">(defaultStatus)
   const [courseId, setCourseId] = useState<string>("")
   const [batchId, setBatchId] = useState<string>("")
   const [search, setSearch] = useState("")
-  const [approveTarget, setApproveTarget] = useState<{ id: string; name: string } | null>(null)
-  const [approveAmount, setApproveAmount] = useState("")
   const [actionError, setActionError] = useState<string | null>(null)
+
+  const [paymentFormOpen, setPaymentFormOpen] = useState(false)
+  const [paymentFormMode, setPaymentFormMode] = useState<"create" | "edit">("create")
+  const [paymentFormPrefill, setPaymentFormPrefill] = useState<AdminPaymentFormPrefill | undefined>()
+  const [editPayment, setEditPayment] = useState<MonthlyPaymentRecord | null>(null)
+
+  const [approveTarget, setApproveTarget] = useState<MonthlyPaymentRecord | null>(null)
+  const [approveAmount, setApproveAmount] = useState("")
+  const [approveMonth, setApproveMonth] = useState(currentBillingMonthValue())
+  const [approveFullPaid, setApproveFullPaid] = useState(false)
 
   const { data: coursesData } = useListCoursesQuery({ deliveryMode: DeliveryMode.LIVE, pageSize: 100 })
   const { data: batchesData } = useListBatchesQuery({ pageSize: 100 })
-  const { data: courseBatchesData } = useListBatchesByCourseQuery(courseId, {
-    skip: !courseId,
-  })
+  const { data: courseBatchesData } = useListBatchesByCourseQuery(courseId, { skip: !courseId })
 
   const filterParams = useMemo(
     () => ({
@@ -113,32 +134,48 @@ export function AdminPaymentsPanel({
   const paymentQueryParams = useMemo(
     () => ({
       ...filterParams,
-      status: status === "ALL" ? undefined : status,
+      status: activeTab === "unpaid" ? undefined : activeTab,
     }),
-    [filterParams, status],
+    [filterParams, activeTab],
   )
 
-  const { data, isLoading, error } = useListAdminMonthlyPaymentsQuery(paymentQueryParams)
+  const { data, isLoading, error } = useListAdminMonthlyPaymentsQuery(paymentQueryParams, {
+    skip: activeTab === "unpaid",
+  })
   const {
     data: unpaidData,
     isLoading: unpaidLoading,
     error: unpaidError,
-  } = useListUnpaidStudentsQuery(filterParams)
+  } = useListUnpaidStudentsQuery(filterParams, { skip: activeTab !== "unpaid" })
   const [reviewPayment, { isLoading: reviewing }] = useReviewMonthlyPaymentMutation()
   const [setPaymentAccess, { isLoading: settingAccess }] = useSetPaymentAccessMutation()
+  const [reviewEnrollment, { isLoading: reviewingEnrollment }] = useReviewEnrollmentRequestMutation()
 
   const payments = data?.data ?? []
   const unpaidStudents = unpaidData?.data ?? []
-  const batchOptions = courseId
-    ? (courseBatchesData?.data ?? [])
-    : (batchesData?.data ?? [])
+  const batchOptions = courseId ? (courseBatchesData?.data ?? []) : (batchesData?.data ?? [])
 
   useEffect(() => {
     setBatchId("")
   }, [courseId])
 
-  async function handleApprove(id: string, amountRaw: string) {
-    const raw = amountRaw.trim()
+  function openCreatePayment(prefill?: AdminPaymentFormPrefill) {
+    setPaymentFormMode("create")
+    setEditPayment(null)
+    setPaymentFormPrefill(prefill)
+    setPaymentFormOpen(true)
+  }
+
+  function openEditPayment(payment: MonthlyPaymentRecord) {
+    setPaymentFormMode("edit")
+    setEditPayment(payment)
+    setPaymentFormPrefill(undefined)
+    setPaymentFormOpen(true)
+  }
+
+  async function handleApproveRequest() {
+    if (!approveTarget) return
+    const raw = approveAmount.trim()
     const major = raw ? Number(raw) : NaN
     if (!raw || Number.isNaN(major) || major <= 0) {
       setActionError("Enter a valid payment amount before approving.")
@@ -147,11 +184,17 @@ export function AdminPaymentsPanel({
     setActionError(null)
     try {
       await reviewPayment({
-        id,
-        body: { action: "approve", amountMinor: Math.round(major * 100) },
+        id: approveTarget.id,
+        body: {
+          action: "approve",
+          amountMinor: Math.round(major * 100),
+          billingMonth: approveMonth,
+          markFullyPaid: approveFullPaid,
+        },
       }).unwrap()
       setApproveTarget(null)
       setApproveAmount("")
+      setApproveFullPaid(false)
     } catch {
       setActionError("Could not approve payment.")
     }
@@ -166,21 +209,114 @@ export function AdminPaymentsPanel({
     }
   }
 
-  async function handleAccessToggle(
-    enrollmentId: string,
-    billingMonth: string,
-    action: "grant" | "revoke",
-  ) {
+  function invalidatePaymentLists() {
+    dispatch(
+      monthlyPaymentApi.util.invalidateTags([
+        { type: "MonthlyPayment", id: "LIST" },
+        { type: "MonthlyPayment", id: "UNPAID" },
+      ]),
+    )
+  }
+
+  async function handleBlockAccess(enrollmentId: string) {
     setActionError(null)
     try {
-      await setPaymentAccess({ enrollmentId, body: { billingMonth, action } }).unwrap()
+      await reviewEnrollment({ id: enrollmentId, body: { action: "block" } }).unwrap()
+      invalidatePaymentLists()
     } catch {
-      setActionError(
-        action === "grant"
-          ? "Could not grant access."
-          : "Could not block access.",
-      )
+      setActionError("Could not block access.")
     }
+  }
+
+  async function handleGiveAccess(enrollmentId: string, billingMonth: string) {
+    setActionError(null)
+    try {
+      await reviewEnrollment({ id: enrollmentId, body: { action: "unblock" } }).unwrap()
+      await setPaymentAccess({
+        enrollmentId,
+        body: { billingMonth, action: "grant" },
+      }).unwrap()
+      invalidatePaymentLists()
+    } catch {
+      setActionError("Could not give access.")
+    }
+  }
+
+  function paymentRowActions(item: MonthlyPaymentRecord): TableRowAction[] {
+    if (readOnly) return []
+    const actions: TableRowAction[] = []
+
+    if (item.status === MonthlyPaymentStatus.APPROVED) {
+      actions.push({
+        label: "Edit payment",
+        onClick: () => openEditPayment(item),
+      })
+    }
+
+    if (item.status === MonthlyPaymentStatus.REQUESTED) {
+      actions.push({
+        label: "Approve",
+        onClick: () => {
+          setApproveTarget(item)
+          setApproveAmount("")
+          setApproveMonth(
+            item.billingMonth === "ENROLLMENT" ? currentBillingMonthValue() : item.billingMonth,
+          )
+          setApproveFullPaid(false)
+        },
+      })
+      actions.push({
+        label: "Deny",
+        destructive: true,
+        onClick: () => void handleReject(item.id),
+      })
+    }
+
+    actions.push({
+      label: "Block access",
+      destructive: true,
+      onClick: () => void handleBlockAccess(item.enrollment.id),
+    })
+
+    actions.push({
+      label: "Give access",
+      onClick: () =>
+        void handleGiveAccess(
+          item.enrollment.id,
+          item.billingMonth === "ENROLLMENT" ? currentBillingMonthValue() : item.billingMonth,
+        ),
+    })
+
+    return actions
+  }
+
+  function unpaidRowActions(item: UnpaidStudentRecord): TableRowAction[] {
+    if (readOnly) return []
+    const actions: TableRowAction[] = []
+
+    const approvedPayment = item.currentMonthRequest?.status === MonthlyPaymentStatus.APPROVED
+      ? item.currentMonthRequest
+      : null
+
+    if (approvedPayment) {
+      actions.push({
+        label: "Edit payment",
+        onClick: () => openEditPayment(approvedPayment),
+      })
+    }
+
+    actions.push({
+      label: "Block access",
+      destructive: true,
+      onClick: () => void handleBlockAccess(item.enrollment.id),
+    })
+
+    actions.push({
+      label: "Give access",
+      onClick: () => void handleGiveAccess(item.enrollment.id, item.billingMonth),
+    })
+
+    return actions
   }
 
   const searchFilters = (
@@ -224,272 +360,268 @@ export function AdminPaymentsPanel({
 
   return (
     <>
-    <Tabs defaultValue="requests" className="space-y-4">
-      <TabsList>
-        <TabsTrigger value="requests">Payment requests</TabsTrigger>
-        <TabsTrigger value="unpaid">Unpaid students</TabsTrigger>
-      </TabsList>
-
-      {actionError ? <p className="text-sm text-destructive">{actionError}</p> : null}
-
-      <TabsContent value="requests" className="space-y-4">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <Select
-            value={status}
-            onValueChange={(value) => setStatus(value as MonthlyPaymentStatus | "ALL")}
-          >
-            <SelectTrigger className="w-full lg:w-[220px]">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={MonthlyPaymentStatus.REQUESTED}>Pending requests</SelectItem>
-              <SelectItem value={MonthlyPaymentStatus.APPROVED}>Approved</SelectItem>
-              <SelectItem value={MonthlyPaymentStatus.REJECTED}>Rejected</SelectItem>
-              <SelectItem value="ALL">All</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {searchFilters}
-        </div>
-
-        {isLoading ? (
-          <p className="text-muted-foreground">Loading payments…</p>
-        ) : error ? (
-          <p className="text-destructive">Could not load payments.</p>
-        ) : payments.length === 0 ? (
-          <div className="rounded-xl border border-dashed p-10 text-center text-muted-foreground">
-            No payment records match your filters.
-          </div>
-        ) : (
-          <DashboardTable>
-            <table className="w-full min-w-[900px] text-sm">
-              <thead className="bg-muted/50 text-left">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Student</th>
-                  <th className="px-4 py-3 font-medium">Course / Batch</th>
-                  <th className="px-4 py-3 font-medium">Month</th>
-                  <th className="px-4 py-3 font-medium">Requested</th>
-                  <th className="px-4 py-3 font-medium">Amount</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                  <th className="px-4 py-3 font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {payments.map((item) => (
-                  <tr key={item.id} className="border-t">
-                    <td className="px-4 py-3">
-                      <div className="font-medium">{item.student.name}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {item.student.phone}
-                        {item.student.idNumber ? ` · ID ${item.student.idNumber}` : ""}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">{productTitle(item)}</td>
-                    <td className="px-4 py-3">
-                      <Badge variant="secondary">{formatBillingMonth(item.billingMonth)}</Badge>
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {new Date(item.requestedAt).toLocaleString()}
-                    </td>
-                    <td className="px-4 py-3">
-                      {item.amountMinor != null ? formatBdtMinor(item.amountMinor) : "—"}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge
-                        variant={
-                          item.enrollment.isFullyPaid && item.billingMonth === "ENROLLMENT"
-                            ? "default"
-                            : "secondary"
-                        }
-                      >
-                        {paymentStatusLabel(item)}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3">
-                      <TableRowActions
-                        actions={
-                          !readOnly && item.status === MonthlyPaymentStatus.REQUESTED
-                            ? [
-                                {
-                                  label: "Approve",
-                                  disabled: reviewing,
-                                  onClick: () => {
-                                    setApproveTarget({ id: item.id, name: item.student.name })
-                                    setApproveAmount("")
-                                  },
-                                },
-                                {
-                                  label: "Deny",
-                                  destructive: true,
-                                  disabled: reviewing,
-                                  onClick: () => void handleReject(item.id),
-                                },
-                              ]
-                            : []
-                        }
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </DashboardTable>
-        )}
-      </TabsContent>
-
-      <TabsContent value="unpaid" className="space-y-4">
-        {searchFilters}
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">
-          Active batch students without an approved payment for{" "}
-          {unpaidStudents[0]
-            ? formatBillingMonth(unpaidStudents[0].billingMonth)
-            : currentBillingMonthLabel()}
-          . Payment deadline is the 20th of each month.
+          Manage payment history, manual fee entries, and student access overrides.
         </p>
+        {!readOnly ? (
+          <Button type="button" className="rounded-xl" onClick={() => openCreatePayment()}>
+            <Plus className="mr-2 h-4 w-4" />
+            New payment
+          </Button>
+        ) : null}
+      </div>
 
-        {unpaidLoading ? (
-          <p className="text-muted-foreground">Loading unpaid students…</p>
-        ) : unpaidError ? (
-          <p className="text-destructive">Could not load unpaid students.</p>
-        ) : unpaidStudents.length === 0 ? (
-          <div className="rounded-xl border border-dashed p-10 text-center text-muted-foreground">
-            All students have paid for the current billing month.
+      <Tabs
+        value={activeTab}
+        onValueChange={(value) => setActiveTab(value as MonthlyPaymentStatus | "unpaid")}
+        className="space-y-4"
+      >
+        <TabsList>
+          {PAYMENT_TABS.map((tab) => (
+            <TabsTrigger
+              key={tab.value}
+              value={tab.value}
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              {tab.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+
+        {actionError ? <p className="text-sm text-destructive">{actionError}</p> : null}
+
+        {activeTab !== "unpaid" ? (
+          <div className="space-y-4">
+            {searchFilters}
+
+            {isLoading ? (
+              <p className="text-muted-foreground">Loading payments…</p>
+            ) : error ? (
+              <p className="text-destructive">Could not load payments.</p>
+            ) : payments.length === 0 ? (
+              <div className="rounded-xl border border-dashed p-10 text-center text-muted-foreground">
+                No {activeTab.toLowerCase()} payment records match your filters.
+              </div>
+            ) : (
+              <DashboardTable>
+                <table className="w-full min-w-[980px] text-sm">
+                  <thead className="bg-muted/50 text-left">
+                    <tr>
+                      <th className="px-4 py-3 font-medium">Student</th>
+                      <th className="px-4 py-3 font-medium">Course / Batch</th>
+                      <th className="px-4 py-3 font-medium">Month</th>
+                      <th className="px-4 py-3 font-medium">Recorded</th>
+                      <th className="px-4 py-3 font-medium">Amount</th>
+                      <th className="px-4 py-3 font-medium">Status</th>
+                      <th className="px-4 py-3 font-medium">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {payments.map((item) => (
+                      <tr key={item.id} className="border-t">
+                        <td className="px-4 py-3">
+                          <div className="font-medium">{item.student.name}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {item.student.phone}
+                            {item.student.idNumber ? ` · ID ${item.student.idNumber}` : ""}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">{productTitle(item)}</td>
+                        <td className="px-4 py-3">
+                          <Badge variant="secondary">{formatBillingMonthLabel(item.billingMonth)}</Badge>
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">
+                          {new Date(item.reviewedAt ?? item.requestedAt).toLocaleString()}
+                        </td>
+                        <td className="px-4 py-3">
+                          {item.amountMinor != null ? formatBdtMinor(item.amountMinor) : "—"}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex flex-wrap gap-2">
+                            <Badge
+                              variant={
+                                item.enrollment.isFullyPaid && item.billingMonth === "ENROLLMENT"
+                                  ? "default"
+                                  : "secondary"
+                              }
+                            >
+                              {paymentStatusLabel(item)}
+                            </Badge>
+                            {item.enrollment.isBlocked ? (
+                              <Badge variant="destructive">Blocked</Badge>
+                            ) : null}
+                            {item.enrollment.isFullyPaid ? (
+                              <Badge variant="outline">Full paid waiver</Badge>
+                            ) : null}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <TableRowActions actions={paymentRowActions(item)} />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </DashboardTable>
+            )}
           </div>
         ) : (
-          <DashboardTable>
-            <table className="w-full min-w-[900px] text-sm">
-              <thead className="bg-muted/50 text-left">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Student</th>
-                  <th className="px-4 py-3 font-medium">Course / Batch</th>
-                  <th className="px-4 py-3 font-medium">Month</th>
-                  <th className="px-4 py-3 font-medium">Deadline</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                  {!readOnly ? <th className="px-4 py-3 font-medium">Access</th> : null}
-                </tr>
-              </thead>
-              <tbody>
-                {unpaidStudents.map((item) => (
-                  <tr key={item.enrollment.id} className="border-t">
-                    <td className="px-4 py-3">
-                      <div className="font-medium">{item.student.name}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {item.student.phone}
-                        {item.student.idNumber ? ` · ID ${item.student.idNumber}` : ""}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">{productTitle(item)}</td>
-                    <td className="px-4 py-3">
-                      <Badge variant="secondary">{formatBillingMonth(item.billingMonth)}</Badge>
-                    </td>
-                    <td className="px-4 py-3">{formatDeadline(item.paymentDeadline)}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-2">
-                        <Badge variant="destructive">Unpaid</Badge>
-                        {item.hasAccessGrant ? (
-                          <Badge variant="outline">Access granted</Badge>
-                        ) : item.isAccessBlocked ? (
-                          <Badge variant="outline">Access blocked</Badge>
-                        ) : item.isPastDeadline ? null : (
-                          <Badge variant="outline">Before deadline</Badge>
-                        )}
-                        {item.currentMonthRequest ? (
-                          <Badge>{item.currentMonthRequest.status}</Badge>
-                        ) : null}
-                      </div>
-                    </td>
-                    {!readOnly ? (
-                      <td className="px-4 py-3">
-                        {item.isPastDeadline ? (
-                          item.hasAccessGrant ? (
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              disabled={settingAccess}
-                              onClick={() =>
-                                void handleAccessToggle(
-                                  item.enrollment.id,
-                                  item.billingMonth,
-                                  "revoke",
-                                )
-                              }
-                            >
-                              Block access
-                            </Button>
-                          ) : (
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              disabled={settingAccess}
-                              onClick={() =>
-                                void handleAccessToggle(
-                                  item.enrollment.id,
-                                  item.billingMonth,
-                                  "grant",
-                                )
-                              }
-                            >
-                              Give access
-                            </Button>
-                          )
-                        ) : (
-                          <span className="text-xs text-muted-foreground">Before deadline</span>
-                        )}
-                      </td>
-                    ) : null}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </DashboardTable>
-        )}
-      </TabsContent>
-    </Tabs>
+          <div className="space-y-4">
+            {searchFilters}
+            <p className="text-sm text-muted-foreground">
+              Active batch students without an approved payment for{" "}
+              {unpaidStudents[0]
+                ? formatBillingMonthLabel(unpaidStudents[0].billingMonth)
+                : formatBillingMonthLabel(currentBillingMonthValue())}
+              . Payment deadline is the 20th of each month.
+            </p>
 
-    <Dialog
-      open={approveTarget != null}
-      onOpenChange={(open) => {
-        if (!open) {
-          setApproveTarget(null)
-          setApproveAmount("")
-        }
-      }}
-    >
-      <DialogContent className="max-w-sm">
-        <DialogHeader>
-          <DialogTitle>Approve payment</DialogTitle>
-          <DialogDescription>
-            Enter the approved amount for {approveTarget?.name ?? "this student"}.
-          </DialogDescription>
-        </DialogHeader>
-        <Input
-          type="number"
-          min="1"
-          step="0.01"
-          placeholder="Amount (৳)"
-          value={approveAmount}
-          onChange={(e) => setApproveAmount(e.target.value)}
-        />
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => setApproveTarget(null)}>
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            disabled={reviewing}
-            onClick={() => {
-              if (approveTarget) {
-                void handleApprove(approveTarget.id, approveAmount)
-              }
-            }}
-          >
-            Approve
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+            {unpaidLoading ? (
+              <p className="text-muted-foreground">Loading unpaid students…</p>
+            ) : unpaidError ? (
+              <p className="text-destructive">Could not load unpaid students.</p>
+            ) : unpaidStudents.length === 0 ? (
+              <div className="rounded-xl border border-dashed p-10 text-center text-muted-foreground">
+                All students have paid for the current billing month.
+              </div>
+            ) : (
+              <DashboardTable>
+                <table className="w-full min-w-[980px] text-sm">
+                  <thead className="bg-muted/50 text-left">
+                    <tr>
+                      <th className="px-4 py-3 font-medium">Student</th>
+                      <th className="px-4 py-3 font-medium">Course / Batch</th>
+                      <th className="px-4 py-3 font-medium">Month</th>
+                      <th className="px-4 py-3 font-medium">Deadline</th>
+                      <th className="px-4 py-3 font-medium">Status</th>
+                      {!readOnly ? <th className="px-4 py-3 font-medium">Actions</th> : null}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {unpaidStudents.map((item) => (
+                      <tr key={item.enrollment.id} className="border-t">
+                        <td className="px-4 py-3">
+                          <div className="font-medium">{item.student.name}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {item.student.phone}
+                            {item.student.idNumber ? ` · ID ${item.student.idNumber}` : ""}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">{productTitle(item)}</td>
+                        <td className="px-4 py-3">
+                          <Badge variant="secondary">{formatBillingMonthLabel(item.billingMonth)}</Badge>
+                        </td>
+                        <td className="px-4 py-3">{formatDeadline(item.paymentDeadline)}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex flex-wrap gap-2">
+                            <Badge variant="destructive">Unpaid</Badge>
+                            {item.isBlocked ? <Badge variant="destructive">Blocked</Badge> : null}
+                            {item.hasAccessGrant ? (
+                              <Badge variant="outline">Access granted</Badge>
+                            ) : item.isAccessBlocked ? (
+                              <Badge variant="outline">Access blocked</Badge>
+                            ) : item.isPastDeadline ? null : (
+                              <Badge variant="outline">Before deadline</Badge>
+                            )}
+                            {item.currentMonthRequest ? (
+                              <Badge>{item.currentMonthRequest.status}</Badge>
+                            ) : null}
+                          </div>
+                        </td>
+                        {!readOnly ? (
+                          <td className="px-4 py-3">
+                            <TableRowActions actions={unpaidRowActions(item)} />
+                          </td>
+                        ) : null}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </DashboardTable>
+            )}
+          </div>
+        )}
+      </Tabs>
+
+      <AdminPaymentFormDialog
+        open={paymentFormOpen}
+        onOpenChange={setPaymentFormOpen}
+        mode={paymentFormMode}
+        payment={editPayment}
+        prefill={paymentFormPrefill}
+      />
+
+      <Dialog
+        open={approveTarget != null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setApproveTarget(null)
+            setApproveAmount("")
+            setApproveFullPaid(false)
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Approve payment request</DialogTitle>
+            <DialogDescription>
+              Confirm the month and amount received for {approveTarget?.student.name ?? "this student"}.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="approve-month">Billing month</Label>
+              <Input
+                id="approve-month"
+                type="month"
+                value={approveMonth}
+                onChange={(e) => setApproveMonth(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Student request month:{" "}
+                {approveTarget ? formatBillingMonthLabel(approveTarget.billingMonth) : "—"}
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="approve-amount">Amount received (৳)</Label>
+              <Input
+                id="approve-amount"
+                type="number"
+                min="1"
+                step="0.01"
+                placeholder="Amount (৳)"
+                value={approveAmount}
+                onChange={(e) => setApproveAmount(e.target.value)}
+              />
+            </div>
+
+            <label className="flex items-start gap-3 rounded-lg border p-3">
+              <Checkbox
+                checked={approveFullPaid}
+                onCheckedChange={(v) => setApproveFullPaid(v === true)}
+              />
+              <span className="space-y-1">
+                <span className="block text-sm font-medium">Full paid (admin waiver)</span>
+                <span className="block text-xs text-muted-foreground">
+                  Mark as fully paid even if the amount is below the course price.
+                </span>
+              </span>
+            </label>
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setApproveTarget(null)}>
+              Cancel
+            </Button>
+            <Button type="button" disabled={reviewing} onClick={() => void handleApproveRequest()}>
+              Approve
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

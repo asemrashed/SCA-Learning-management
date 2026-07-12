@@ -39,6 +39,9 @@ interface CurriculumPlacementPickerProps {
   moduleLabel?: string
   lessonLabel?: string
   hideModuleLesson?: boolean
+  hideSubject?: boolean
+  hideModule?: boolean
+  hideLesson?: boolean
   subjectLabel?: string
   className?: string
   beforeLesson?: React.ReactNode
@@ -55,6 +58,9 @@ export function CurriculumPlacementPicker({
   moduleLabel,
   lessonLabel = "Lesson (optional)",
   hideModuleLesson = false,
+  hideSubject = false,
+  hideModule = false,
+  hideLesson = false,
   subjectLabel,
   className = "grid gap-4 sm:grid-cols-2",
   beforeLesson,
@@ -201,7 +207,7 @@ export function CurriculumPlacementPicker({
         </div>
       ) : null}
 
-      {isLive && resolvedBatchId && subjects.length > 0 ? (
+      {isLive && resolvedBatchId && subjects.length > 0 && !hideSubject ? (
         <div className="space-y-2">
           <Label>{resolvedSubjectLabel}</Label>
           <Select
@@ -232,66 +238,66 @@ export function CurriculumPlacementPicker({
         </div>
       ) : null}
 
-      {!hideModuleLesson ? (
-        <>
-          <div className="space-y-2">
-            <Label>{resolvedModuleLabel}</Label>
-            <Select
-              value={value.moduleId ?? NONE}
-              onValueChange={(id) =>
-                onChange({
-                  ...value,
-                  courseId: resolvedCourseId,
-                  batchId: resolvedBatchId || value.batchId,
-                  moduleId: id === NONE ? null : id,
-                  lessonId: null,
-                })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={`Select ${CHAPTER.toLowerCase()}`} />
-              </SelectTrigger>
-              <SelectContent>
-                {!moduleRequired ? <SelectItem value={NONE}>None</SelectItem> : null}
-                {modules.map((m) => (
-                  <SelectItem key={m.id} value={m.id}>
-                    {m.title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+      {!hideModule && !hideModuleLesson ? (
+        <div className="space-y-2">
+          <Label>{resolvedModuleLabel}</Label>
+          <Select
+            value={value.moduleId ?? NONE}
+            onValueChange={(id) =>
+              onChange({
+                ...value,
+                courseId: resolvedCourseId,
+                batchId: resolvedBatchId || value.batchId,
+                moduleId: id === NONE ? null : id,
+                lessonId: null,
+              })
+            }
+          >
+            <SelectTrigger>
+              <SelectValue placeholder={`Select ${CHAPTER.toLowerCase()}`} />
+            </SelectTrigger>
+            <SelectContent>
+              {!moduleRequired ? <SelectItem value={NONE}>None</SelectItem> : null}
+              {modules.map((m) => (
+                <SelectItem key={m.id} value={m.id}>
+                  {m.title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      ) : null}
 
-          {beforeLesson}
+      {beforeLesson}
 
-          <div className="space-y-2">
-            <Label>{lessonLabel}</Label>
-            <Select
-              value={value.lessonId ?? NONE}
-              onValueChange={(id) =>
-                onChange({
-                  ...value,
-                  courseId: resolvedCourseId,
-                  batchId: resolvedBatchId || value.batchId,
-                  lessonId: id === NONE ? null : id,
-                })
-              }
-              disabled={!value.moduleId}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select lesson" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={NONE}>None</SelectItem>
-                {lessons.map((l) => (
-                  <SelectItem key={l.id} value={l.id}>
-                    {l.title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </>
+      {!hideLesson && !hideModuleLesson ? (
+        <div className="space-y-2">
+          <Label>{lessonLabel}</Label>
+          <Select
+            value={value.lessonId ?? NONE}
+            onValueChange={(id) =>
+              onChange({
+                ...value,
+                courseId: resolvedCourseId,
+                batchId: resolvedBatchId || value.batchId,
+                lessonId: id === NONE ? null : id,
+              })
+            }
+            disabled={!value.moduleId && !hideModule}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select lesson" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NONE}>None</SelectItem>
+              {lessons.map((l) => (
+                <SelectItem key={l.id} value={l.id}>
+                  {l.title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       ) : null}
     </div>
   )

@@ -283,7 +283,13 @@ export interface AdminEnrollmentRequest {
 }
 
 export type ReviewEnrollmentInput =
-  | { action: 'approve'; idNumber?: string; enrollmentFeeMinor?: number }
+  | {
+      action: 'approve'
+      idNumber?: string
+      enrollmentFeeMinor?: number
+      billingMonth?: string
+      markFullyPaid?: boolean
+    }
   | { action: 'reject' }
   | { action: 'remove' }
   | { action: 'block' }
@@ -320,6 +326,9 @@ export interface AdminEnrollmentOverview {
 
 export interface ListAdminEnrollmentsParams {
   status?: EnrollmentStatus
+  courseId?: string
+  batchId?: string
+  search?: string
   page?: number
   pageSize?: number
 }
@@ -583,10 +592,12 @@ export interface MonthlyPaymentEnrollment {
   status: EnrollmentStatus
   idNumber: string | null
   isFullyPaid: boolean
+  isBlocked: boolean
   courseTitle: string
   batchTitle: string | null
   courseId: string | null
   batchId: string | null
+  priceMinor: number
 }
 
 export interface MonthlyPaymentStudent {
@@ -616,6 +627,7 @@ export interface EnrollmentPaymentHistoryItem {
   status: string
   paidAt: string | null
   createdAt: string
+  isAdminWaiver?: boolean
 }
 
 export interface EnrollmentPaymentHistory {
@@ -638,6 +650,7 @@ export interface UnpaidStudentRecord {
   isPastDeadline: boolean
   isAccessBlocked: boolean
   hasAccessGrant: boolean
+  isBlocked: boolean
   student: MonthlyPaymentStudent
   enrollment: MonthlyPaymentEnrollment
   currentMonthRequest: MonthlyPaymentRecord | null
@@ -658,7 +671,24 @@ export interface PaymentAccessResult {
 export interface ReviewMonthlyPaymentInput {
   action: 'approve' | 'reject'
   amountMinor?: number
+  billingMonth?: string
+  markFullyPaid?: boolean
   note?: string
+}
+
+export interface CreateManualPaymentInput {
+  enrollmentId: string
+  billingMonth: string
+  amountMinor: number
+  note?: string
+  markFullyPaid?: boolean
+}
+
+export interface UpdateManualPaymentInput {
+  billingMonth?: string
+  amountMinor?: number
+  note?: string | null
+  markFullyPaid?: boolean
 }
 
 export interface ListMonthlyPaymentsParams {

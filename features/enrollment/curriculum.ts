@@ -1,6 +1,13 @@
 import type { EnrollmentDetail, EnrollmentModule, EnrollmentSubject } from "@/types/api"
 import { EnrollmentKind } from "@/types/api"
 
+/**
+ * Synthetic subject id used to group a recorded course's modules under a single
+ * pseudo-subject. It is not a real DB id, so it must never be sent to the API as
+ * a `subjectId` filter.
+ */
+export const PSEUDO_COURSE_SUBJECT_ID = "__course__"
+
 /** Own-batch curriculum (recorded class path for live enrollments). */
 export function getEnrollmentSubjects(detail: EnrollmentDetail): EnrollmentSubject[] {
   if (detail.kind === EnrollmentKind.BATCH && detail.subjects?.length) {
@@ -13,7 +20,7 @@ export function getEnrollmentSubjects(detail: EnrollmentDetail): EnrollmentSubje
         : detail.course?.title ?? "Course"
     return [
       {
-        id: "__course__",
+        id: PSEUDO_COURSE_SUBJECT_ID,
         title,
         order: 0,
         modules: [...detail.modules].sort((a, b) => a.order - b.order),

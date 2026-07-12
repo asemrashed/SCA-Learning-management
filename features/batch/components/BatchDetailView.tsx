@@ -21,6 +21,7 @@ import {
 } from "@/lib/marketing-layout"
 import { cn } from "@/lib/utils"
 import { EnrollButton } from "@/features/enrollment/components/enroll-button"
+import { ShareButtons } from "@/components/ShareButtons"
 import { isPreviewableLesson } from "@/features/enrollment/lib/lesson-view"
 import { LessonType } from "@/types/api"
 import { Calendar, Clock, Play } from "lucide-react"
@@ -212,6 +213,7 @@ export function BatchDetailView({ idOrSlug }: BatchDetailViewProps) {
                   productTitle={batch.title}
                   className="mb-3 w-full rounded-xl text-lg"
                 />
+                <ShareButtons />
 
                 <div className="mt-6 space-y-2 text-sm text-muted-foreground">
                   <div className="flex items-center gap-2">

@@ -7,6 +7,7 @@ import {
   enrollmentCourseId,
   enrollmentProductTitle,
   getEnrollmentSubjects,
+  PSEUDO_COURSE_SUBJECT_ID,
 } from "@/features/enrollment/curriculum"
 import { useListResourcesQuery } from "@/features/resource/api"
 import {
@@ -83,13 +84,18 @@ export function SuggestionPage({ enrollmentId: fixedEnrollmentId }: SuggestionPa
   }, [enrollment])
 
   const effectiveSubjectId = filters.subjectId || subjects[0]?.id || ""
+  // Never send the synthetic course-level pseudo subject to the API.
+  const subjectIdParam =
+    effectiveSubjectId && effectiveSubjectId !== PSEUDO_COURSE_SUBJECT_ID
+      ? effectiveSubjectId
+      : ""
 
   const resourcesQuery = useListResourcesQuery(
     {
       courseId,
       ...(batchId ? { batchId } : {}),
       category,
-      ...(effectiveSubjectId ? { subjectId: effectiveSubjectId } : {}),
+      ...(subjectIdParam ? { subjectId: subjectIdParam } : {}),
       pageSize: 100,
       sort: "createdAt:desc",
     },

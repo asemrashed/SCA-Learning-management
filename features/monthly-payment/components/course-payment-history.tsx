@@ -54,6 +54,7 @@ function historyLabel(item: {
 
 function historyStatusLabel(status: string): string {
   if (status === "FULL_PAID") return "Full paid"
+  if (status === "FULL_PAID_ADMIN_WAIVER") return "Full paid (admin waiver)"
   return status
 }
 
@@ -117,9 +118,15 @@ export function CoursePaymentHistory({ enrollmentId }: { enrollmentId: string })
             {history.isFullyPaid ? (
               <>
                 <p className="text-sm text-muted-foreground">Payment status</p>
-                <p className="text-lg font-semibold text-emerald-700">Full paid</p>
+                <p className="text-lg font-semibold text-emerald-700">
+                  {history.history.some((item) => item.isAdminWaiver)
+                    ? "Full paid (admin waiver)"
+                    : "Full paid"}
+                </p>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Full course fee received. Monthly payments are not required and access is not blocked.
+                  {history.history.some((item) => item.isAdminWaiver)
+                    ? "Admin marked this enrollment as fully paid. Monthly payments are not required and access is not blocked."
+                    : "Full course fee received. Monthly payments are not required and access is not blocked."}
                 </p>
               </>
             ) : (
@@ -223,7 +230,8 @@ export function CoursePaymentHistory({ enrollmentId }: { enrollmentId: string })
                       variant={
                         item.status === "APPROVED" ||
                         item.status === "PAID" ||
-                        item.status === "FULL_PAID"
+                        item.status === "FULL_PAID" ||
+                        item.status === "FULL_PAID_ADMIN_WAIVER"
                           ? "default"
                           : "secondary"
                       }

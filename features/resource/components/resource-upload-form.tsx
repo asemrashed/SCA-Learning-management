@@ -140,6 +140,19 @@ export function ResourceForm({
     }
   }, [pdfOnly, fileType])
 
+  useEffect(() => {
+    const hideSubjectVal = category === ResourceCategory.GENERAL || category === ResourceCategory.NOTICE || category === ResourceCategory.RESULT_SHEET
+    const hideModuleVal = category === ResourceCategory.GENERAL || category === ResourceCategory.NOTICE || category === ResourceCategory.RESULT_SHEET
+    const hideLessonVal = category === ResourceCategory.GENERAL || category === ResourceCategory.NOTICE || category === ResourceCategory.RESULT_SHEET || category === ResourceCategory.LECTURE_SHEET || category === ResourceCategory.SOLUTION_PDF
+
+    setPlacement((prev) => ({
+      ...prev,
+      subjectId: hideSubjectVal ? null : prev.subjectId,
+      moduleId: hideModuleVal ? null : prev.moduleId,
+      lessonId: hideLessonVal ? null : prev.lessonId,
+    }))
+  }, [category])
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
@@ -156,14 +169,7 @@ export function ResourceForm({
       return
     }
 
-    if (
-      category === ResourceCategory.GENERAL &&
-      !placement.moduleId &&
-      !placement.lessonId
-    ) {
-      setError(`General resources need a ${CHAPTER.toLowerCase()} or lesson.`)
-      return
-    }
+
 
     if (requireBatch && !placement.batchId) {
       setError(`Please select a ${BATCH.toLowerCase()}.`)
@@ -417,6 +423,9 @@ export function ResourceForm({
           requireBatch={requireBatch}
           subjectRequired={isLive && subjectRequired}
           moduleRequired={chapterRequired}
+          hideSubject={category === ResourceCategory.GENERAL || category === ResourceCategory.NOTICE || category === ResourceCategory.RESULT_SHEET}
+          hideModule={category === ResourceCategory.GENERAL || category === ResourceCategory.NOTICE || category === ResourceCategory.RESULT_SHEET}
+          hideLesson={category === ResourceCategory.GENERAL || category === ResourceCategory.NOTICE || category === ResourceCategory.RESULT_SHEET || category === ResourceCategory.LECTURE_SHEET || category === ResourceCategory.SOLUTION_PDF}
         />
       </div>
 

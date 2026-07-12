@@ -11,6 +11,7 @@ import {
   enrollmentBatchId,
   enrollmentProductTitle,
   getEnrollmentSubjects,
+  PSEUDO_COURSE_SUBJECT_ID,
 } from "@/features/enrollment/curriculum"
 import { useListResourcesQuery } from "@/features/resource/api"
 import {
@@ -64,16 +65,27 @@ export function CourseResourcePage({
     return getEnrollmentSubjects(enrollment)
   }, [enrollment])
 
-  const subjectIds = useMemo(() => new Set(subjects.map((s) => s.id)), [subjects])
+  const subjectIds = useMemo(
+    () => new Set(subjects.map((s) => s.id).filter((id) => id !== PSEUDO_COURSE_SUBJECT_ID)),
+    [subjects],
+  )
 
-  const effectiveSubjectId = filters.subjectId || subjects[0]?.id || ""
+  // Notices are batch-wide: they are never scoped to a subject.
+  const isBatchWide = category === ResourceCategory.NOTICE
+
+  const effectiveSubjectId = isBatchWide ? "" : filters.subjectId || subjects[0]?.id || ""
+  // Never send the synthetic course-level pseudo subject to the API.
+  const subjectIdParam =
+    effectiveSubjectId && effectiveSubjectId !== PSEUDO_COURSE_SUBJECT_ID
+      ? effectiveSubjectId
+      : ""
 
   const resourcesQuery = useListResourcesQuery(
     {
       courseId,
       ...(batchId ? { batchId } : {}),
       category,
-      ...(effectiveSubjectId ? { subjectId: effectiveSubjectId } : {}),
+      ...(subjectIdParam ? { subjectId: subjectIdParam } : {}),
       pageSize: 100,
       sort: "createdAt:desc",
     },
@@ -209,13 +221,15 @@ export function CourseResourcePage({
 
       {submitError ? <p className="mb-3 text-sm text-destructive">{submitError}</p> : null}
 
-      <StudentResourceFilters
-        enrollment={enrollment}
-        values={filters}
-        onChange={setFilters}
-        hideScope
-        subjectDisplay="pills"
-      />
+      {isBatchWide ? null : (
+        <StudentResourceFilters
+          enrollment={enrollment}
+          values={filters}
+          onChange={setFilters}
+          hideScope
+          subjectDisplay="pills"
+        />
+      )}
 
       {resourcesQuery.isLoading ? (
         <p className="text-sm text-muted-foreground">Loading documents…</p>
@@ -235,9 +249,8 @@ export function CourseResourcePage({
                   <button
                     type="button"
                     onClick={() => setActiveId(resource.id)}
-                    className={`w-full px-4 py-3 text-left text-sm transition-colors hover:bg-muted/50 ${
-                      activeId === resource.id ? "bg-muted font-medium" : ""
-                    }`}
+                    className={`w-full px-4 py-3 text-left text-sm transition-colors hover:bg-muted/50 ${activeId === resource.id ? "bg-muted font-medium" : ""
+                      }`}
                   >
                     <span className="line-clamp-2">{resource.title}</span>
                     {resource.deadlineAt ? (

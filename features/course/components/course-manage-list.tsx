@@ -207,6 +207,18 @@ export function CourseManageList() {
                         { label: "Edit", href: `/admin/courses/${course.id}/edit` },
                         { label: "View", href: `/admin/courses/${course.id}` },
                         {
+                          label: "Share on Facebook",
+                          onClick: () => {
+                            const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+                            const shareUrl = `${siteUrl}/courses/${course.slug}`
+                            window.open(
+                              `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`,
+                              "_blank",
+                              "noopener,noreferrer"
+                            )
+                          }
+                        },
+                        {
                           label: "Delete",
                           destructive: true,
                           hidden: !canCreateDelete,
