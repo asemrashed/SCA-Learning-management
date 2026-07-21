@@ -153,6 +153,7 @@ export const {
   useGetAdminPaymentSummaryQuery,
   useListAdminMonthlyPaymentsQuery,
   useListUnpaidStudentsQuery,
+  useLazyListUnpaidStudentsQuery,
   useReviewMonthlyPaymentMutation,
   useSetPaymentAccessMutation,
 } = monthlyPaymentApi

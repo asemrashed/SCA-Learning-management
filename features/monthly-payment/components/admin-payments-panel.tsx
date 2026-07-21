@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { useDispatch } from "react-redux"
-import { Plus } from "lucide-react"
+import { FileSpreadsheet, FileText, Loader2, Plus } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -35,6 +35,7 @@ import {
 } from "@/features/monthly-payment/components/admin-payment-form-dialog"
 import {
   monthlyPaymentApi,
+  useLazyListUnpaidStudentsQuery,
   useListAdminMonthlyPaymentsQuery,
   useListUnpaidStudentsQuery,
   useReviewMonthlyPaymentMutation,
@@ -44,6 +45,7 @@ import {
   currentBillingMonthValue,
   formatBillingMonthLabel,
 } from "@/lib/billing-month"
+import { downloadCsv, printTableAsPdf } from "@/lib/export-table"
 import { formatBdtMinor } from "@/lib/format-currency"
 import {
   DeliveryMode,
@@ -84,6 +86,40 @@ function productTitle(item: {
     : item.enrollment.courseTitle
 }
 
+function unpaidStatusText(item: UnpaidStudentRecord): string {
+  const parts: string[] = ["Unpaid"]
+  if (item.isBlocked) parts.push("Blocked")
+  if (item.hasAccessGrant) parts.push("Access granted")
+  else if (item.isAccessBlocked) parts.push("Access blocked")
+  else if (!item.isPastDeadline) parts.push("Before deadline")
+  if (item.currentMonthRequest) parts.push(`Request: ${item.currentMonthRequest.status}`)
+  return parts.join(", ")
+}
+
+const UNPAID_EXPORT_HEADERS = [
+  "#",
+  "Name",
+  "Phone",
+  "Student ID",
+  "Course / Batch",
+  "Month",
+  "Deadline",
+  "Status",
+]
+
+function unpaidExportRows(items: UnpaidStudentRecord[]): string[][] {
+  return items.map((item, index) => [
+    String(index + 1),
+    item.student.name,
+    item.student.phone,
+    item.student.idNumber ?? "—",
+    productTitle(item),
+    formatBillingMonthLabel(item.billingMonth),
+    formatDeadline(item.paymentDeadline),
+    unpaidStatusText(item),
+  ])
+}
+
 interface AdminPaymentsPanelProps {
   defaultStatus?: MonthlyPaymentStatus
   readOnly?: boolean
@@ -116,6 +152,8 @@ export function AdminPaymentsPanel({
   const [approveAmount, setApproveAmount] = useState("")
   const [approveMonth, setApproveMonth] = useState(currentBillingMonthValue())
   const [approveFullPaid, setApproveFullPaid] = useState(false)
+
+  const [exporting, setExporting] = useState<null | "pdf" | "excel">(null)
 
   const { data: coursesData } = useListCoursesQuery({ deliveryMode: DeliveryMode.LIVE, pageSize: 100 })
   const { data: batchesData } = useListBatchesQuery({ pageSize: 100 })
@@ -150,6 +188,7 @@ export function AdminPaymentsPanel({
   const [reviewPayment, { isLoading: reviewing }] = useReviewMonthlyPaymentMutation()
   const [setPaymentAccess, { isLoading: settingAccess }] = useSetPaymentAccessMutation()
   const [reviewEnrollment, { isLoading: reviewingEnrollment }] = useReviewEnrollmentRequestMutation()
+  const [fetchUnpaidPage] = useLazyListUnpaidStudentsQuery()
 
   const payments = data?.data ?? []
   const unpaidStudents = unpaidData?.data ?? []
@@ -242,6 +281,60 @@ export function AdminPaymentsPanel({
     }
   }
 
+  async function fetchAllUnpaidStudents(): Promise<UnpaidStudentRecord[]> {
+    const pageSize = 100
+    const all: UnpaidStudentRecord[] = []
+    let page = 1
+    for (;;) {
+      const res = await fetchUnpaidPage(
+        { ...filterParams, pageSize, page },
+        false,
+      ).unwrap()
+      all.push(...res.data)
+      const total = res.meta?.total ?? all.length
+      if (res.data.length === 0 || all.length >= total) break
+      page += 1
+    }
+    return all
+  }
+
+  async function handleExportUnpaid(format: "pdf" | "excel") {
+    setActionError(null)
+    setExporting(format)
+    try {
+      const rows = await fetchAllUnpaidStudents()
+      if (rows.length === 0) {
+        setActionError("No unpaid students to export for the current filters.")
+        return
+      }
+      const monthValue = rows[0]?.billingMonth ?? currentBillingMonthValue()
+      const monthLabel = formatBillingMonthLabel(monthValue)
+      const body = unpaidExportRows(rows)
+
+      if (format === "excel") {
+        downloadCsv(
+          `unpaid-students-${monthValue}.csv`,
+          UNPAID_EXPORT_HEADERS,
+          body,
+        )
+      } else {
+        const opened = printTableAsPdf({
+          title: "Unpaid students",
+          subtitle: `Billing month: ${monthLabel}`,
+          headers: UNPAID_EXPORT_HEADERS,
+          rows: body,
+        })
+        if (!opened) {
+          setActionError("Allow pop-ups for this site to download the PDF.")
+        }
+      }
+    } catch {
+      setActionError("Could not prepare the download. Try again.")
+    } finally {
+      setExporting(null)
+    }
+  }
+
   function paymentRowActions(item: MonthlyPaymentRecord): TableRowAction[] {
     if (readOnly) return []
     const actions: TableRowAction[] = []
@@ -320,9 +413,9 @@ export function AdminPaymentsPanel({
   }
 
   const searchFilters = (
-    <div className="flex w-full flex-col gap-3 sm:flex-row lg:max-w-3xl lg:flex-1 lg:justify-end">
+    <div className="flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:flex-1">
       <Select value={courseId || "all"} onValueChange={(v) => setCourseId(v === "all" ? "" : v)}>
-        <SelectTrigger className="w-full sm:flex-1">
+        <SelectTrigger className="w-full sm:max-w-xs sm:flex-1">
           <SelectValue placeholder="Course" />
         </SelectTrigger>
         <SelectContent>
@@ -336,7 +429,7 @@ export function AdminPaymentsPanel({
       </Select>
 
       <Select value={batchId || "all"} onValueChange={(v) => setBatchId(v === "all" ? "" : v)}>
-        <SelectTrigger className="w-full sm:flex-1">
+        <SelectTrigger className="w-full sm:max-w-xs sm:flex-1">
           <SelectValue placeholder="Batch" />
         </SelectTrigger>
         <SelectContent>
@@ -350,7 +443,7 @@ export function AdminPaymentsPanel({
       </Select>
 
       <Input
-        className="w-full sm:flex-1"
+        className="w-full sm:max-w-xs sm:flex-1"
         placeholder="Search name, phone, or ID"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
@@ -468,7 +561,39 @@ export function AdminPaymentsPanel({
           </div>
         ) : (
           <div className="space-y-4">
-            {searchFilters}
+            <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              {searchFilters}
+              <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={exporting !== null || unpaidStudents.length === 0}
+                  onClick={() => void handleExportUnpaid("pdf")}
+                >
+                  {exporting === "pdf" ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <FileText className="mr-2 h-4 w-4" />
+                  )}
+                  Download PDF
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={exporting !== null || unpaidStudents.length === 0}
+                  onClick={() => void handleExportUnpaid("excel")}
+                >
+                  {exporting === "excel" ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <FileSpreadsheet className="mr-2 h-4 w-4" />
+                  )}
+                  Download Excel
+                </Button>
+              </div>
+            </div>
             <p className="text-sm text-muted-foreground">
               Active batch students without an approved payment for{" "}
               {unpaidStudents[0]
