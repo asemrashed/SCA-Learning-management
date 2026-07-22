@@ -66,12 +66,11 @@ export function CourseAdminForm({ courseId }: CourseAdminFormProps) {
   const canCreateDelete = user?.role !== undefined && isSuperAdmin(user.role)
   const initialBatchId = searchParams.get("batchId") ?? ""
   const isEdit = Boolean(courseId)
-  const { data, isLoading } = useGetCourseQuery(courseId!, { skip: !courseId })
+  const { data, isLoading, refetch: refetchCourse } = useGetCourseQuery(courseId!, { skip: !courseId })
   const [createCourse, { isLoading: creating }] = useCreateCourseMutation()
   const [updateCourse, { isLoading: updating }] = useUpdateCourseMutation()
   const [createBatch, { isLoading: creatingBatch }] = useCreateBatchUnderCourseMutation()
-  const [applyBatchCurriculum, { isLoading: applyingCurriculum }] =
-    useApplyBatchCurriculumMutation()
+  const [applyBatchCurriculum] = useApplyBatchCurriculumMutation()
 
   const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>(DeliveryMode.RECORDED)
   const [title, setTitle] = useState("")
@@ -84,7 +83,6 @@ export function CourseAdminForm({ courseId }: CourseAdminFormProps) {
   const [subjects, setSubjects] = useState<SubjectForm[]>([])
   const [initialBatch, setInitialBatch] = useState(emptyInitialBatchState)
   const [primaryBatchId, setPrimaryBatchId] = useState("")
-  const [applyBatchIds, setApplyBatchIds] = useState<string[]>([])
   const [showPreBatchCurriculum, setShowPreBatchCurriculum] = useState(false)
   const [sourceBatchId, setSourceBatchId] = useState("")
   const [showPreviousCurriculum, setShowPreviousCurriculum] = useState(false)
@@ -128,10 +126,8 @@ export function CourseAdminForm({ courseId }: CourseAdminFormProps) {
 
   const courseBatches = data?.data?.batches ?? []
   const sourceBatchOptions = courseBatches.filter((b) => b.id !== primaryBatchId)
-  const { data: curriculumData, isFetching: curriculumLoading } = useGetBatchCurriculumQuery(
-    primaryBatchId,
-    { skip: !primaryBatchId },
-  )
+  const { data: curriculumData, isFetching: curriculumLoading, refetch: refetchCurriculum } =
+    useGetBatchCurriculumQuery(primaryBatchId, { skip: !primaryBatchId })
 
   useEffect(() => {
     if (!isEdit) {
@@ -174,25 +170,12 @@ export function CourseAdminForm({ courseId }: CourseAdminFormProps) {
         ? initialBatchId
         : data.data.batches[0].id
     setPrimaryBatchId(preferredBatch)
-    setApplyBatchIds([preferredBatch])
   }, [data, courseId, initialBatchId])
 
   useEffect(() => {
     if (!curriculumData?.data) return
     setSubjects(subjectsFromApi(curriculumData.data))
   }, [curriculumData])
-
-  useEffect(() => {
-    if (!primaryBatchId) return
-    setApplyBatchIds((prev) => (prev.includes(primaryBatchId) ? prev : [primaryBatchId, ...prev]))
-  }, [primaryBatchId])
-
-  function toggleApplyBatch(batchId: string, checked: boolean) {
-    setApplyBatchIds((prev) => {
-      if (checked) return prev.includes(batchId) ? prev : [...prev, batchId]
-      return prev.filter((id) => id !== batchId)
-    })
-  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -214,20 +197,10 @@ export function CourseAdminForm({ courseId }: CourseAdminFormProps) {
       if (isEdit && courseId) {
         const body =
           deliveryMode === DeliveryMode.RECORDED
-            ? { ...base, modules: modulesToPayload(modules) }
+            ? base
             : base
         const courseResult = await updateCourse({ id: courseId, body }).unwrap()
         setCategoryId(courseResult.data.categoryId ?? "")
-
-        if (deliveryMode === DeliveryMode.LIVE && applyBatchIds.length > 0) {
-          await applyBatchCurriculum({
-            courseId,
-            body: {
-              batchIds: applyBatchIds,
-              subjects: subjectsToPayload(subjects),
-            },
-          }).unwrap()
-        }
         router.refresh()
       } else {
         if (deliveryMode === DeliveryMode.LIVE && !initialBatch.title.trim()) {
@@ -295,7 +268,16 @@ export function CourseAdminForm({ courseId }: CourseAdminFormProps) {
     return <p className="text-muted-foreground">Loading course…</p>
   }
 
-  const saving = creating || updating || creatingBatch || applyingCurriculum
+  const saving = creating || updating || creatingBatch
+
+  function handleCurriculumPersisted() {
+    if (deliveryMode === DeliveryMode.LIVE && primaryBatchId) {
+      void refetchCurriculum()
+    }
+    if (courseId) {
+      void refetchCourse()
+    }
+  }
 
   return (
     <form onSubmit={handleSubmit} className="mx-auto max-w-3xl space-y-8">
@@ -552,20 +534,10 @@ export function CourseAdminForm({ courseId }: CourseAdminFormProps) {
                   </div>
                 ) : null}
                 {courseBatches.length > 1 ? (
-                  <div className="space-y-2">
-                    <Label>Also apply to batches on save</Label>
-                    <div className="flex flex-wrap gap-3">
-                      {courseBatches.map((b) => (
-                        <label key={b.id} className="flex items-center gap-2 text-sm">
-                          <Checkbox
-                            checked={applyBatchIds.includes(b.id)}
-                            onCheckedChange={(v) => toggleApplyBatch(b.id, v === true)}
-                          />
-                          {b.title}
-                        </label>
-                      ))}
-                    </div>
-                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Curriculum is saved per subject, chapter, and lesson. Switch batches above to
+                    edit each batch separately.
+                  </p>
                 ) : null}
               </div>
               {curriculumLoading ? (
@@ -576,6 +548,8 @@ export function CourseAdminForm({ courseId }: CourseAdminFormProps) {
                   onChange={setSubjects}
                   showPreBatchCurriculum={showPreBatchCurriculum && Boolean(sourceBatchId)}
                   sourceBatchId={sourceBatchId}
+                  batchId={primaryBatchId}
+                  onCurriculumPersisted={handleCurriculumPersisted}
                 />
               )}
             </>
@@ -695,6 +669,8 @@ export function CourseAdminForm({ courseId }: CourseAdminFormProps) {
             onChange={setModules}
             showPreviousCurriculum={Boolean(recordedCopySource)}
             copySource={recordedCopySource}
+            courseId={isEdit ? courseId : undefined}
+            onCurriculumPersisted={handleCurriculumPersisted}
           />
         </div>
       )}

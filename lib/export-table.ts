@@ -1,7 +1,7 @@
 /**
  * Dependency-free table export helpers.
  * - CSV opens directly in Excel (UTF-8 BOM keeps Bengali/Unicode intact).
- * - PDF uses a print window so the admin can "Save as PDF" without extra libs.
+ * - PDF uses a hidden iframe + print dialog (no pop-up window needed).
  */
 
 function triggerDownload(blob: Blob, filename: string): void {
@@ -23,8 +23,11 @@ export function downloadCsv(
   filename: string,
   headers: string[],
   rows: string[][],
+  preambleRows?: string[][],
 ): void {
-  const lines = [headers, ...rows].map((cols) => cols.map(csvEscape).join(","))
+  const tableLines = [headers, ...rows].map((cols) => cols.map(csvEscape).join(","))
+  const preambleLines = (preambleRows ?? []).map((cols) => cols.map(csvEscape).join(","))
+  const lines = preambleLines.length > 0 ? [...preambleLines, "", ...tableLines] : tableLines
   // Leading BOM so Excel detects UTF-8 (otherwise Bengali text is garbled).
   const csv = `\uFEFF${lines.join("\r\n")}`
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
@@ -41,7 +44,7 @@ function escapeHtml(value: string): string {
 
 export interface PrintTableOptions {
   title: string
-  subtitle?: string
+  subtitle?: string | string[]
   headers: string[]
   rows: string[][]
 }
@@ -52,8 +55,17 @@ export function printTableAsPdf({
   headers,
   rows,
 }: PrintTableOptions): boolean {
-  const win = window.open("", "_blank", "width=1024,height=768")
-  if (!win) return false
+  const iframe = document.createElement("iframe")
+  iframe.setAttribute("aria-hidden", "true")
+  iframe.style.cssText =
+    "position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden"
+  document.body.appendChild(iframe)
+
+  const win = iframe.contentWindow
+  if (!win) {
+    iframe.remove()
+    return false
+  }
 
   const thead = headers.map((h) => `<th>${escapeHtml(h)}</th>`).join("")
   const tbody = rows
@@ -64,7 +76,14 @@ export function printTableAsPdf({
     .join("")
 
   const generatedAt = new Date().toLocaleString("en-GB")
+  const subtitleHtml = subtitle
+    ? (Array.isArray(subtitle) ? subtitle : [subtitle])
+        .filter(Boolean)
+        .map((line) => `<p class="subtitle">${escapeHtml(line)}</p>`)
+        .join("")
+    : ""
 
+  win.document.open()
   win.document.write(`<!doctype html>
 <html lang="en">
 <head>
@@ -89,21 +108,30 @@ export function printTableAsPdf({
 </head>
 <body>
   <h1>${escapeHtml(title)}</h1>
-  ${subtitle ? `<p class="subtitle">${escapeHtml(subtitle)}</p>` : ""}
+  ${subtitleHtml}
   <p class="generated">Generated ${escapeHtml(generatedAt)} · ${rows.length} record(s)</p>
   <table>
     <thead><tr>${thead}</tr></thead>
     <tbody>${tbody}</tbody>
   </table>
-  <script>
-    window.onload = function () {
-      window.focus();
-      window.print();
-    };
-    window.onafterprint = function () { window.close(); };
-  </script>
 </body>
 </html>`)
   win.document.close()
+
+  let cleanedUp = false
+  const cleanup = () => {
+    if (cleanedUp) return
+    cleanedUp = true
+    iframe.remove()
+  }
+
+  win.onafterprint = cleanup
+  window.setTimeout(cleanup, 60_000)
+
+  window.setTimeout(() => {
+    win.focus()
+    win.print()
+  }, 250)
+
   return true
 }

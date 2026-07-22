@@ -21,9 +21,16 @@ import {
   LessonTypeFields,
   LIVE_COURSE_LESSON_TYPES,
 } from "@/features/course/components/lesson-type-fields"
+import {
+  useCreateBatchModuleMutation,
+  useCreateBatchSubjectMutation,
+  useUpdateBatchModuleMutation,
+  useUpdateBatchSubjectMutation,
+} from "@/features/curriculum/api"
+import { getApiErrorMessage } from "@/lib/get-api-error-message"
 import { CHAPTER } from "@/lib/product-vocabulary"
 import type { LessonForm, ModuleForm, SubjectForm } from "./curriculum-editor"
-import { newLesson, newModule, newSubject } from "./curriculum-editor"
+import { lessonToPayload, newLesson, newModule, newSubject } from "./curriculum-editor"
 
 export type LiveCurriculumModal =
   | { kind: "subject"; mode: "add" | "edit"; subjectIndex?: number }
@@ -44,6 +51,9 @@ interface LiveCurriculumModalsProps {
   onSave: (subjects: SubjectForm[]) => void
   showPreBatchCurriculum: boolean
   sourceBatchId: string
+  /** When set, saves go to the API immediately instead of local state only. */
+  batchId?: string
+  onPersisted?: () => void
 }
 
 export function LiveCurriculumModals({
@@ -53,15 +63,26 @@ export function LiveCurriculumModals({
   onSave,
   showPreBatchCurriculum,
   sourceBatchId,
+  batchId,
+  onPersisted,
 }: LiveCurriculumModalsProps) {
   const [draftSubject, setDraftSubject] = useState<SubjectForm>(newSubject(0))
   const [draftModule, setDraftModule] = useState<ModuleForm>(newModule(0))
   const [draftLesson, setDraftLesson] = useState<LessonForm>(newLesson(0))
   const [copyPick, setCopyPick] = useState("")
+  const [error, setError] = useState<string | null>(null)
+
+  const [createSubject, { isLoading: creatingSubject }] = useCreateBatchSubjectMutation()
+  const [updateSubject, { isLoading: updatingSubject }] = useUpdateBatchSubjectMutation()
+  const [createModule, { isLoading: creatingModule }] = useCreateBatchModuleMutation()
+  const [updateModule, { isLoading: updatingModule }] = useUpdateBatchModuleMutation()
+
+  const saving = creatingSubject || updatingSubject || creatingModule || updatingModule
 
   useEffect(() => {
     if (!modal) return
     setCopyPick("")
+    setError(null)
     if (modal.kind === "subject") {
       if (modal.mode === "edit" && modal.subjectIndex !== undefined) {
         setDraftSubject({ ...subjects[modal.subjectIndex] })
@@ -87,7 +108,7 @@ export function LiveCurriculumModals({
 
   if (!modal) return null
 
-  function handleSave() {
+  function applyLocalSubjectSave() {
     if (modal?.kind === "subject") {
       const next = [...subjects]
       if (modal.mode === "edit" && modal.subjectIndex !== undefined) {
@@ -96,43 +117,124 @@ export function LiveCurriculumModals({
         next.push({ ...draftSubject, title: draftSubject.title.trim(), order: next.length })
       }
       onSave(next)
-    } else if (modal?.kind === "module") {
-      const next = subjects.map((s, si) => {
-        if (si !== modal.subjectIndex) return s
-        const modules = [...s.modules]
-        if (modal.mode === "edit" && modal.moduleIndex !== undefined) {
-          modules[modal.moduleIndex] = { ...draftModule, title: draftModule.title.trim() }
-        } else {
-          modules.push({
-            ...draftModule,
-            title: draftModule.title.trim(),
-            order: modules.length,
-            lessons: [],
-          })
-        }
-        return { ...s, modules }
-      })
-      onSave(next)
-    } else if (modal?.kind === "lesson") {
-      const next = subjects.map((s, si) => {
-        if (si !== modal.subjectIndex) return s
-        return {
-          ...s,
-          modules: s.modules.map((m, mi) => {
-            if (mi !== modal.moduleIndex) return m
-            const lessons = [...m.lessons]
-            if (modal.mode === "edit" && modal.lessonIndex !== undefined) {
-              lessons[modal.lessonIndex] = draftLesson
-            } else {
-              lessons.push({ ...draftLesson, order: lessons.length })
-            }
-            return { ...m, lessons }
-          }),
-        }
-      })
-      onSave(next)
     }
-    onClose()
+  }
+
+  function applyLocalModuleSave() {
+    if (modal?.kind !== "module") return
+    const next = subjects.map((s, si) => {
+      if (si !== modal.subjectIndex) return s
+      const modules = [...s.modules]
+      if (modal.mode === "edit" && modal.moduleIndex !== undefined) {
+        modules[modal.moduleIndex] = { ...draftModule, title: draftModule.title.trim() }
+      } else {
+        modules.push({
+          ...draftModule,
+          title: draftModule.title.trim(),
+          order: modules.length,
+          lessons: [],
+        })
+      }
+      return { ...s, modules }
+    })
+    onSave(next)
+  }
+
+  function applyLocalLessonSave() {
+    if (modal?.kind !== "lesson") return
+    const next = subjects.map((s, si) => {
+      if (si !== modal.subjectIndex) return s
+      return {
+        ...s,
+        modules: s.modules.map((m, mi) => {
+          if (mi !== modal.moduleIndex) return m
+          const lessons = [...m.lessons]
+          if (modal.mode === "edit" && modal.lessonIndex !== undefined) {
+            lessons[modal.lessonIndex] = draftLesson
+          } else {
+            lessons.push({ ...draftLesson, order: lessons.length })
+          }
+          return { ...m, lessons }
+        }),
+      }
+    })
+    onSave(next)
+  }
+
+  async function handleSave() {
+    if (!modal) return
+    setError(null)
+
+    if (!batchId) {
+      if (modal.kind === "subject") applyLocalSubjectSave()
+      else if (modal.kind === "module") applyLocalModuleSave()
+      else if (modal.kind === "lesson") applyLocalLessonSave()
+      onClose()
+      return
+    }
+
+    try {
+      if (modal.kind === "subject") {
+        const title = draftSubject.title.trim()
+        if (modal.mode === "edit" && draftSubject.id) {
+          await updateSubject({
+            batchId,
+            subjectId: draftSubject.id,
+            body: { title, order: draftSubject.order },
+          }).unwrap()
+        } else {
+          await createSubject({
+            batchId,
+            body: { title, order: subjects.length },
+          }).unwrap()
+        }
+      } else if (modal.kind === "module") {
+        const title = draftModule.title.trim()
+        const subject = subjects[modal.subjectIndex]
+        if (!subject?.id) {
+          setError("Save the subject first.")
+          return
+        }
+        if (modal.mode === "edit" && draftModule.id) {
+          await updateModule({
+            batchId,
+            moduleId: draftModule.id,
+            body: { title, order: draftModule.order },
+          }).unwrap()
+        } else {
+          await createModule({
+            batchId,
+            subjectId: subject.id,
+            body: { title, order: subject.modules.length },
+          }).unwrap()
+        }
+      } else if (modal.kind === "lesson") {
+        const mod = subjects[modal.subjectIndex]?.modules[modal.moduleIndex]
+        if (!mod?.id) {
+          setError(`Save the ${CHAPTER.toLowerCase()} first.`)
+          return
+        }
+        const lessons = [...mod.lessons]
+        if (modal.mode === "edit" && modal.lessonIndex !== undefined) {
+          lessons[modal.lessonIndex] = draftLesson
+        } else {
+          lessons.push({ ...draftLesson, order: lessons.length })
+        }
+        await updateModule({
+          batchId,
+          moduleId: mod.id,
+          body: {
+            lessons: lessons
+              .filter((lesson) => lesson.title.trim())
+              .map((lesson, li) => lessonToPayload(lesson, li)),
+          },
+        }).unwrap()
+      }
+      onPersisted?.()
+      onClose()
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Could not save."))
+    }
   }
 
   const contextSubjectTitle =
@@ -241,14 +343,16 @@ export function LiveCurriculumModals({
               <LessonFormFields lesson={draftLesson} onChange={setDraftLesson} />
             </>
           ) : null}
+
+          {error ? <p className="text-sm text-destructive">{error}</p> : null}
         </div>
 
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={onClose}>
+          <Button type="button" variant="outline" onClick={onClose} disabled={saving}>
             Cancel
           </Button>
-          <Button type="button" disabled={!canSave} onClick={handleSave}>
-            {modal.mode === "edit" ? "Save" : "Add"}
+          <Button type="button" disabled={!canSave || saving} onClick={() => void handleSave()}>
+            {saving ? "Saving…" : modal.mode === "edit" ? "Save" : "Add"}
           </Button>
         </DialogFooter>
       </DialogContent>

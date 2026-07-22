@@ -85,6 +85,7 @@ export const adminStudentApi = createApi({
 
 export const {
   useListAdminStudentsQuery,
+  useLazyListAdminStudentsQuery,
   useCreateAdminStudentMutation,
   useUpdateAdminStudentMutation,
   useDeleteAdminStudentMutation,

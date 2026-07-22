@@ -318,15 +318,12 @@ export function AdminPaymentsPanel({
           body,
         )
       } else {
-        const opened = printTableAsPdf({
+        printTableAsPdf({
           title: "Unpaid students",
           subtitle: `Billing month: ${monthLabel}`,
           headers: UNPAID_EXPORT_HEADERS,
           rows: body,
         })
-        if (!opened) {
-          setActionError("Allow pop-ups for this site to download the PDF.")
-        }
       }
     } catch {
       setActionError("Could not prepare the download. Try again.")

@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import { FileSpreadsheet, FileText, Loader2 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -33,16 +34,62 @@ import { useListBatchesByCourseQuery, useListBatchesQuery } from "@/features/bat
 import { useListCoursesQuery } from "@/features/course/api"
 import {
   useDeleteAdminStudentMutation,
+  useLazyListAdminStudentsQuery,
   useListAdminStudentsQuery,
   useSetAdminStudentEnrollmentBlockMutation,
   useUpdateAdminStudentMutation,
 } from "@/features/admin-student/api"
+import { downloadCsv, printTableAsPdf } from "@/lib/export-table"
 import { formatBdtMinor } from "@/lib/format-currency"
+import { getApiErrorMessage } from "@/lib/get-api-error-message"
 import { formatStudentId } from "@/lib/student-id"
 import { DeliveryMode, EnrollmentStatus, type AdminStudentListItem } from "@/types/api"
 import { cn } from "@/lib/utils"
 
 const PAGE_SIZE = 20
+
+const STUDENT_EXPORT_HEADERS = [
+  "#",
+  "Name",
+  "Phone",
+  "Student ID",
+  "Email",
+  "Course",
+  "Batch",
+  "Paid",
+  "Total",
+  "Status",
+]
+
+function studentStatusLabel(item: AdminStudentListItem): string {
+  const parts: string[] = []
+  if (!item.isActive) parts.push("Inactive")
+  if (item.isBlocked) parts.push("Blocked")
+  if (parts.length === 0) parts.push(item.status)
+  return parts.join(", ")
+}
+
+function studentExportRows(items: AdminStudentListItem[]): string[][] {
+  return items.map((item, index) => {
+    const showBatch = item.course?.deliveryMode === DeliveryMode.LIVE && item.batch
+    return [
+      String(index + 1),
+      item.name,
+      item.phone,
+      formatStudentId(item.idNumber, item.id),
+      item.email ?? "—",
+      item.course?.title ?? "—",
+      showBatch ? item.batch!.title : "—",
+      formatBdtMinor(item.paidAmountMinor),
+      formatBdtMinor(item.totalAmountMinor),
+      studentStatusLabel(item),
+    ]
+  })
+}
+
+function exportFilenameStem(date = new Date()): string {
+  return date.toISOString().slice(0, 10)
+}
 
 function initialsFromName(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean)
@@ -70,6 +117,7 @@ export function AdminStudentsPanel() {
   const [editName, setEditName] = useState("")
   const [editPhone, setEditPhone] = useState("")
   const [editEmail, setEditEmail] = useState("")
+  const [exporting, setExporting] = useState<"pdf" | "excel" | null>(null)
 
   const { data: coursesData } = useListCoursesQuery({ pageSize: 100 })
   const { data: batchesData } = useListBatchesQuery({ pageSize: 100 })
@@ -89,6 +137,7 @@ export function AdminStudentsPanel() {
   )
 
   const { data, isLoading, error, isFetching } = useListAdminStudentsQuery(listParams)
+  const [fetchStudentsPage] = useLazyListAdminStudentsQuery()
   const [updateStudent, { isLoading: updating }] = useUpdateAdminStudentMutation()
   const [deleteStudent, { isLoading: deleting }] = useDeleteAdminStudentMutation()
   const [setEnrollmentBlock, { isLoading: blocking }] =
@@ -99,6 +148,82 @@ export function AdminStudentsPanel() {
   const totalPages = meta ? Math.max(1, Math.ceil(meta.total / meta.pageSize)) : 1
 
   const batchOptions = courseId ? (courseBatchesData?.data ?? []) : (batchesData?.data ?? [])
+
+  const courseLabel = useMemo(() => {
+    if (!courseId) return "All courses"
+    return (coursesData?.data ?? []).find((c) => c.id === courseId)?.title ?? "Selected course"
+  }, [courseId, coursesData?.data])
+
+  const batchLabel = useMemo(() => {
+    if (!batchId) return "All batches"
+    return batchOptions.find((b) => b.id === batchId)?.title ?? "Selected batch"
+  }, [batchId, batchOptions])
+
+  const exportFilterParams = useMemo(
+    () => ({
+      courseId: courseId || undefined,
+      batchId: batchId || undefined,
+      search: search.trim() || undefined,
+    }),
+    [courseId, batchId, search],
+  )
+
+  async function fetchAllStudents(): Promise<AdminStudentListItem[]> {
+    const pageSize = PAGE_SIZE
+    const all: AdminStudentListItem[] = []
+    let page = 1
+    for (;;) {
+      const res = await fetchStudentsPage({ ...exportFilterParams, pageSize, page }, false).unwrap()
+      all.push(...res.data)
+      const total = res.meta?.total ?? all.length
+      if (res.data.length === 0 || all.length >= total) break
+      page += 1
+    }
+    return all
+  }
+
+  function buildExportMeta(total: number): string[][] {
+    return [
+      ["Course", courseLabel],
+      ["Batch", batchLabel],
+      ...(search.trim() ? [["Search", search.trim()]] : []),
+      ["Total students", String(total)],
+    ]
+  }
+
+  async function handleExport(format: "pdf" | "excel") {
+    setActionError(null)
+    setExporting(format)
+    try {
+      const rows = await fetchAllStudents()
+      if (rows.length === 0) {
+        setActionError("No students to export for the current filters.")
+        return
+      }
+      const body = studentExportRows(rows)
+      const subtitle = [
+        `Course: ${courseLabel}`,
+        `Batch: ${batchLabel}`,
+        ...(search.trim() ? [`Search: ${search.trim()}`] : []),
+      ]
+      const filename = `students-${exportFilenameStem()}`
+
+      if (format === "excel") {
+        downloadCsv(`${filename}.csv`, STUDENT_EXPORT_HEADERS, body, buildExportMeta(rows.length))
+      } else {
+        printTableAsPdf({
+          title: "Students",
+          subtitle,
+          headers: STUDENT_EXPORT_HEADERS,
+          rows: body,
+        })
+      }
+    } catch (err) {
+      setActionError(getApiErrorMessage(err, "Could not prepare the download. Try again."))
+    } finally {
+      setExporting(null)
+    }
+  }
 
   useEffect(() => {
     setBatchId("")
@@ -165,7 +290,8 @@ export function AdminStudentsPanel() {
 
   return (
     <div className="space-y-6">
-      <div className="flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap lg:max-w-3xl lg:ml-auto">
+      <div className="flex w-full flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap lg:max-w-3xl">
         <Select
           value={courseId || "all"}
           onValueChange={(value) => {
@@ -212,6 +338,38 @@ export function AdminStudentsPanel() {
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
         />
+        </div>
+
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={exporting !== null || isLoading}
+            onClick={() => void handleExport("pdf")}
+          >
+            {exporting === "pdf" ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <FileText className="mr-2 h-4 w-4" />
+            )}
+            Download PDF
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={exporting !== null || isLoading}
+            onClick={() => void handleExport("excel")}
+          >
+            {exporting === "excel" ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <FileSpreadsheet className="mr-2 h-4 w-4" />
+            )}
+            Download Excel
+          </Button>
+        </div>
       </div>
 
       {actionError ? <p className="text-sm text-destructive">{actionError}</p> : null}
