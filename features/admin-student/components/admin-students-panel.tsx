@@ -35,7 +35,9 @@ import { useListCoursesQuery } from "@/features/course/api"
 import {
   useDeleteAdminStudentMutation,
   useLazyListAdminStudentsQuery,
+  useListAdminStudentBoundDevicesQuery,
   useListAdminStudentsQuery,
+  useRemoveAdminStudentBoundDeviceMutation,
   useSetAdminStudentEnrollmentBlockMutation,
   useUpdateAdminStudentMutation,
 } from "@/features/admin-student/api"
@@ -113,6 +115,7 @@ export function AdminStudentsPanel() {
 
   const [editTarget, setEditTarget] = useState<AdminStudentListItem | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<AdminStudentListItem | null>(null)
+  const [devicesTarget, setDevicesTarget] = useState<AdminStudentListItem | null>(null)
 
   const [editName, setEditName] = useState("")
   const [editPhone, setEditPhone] = useState("")
@@ -142,6 +145,16 @@ export function AdminStudentsPanel() {
   const [deleteStudent, { isLoading: deleting }] = useDeleteAdminStudentMutation()
   const [setEnrollmentBlock, { isLoading: blocking }] =
     useSetAdminStudentEnrollmentBlockMutation()
+  const [removeBoundDevice, { isLoading: removingDevice }] =
+    useRemoveAdminStudentBoundDeviceMutation()
+
+  const {
+    data: devicesData,
+    isLoading: devicesLoading,
+    error: devicesError,
+  } = useListAdminStudentBoundDevicesQuery(devicesTarget?.id ?? "", {
+    skip: !devicesTarget,
+  })
 
   const students = data?.data ?? []
   const meta = data?.meta
@@ -441,6 +454,13 @@ export function AdminStudentsPanel() {
                               },
                             },
                             {
+                              label: "Devices",
+                              onClick: () => {
+                                setActionError(null)
+                                setDevicesTarget(item)
+                              },
+                            },
+                            {
                               label: item.isBlocked ? "Unblock" : "Block",
                               disabled: blocking || item.status !== EnrollmentStatus.ACTIVE,
                               onClick: () => {
@@ -579,6 +599,107 @@ export function AdminStudentsPanel() {
               }}
             >
               {deleting ? "Deleting…" : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!devicesTarget} onOpenChange={(open) => !open && setDevicesTarget(null)}>
+        <DialogContent className="max-w-lg overflow-x-hidden">
+          <DialogHeader>
+            <DialogTitle>Bound devices</DialogTitle>
+            <DialogDescription>
+              {devicesTarget?.name} may use one mobile and one PC. Remove a lost device so they
+              can lock a new one.
+            </DialogDescription>
+          </DialogHeader>
+          {devicesLoading ? (
+            <p className="text-sm text-muted-foreground">Loading devices…</p>
+          ) : devicesError ? (
+            <p className="text-sm text-destructive">
+              {getApiErrorMessage(devicesError, "Failed to load devices")}
+            </p>
+          ) : (
+            <div className="min-w-0 space-y-4 overflow-x-hidden">
+              <div className="min-w-0 space-y-2">
+                {(devicesData?.data.devices ?? []).length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No devices bound yet.</p>
+                ) : (
+                  (devicesData?.data.devices ?? []).map((device) => (
+                    <div
+                      key={device.id}
+                      className="flex min-w-0 items-start justify-between gap-3 overflow-hidden rounded-md border px-3 py-2"
+                    >
+                      <div className="min-w-0 flex-1 space-y-1 overflow-hidden">
+                        <p className="text-sm font-medium">
+                          {device.deviceType === "MOBILE" ? "Mobile" : "Desktop / laptop"}
+                        </p>
+                        <p className="break-all text-xs text-muted-foreground">
+                          {device.userAgent ?? "Unknown browser"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Bound {new Date(device.boundAt).toLocaleString()} · Last seen{" "}
+                          {new Date(device.lastSeenAt).toLocaleString()}
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="shrink-0"
+                        disabled={removingDevice}
+                        onClick={() => {
+                          if (!devicesTarget) return
+                          void (async () => {
+                            try {
+                              await removeBoundDevice({
+                                studentId: devicesTarget.id,
+                                deviceId: device.id,
+                              }).unwrap()
+                            } catch (err) {
+                              setActionError(
+                                apiErrorMessage(err, "Failed to remove device"),
+                              )
+                            }
+                          })()
+                        }}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  ))
+                )}
+              </div>
+              {(devicesData?.data.recentBlockedAttempts ?? []).length > 0 ? (
+                <div className="min-w-0 space-y-2 overflow-hidden">
+                  <p className="text-sm font-medium">Recent blocked logins</p>
+                  <ul className="min-w-0 space-y-2 text-xs text-muted-foreground">
+                    {(devicesData?.data.recentBlockedAttempts ?? []).map((attempt) => (
+                      <li
+                        key={attempt.id}
+                        className="min-w-0 overflow-hidden rounded-md border px-3 py-2"
+                      >
+                        <p className="break-words">
+                          <span className="font-medium text-foreground">
+                            {attempt.deviceType === "MOBILE" ? "Mobile" : "Desktop"}
+                          </span>
+                          {" · "}
+                          {new Date(attempt.createdAt).toLocaleString()}
+                          {attempt.ip ? ` · IP ${attempt.ip}` : ""}
+                        </p>
+                        {attempt.userAgent ? (
+                          <p className="mt-1 break-all">{attempt.userAgent}</p>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </div>
+          )}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setDevicesTarget(null)}>
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>

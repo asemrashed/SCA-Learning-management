@@ -375,6 +375,29 @@ export interface UpdateAdminStudentInput {
   isActive?: boolean
 }
 
+export type DeviceType = 'MOBILE' | 'DESKTOP'
+
+export interface BoundDeviceListItem {
+  id: string
+  deviceType: DeviceType
+  userAgent: string | null
+  boundAt: string
+  lastSeenAt: string
+}
+
+export interface DeviceLoginAttemptListItem {
+  id: string
+  deviceType: DeviceType
+  userAgent: string | null
+  ip: string | null
+  createdAt: string
+}
+
+export interface AdminStudentBoundDevicesResponse {
+  devices: BoundDeviceListItem[]
+  recentBlockedAttempts: DeviceLoginAttemptListItem[]
+}
+
 export interface AdminPaymentSummary {
   totalRevenueMinor: number
   totalDueMinor: number

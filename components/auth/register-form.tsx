@@ -60,7 +60,7 @@ export function RegisterForm() {
         password: values.password,
       }).unwrap()
       dispatch(setCredentials({ accessToken: result.data.accessToken, user: result.data.user }))
-      setSessionCookie(result.data.user.role)
+      setSessionCookie(result.data.user.role, { remember: true })
       router.push('/dashboard')
       router.refresh()
     } catch (err: unknown) {

@@ -49,22 +49,30 @@ export function LoginForm() {
   const onSubmit = async (values: LoginFormValues) => {
     setErrorMessage(null)
     try {
+      const remember = values.remember === true
       const result = await login({
         phone: normalizeBdPhone(values.phone),
         password: values.password,
+        remember,
       }).unwrap()
       dispatch(setCredentials({ accessToken: result.data.accessToken, user: result.data.user }))
-      setSessionCookie(result.data.user.role)
+      setSessionCookie(result.data.user.role, { remember })
       const nextParam = searchParams.get('next')
       const next = resolvePostLoginRedirect(result.data.user.role, nextParam)
       router.replace(next)
     } catch (err: unknown) {
-      const apiErr = err as { data?: { error?: { message?: string } }; status?: number }
+      const apiErr = err as {
+        data?: { error?: { code?: string; message?: string } }
+        status?: number
+      }
+      const code = apiErr.data?.error?.code
       setErrorMessage(
         apiErr.data?.error?.message ??
-          (apiErr.status === 403
-            ? 'This account cannot sign in.'
-            : 'Invalid WhatsApp number or password. Please try again.'),
+          (code === 'DEVICE_BOUND_OTHER'
+            ? 'This account is locked to another device. Ask an admin to remove the old device.'
+            : apiErr.status === 403
+              ? 'This account cannot sign in.'
+              : 'Invalid WhatsApp number or password. Please try again.'),
       )
     }
   }

@@ -22,7 +22,10 @@ export const authApi = createApi({
       }),
       invalidatesTags: ['Me'],
     }),
-    login: builder.mutation<{ data: AuthTokensResponse }, { phone: string; password: string }>({
+    login: builder.mutation<
+      { data: AuthTokensResponse },
+      { phone: string; password: string; remember?: boolean }
+    >({
       query: (body) => ({
         url: '/auth/login',
         method: 'POST',

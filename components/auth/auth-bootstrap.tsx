@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react'
 import { useDispatch } from 'react-redux'
 import { setCredentials, clearCredentials, setAuthReady } from '@/features/auth/authSlice'
-import { clearSessionCookie, hasSessionCookie, setSessionCookie } from '@/lib/auth-session'
+import { clearSessionCookie, hasRememberCookie, hasSessionCookie, setSessionCookie } from '@/lib/auth-session'
 import { markAuthReady } from '@/lib/auth-ready'
 import { bootstrapRefreshSession } from '@/lib/apiClient'
 import type { AppDispatch } from '@/store'
@@ -29,7 +29,7 @@ export function AuthBootstrap() {
     bootstrapRefreshSession()
       .then((result) => {
         if (result.status === 'ok') {
-          setSessionCookie(result.data.user.role)
+          setSessionCookie(result.data.user.role, { remember: hasRememberCookie() })
           dispatch(
             setCredentials({
               accessToken: result.data.accessToken,
