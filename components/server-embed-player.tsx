@@ -11,6 +11,7 @@ import {
 } from "@/lib/fetch-lesson-video"
 import { VideoPlayerShell } from "@/components/video-player-shell"
 import { VideoPrePlayOverlay } from "@/components/video-pre-play-overlay"
+import { clampSeekTime } from "@/lib/video-player-config"
 
 interface ServerEmbedPlayerProps {
   lessonId: string
@@ -314,6 +315,18 @@ export function ServerEmbedPlayer({
     window.setTimeout(() => setSeeking(false), 300)
   }
 
+  const skip = (deltaSeconds: number) => {
+    if (!started || duration <= 0) return
+    const t = clampSeekTime(current, duration, deltaSeconds)
+    setSeeking(true)
+    if (kind === "youtube") sendYoutubeCommand("seekTo", [t, true])
+    else sendVimeoCommand("setCurrentTime", [t])
+    setProgress((t / duration) * 100)
+    setCurrent(t)
+    setEnded(false)
+    window.setTimeout(() => setSeeking(false), 300)
+  }
+
   const changePlaybackRate = (rate: number) => {
     if (!started) return
     if (kind === "youtube") sendYoutubeCommand("setPlaybackRate", [rate])
@@ -348,6 +361,7 @@ export function ServerEmbedPlayer({
       onToggleMute={toggleMute}
       onVolumeChange={changeVolume}
       onSeek={seek}
+      onSkip={skip}
       onPlaybackRateChange={changePlaybackRate}
       onVisibilityHidden={started ? pauseOnHidden : undefined}
       videoArea={

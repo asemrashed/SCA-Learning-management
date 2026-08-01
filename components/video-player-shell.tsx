@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils"
 import { useFullscreen } from "@/lib/use-fullscreen"
 import { VideoPlayerControls, type PLAYBACK_RATES } from "@/components/video-player-controls"
 import { VideoPlayerWatermark } from "@/components/video-player-watermark"
+import { getVideoSkipSeconds, isVideoSkipEnabled } from "@/lib/video-player-config"
 
 interface VideoPlayerShellProps {
   title: string
@@ -31,6 +32,7 @@ interface VideoPlayerShellProps {
   onToggleMute: () => void
   onVolumeChange: (volume: number) => void
   onSeek: (value: number[]) => void
+  onSkip: (deltaSeconds: number) => void
   onPlaybackRateChange: (rate: number) => void
   /** Called when the tab becomes hidden while playing (embed players should pause). */
   onVisibilityHidden?: () => void
@@ -57,9 +59,12 @@ export function VideoPlayerShell({
   onToggleMute,
   onVolumeChange,
   onSeek,
+  onSkip,
   onPlaybackRateChange,
   onVisibilityHidden,
 }: VideoPlayerShellProps) {
+  const skipEnabled = isVideoSkipEnabled()
+  const skipSeconds = getVideoSkipSeconds()
   const { ref: fullscreenRef, element: fullscreenElement, isFullscreen, toggleFullscreen } =
     useFullscreen<HTMLDivElement>()
   const hideTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
@@ -127,12 +132,14 @@ export function VideoPlayerShell({
         onToggleMute()
         break
       case "ArrowLeft":
+        if (!skipEnabled) break
         e.preventDefault()
-        onSeek([Math.max(0, progress - (e.shiftKey ? 10 : 2))])
+        onSkip(-skipSeconds)
         break
       case "ArrowRight":
+        if (!skipEnabled) break
         e.preventDefault()
-        onSeek([Math.min(100, progress + (e.shiftKey ? 10 : 2))])
+        onSkip(skipSeconds)
         break
       default:
         break
@@ -214,6 +221,10 @@ export function VideoPlayerShell({
         onToggleMute={onToggleMute}
         onVolumeChange={onVolumeChange}
         onSeek={onSeek}
+        skipEnabled={skipEnabled}
+        skipSeconds={skipSeconds}
+        onSkipBackward={() => onSkip(-skipSeconds)}
+        onSkipForward={() => onSkip(skipSeconds)}
         onPlaybackRateChange={onPlaybackRateChange}
         onToggleFullscreen={() => void toggleFullscreen()}
         onMenuOpenChange={(open) => {

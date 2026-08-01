@@ -1,10 +1,12 @@
 "use client"
 
 import {
+  FastForward,
   Maximize,
   Minimize,
   Pause,
   Play,
+  Rewind,
   Settings,
   Volume2,
   VolumeX,
@@ -44,6 +46,10 @@ interface VideoPlayerControlsProps {
   onToggleMute: () => void
   onVolumeChange: (volume: number) => void
   onSeek: (value: number[]) => void
+  skipEnabled?: boolean
+  skipSeconds?: number
+  onSkipBackward?: () => void
+  onSkipForward?: () => void
   onPlaybackRateChange: (rate: number) => void
   onToggleFullscreen: () => void
   onMenuOpenChange?: (open: boolean) => void
@@ -71,6 +77,10 @@ export function VideoPlayerControls({
   onToggleMute,
   onVolumeChange,
   onSeek,
+  skipEnabled = false,
+  skipSeconds = 5,
+  onSkipBackward,
+  onSkipForward,
   onPlaybackRateChange,
   onToggleFullscreen,
   onMenuOpenChange,
@@ -114,6 +124,33 @@ export function VideoPlayerControls({
               <Play className="h-4 w-4" fill="currentColor" />
             )}
           </Button>
+
+          {skipEnabled ? (
+            <>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 shrink-0 text-white hover:bg-white/20"
+                onClick={onSkipBackward}
+                disabled={!ready}
+                aria-label={`Skip back ${skipSeconds} seconds`}
+              >
+                <Rewind className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 shrink-0 text-white hover:bg-white/20"
+                onClick={onSkipForward}
+                disabled={!ready}
+                aria-label={`Skip forward ${skipSeconds} seconds`}
+              >
+                <FastForward className="h-4 w-4" />
+              </Button>
+            </>
+          ) : null}
 
           <div className="hidden items-center gap-1 sm:flex">
             <Button

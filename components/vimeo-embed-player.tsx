@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { loadVimeoPlayerApi } from "@/lib/load-video-apis"
 import { VideoPlayerShell } from "@/components/video-player-shell"
 import { VideoPrePlayOverlay } from "@/components/video-pre-play-overlay"
+import { clampSeekTime } from "@/lib/video-player-config"
 
 interface VimeoEmbedPlayerProps {
   videoId: string
@@ -152,6 +153,16 @@ export function VimeoEmbedPlayer({
     setCurrent(t)
   }
 
+  const skip = async (deltaSeconds: number) => {
+    const player = playerRef.current
+    if (!player || duration <= 0) return
+    const t = clampSeekTime(current, duration, deltaSeconds)
+    await player.setCurrentTime(t)
+    setProgress((t / duration) * 100)
+    setCurrent(t)
+    setEnded(false)
+  }
+
   const changePlaybackRate = async (rate: number) => {
     const player = playerRef.current
     if (!player?.setPlaybackRate) return
@@ -185,6 +196,7 @@ export function VimeoEmbedPlayer({
       onToggleMute={() => void toggleMute()}
       onVolumeChange={(v) => void changeVolume(v)}
       onSeek={(v) => void seek(v)}
+      onSkip={(delta) => void skip(delta)}
       onPlaybackRateChange={(r) => void changePlaybackRate(r)}
       onVisibilityHidden={started ? () => void pauseOnHidden() : undefined}
       videoArea={

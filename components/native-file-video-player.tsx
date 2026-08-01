@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { cn } from "@/lib/utils"
 import { VideoPlayerShell } from "@/components/video-player-shell"
 import { VideoPrePlayOverlay } from "@/components/video-pre-play-overlay"
+import { clampSeekTime } from "@/lib/video-player-config"
 
 interface NativeFileVideoPlayerProps {
   src: string
@@ -147,6 +148,17 @@ export function NativeFileVideoPlayer({
     setCurrent(t)
   }
 
+  const skip = (deltaSeconds: number) => {
+    const video = videoRef.current
+    if (!video || !started) return
+    const dur = Number.isFinite(video.duration) ? video.duration : duration
+    const t = clampSeekTime(video.currentTime, dur, deltaSeconds)
+    video.currentTime = t
+    if (dur > 0) setProgress((t / dur) * 100)
+    setCurrent(t)
+    setEnded(false)
+  }
+
   const changePlaybackRate = (rate: number) => {
     const video = videoRef.current
     if (!video) return
@@ -180,6 +192,7 @@ export function NativeFileVideoPlayer({
       onToggleMute={toggleMute}
       onVolumeChange={changeVolume}
       onSeek={seek}
+      onSkip={skip}
       onPlaybackRateChange={changePlaybackRate}
       onVisibilityHidden={started ? pauseOnHidden : undefined}
       videoArea={

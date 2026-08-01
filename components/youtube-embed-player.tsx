@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { toYoutubeNoCookieSrc } from "@/lib/youtube"
 import { VideoPlayerShell } from "@/components/video-player-shell"
 import { VideoPrePlayOverlay } from "@/components/video-pre-play-overlay"
+import { clampSeekTime } from "@/lib/video-player-config"
 
 interface YoutubeEmbedPlayerProps {
   videoId: string
@@ -177,6 +178,17 @@ export function YoutubeEmbedPlayer({
     window.setTimeout(() => setSeeking(false), 300)
   }
 
+  const skip = (deltaSeconds: number) => {
+    if (!started || duration <= 0) return
+    const t = clampSeekTime(current, duration, deltaSeconds)
+    setSeeking(true)
+    sendPlayerCommand("seekTo", [t, true])
+    setProgress((t / duration) * 100)
+    setCurrent(t)
+    setEnded(false)
+    window.setTimeout(() => setSeeking(false), 300)
+  }
+
   const changePlaybackRate = (rate: number) => {
     if (!started) return
     sendPlayerCommand("setPlaybackRate", [rate])
@@ -211,6 +223,7 @@ export function YoutubeEmbedPlayer({
       onToggleMute={toggleMute}
       onVolumeChange={changeVolume}
       onSeek={seek}
+      onSkip={skip}
       onPlaybackRateChange={changePlaybackRate}
       onVisibilityHidden={started ? pauseOnHidden : undefined}
       videoArea={
