@@ -2,7 +2,8 @@ import type { Metadata } from 'next'
 import { Inter, Noto_Sans_Bengali } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { Providers } from '@/components/providers'
-import { BRAND_NAME, BRAND_LOGO_SRC } from '@/lib/brand'
+import { ServiceWorkerRegister } from '@/components/service-worker-register'
+import { BRAND_NAME, BRAND_SHORT, BRAND_LOGO_SRC } from '@/lib/brand'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
@@ -19,8 +20,17 @@ export const metadata: Metadata = {
   description: 'Premium learning platform with live courses, expert instructors, and career support',
   icons: {
     icon: BRAND_LOGO_SRC,
-    apple: BRAND_LOGO_SRC,
+    apple: '/icons/apple-touch-icon.png',
   },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: BRAND_SHORT,
+  },
+}
+
+export const viewport = {
+  themeColor: '#63c3d6',
 }
 
 export default function RootLayout({
@@ -35,6 +45,7 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <Providers>{children}</Providers>
+        <ServiceWorkerRegister />
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>
