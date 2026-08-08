@@ -4,6 +4,7 @@ import { LiveCoursesSection } from "@/components/home/live-courses-section"
 import { LiveBatchesSection } from "@/components/home/live-batches-section"
 import { RecordedCoursesSection } from "@/components/home/recorded-courses-section"
 import { HomeTestimonialsSection } from "@/components/home/home-testimonials-section"
+import DownloadApp from "@/components/DownloadApp"
 
 export default function HomePage() {
   return (
@@ -16,6 +17,7 @@ export default function HomePage() {
         <LiveBatchesSection />
         <RecordedCoursesSection />
         <HomeTestimonialsSection />
+        <DownloadApp />
       </main>
     </>
   )
