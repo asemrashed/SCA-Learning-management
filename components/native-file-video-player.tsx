@@ -27,6 +27,7 @@ export function NativeFileVideoPlayer({
   watermarkText,
 }: NativeFileVideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
+  const [videoEl, setVideoEl] = useState<HTMLVideoElement | null>(null)
   const pendingPlayRef = useRef(false)
   const [started, setStarted] = useState(autoPlay)
   const [ready, setReady] = useState(false)
@@ -188,6 +189,7 @@ export function NativeFileVideoPlayer({
       variant={variant}
       className={className}
       watermarkText={watermarkText}
+      nativeVideo={videoEl}
       onTogglePlay={togglePlay}
       onToggleMute={toggleMute}
       onVolumeChange={changeVolume}
@@ -201,7 +203,10 @@ export function NativeFileVideoPlayer({
             <VideoPrePlayOverlay title={title} onStart={beginPlayback} />
           ) : (
             <video
-              ref={videoRef}
+              ref={(el) => {
+                videoRef.current = el
+                setVideoEl(el)
+              }}
               src={src}
               className={cn("h-full w-full bg-black object-contain")}
               playsInline

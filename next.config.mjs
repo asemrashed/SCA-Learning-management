@@ -1,5 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Allow JS/HMR through ngrok (etc.) when testing on a real phone in dev.
+  allowedDevOrigins: [
+    '*.ngrok-free.dev',
+    '*.ngrok-free.app',
+    '*.ngrok.io',
+    '*.ngrok.app',
+  ],
   experimental: {
     // Allow PDF/video uploads up to 1 GB through the /api proxy (matches nginx limit).
     proxyClientMaxBodySize: '1024mb',

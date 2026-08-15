@@ -27,6 +27,8 @@ interface VideoPlayerShellProps {
   className?: string
   /** Combined name + phone watermark for enrolled students. */
   watermarkText?: string | null
+  /** Native file player: enables iOS native video fullscreen. */
+  nativeVideo?: HTMLVideoElement | null
   videoArea: ReactNode
   onTogglePlay: () => void
   onToggleMute: () => void
@@ -54,6 +56,7 @@ export function VideoPlayerShell({
   variant = "default",
   className,
   watermarkText,
+  nativeVideo,
   videoArea,
   onTogglePlay,
   onToggleMute,
@@ -65,8 +68,8 @@ export function VideoPlayerShell({
 }: VideoPlayerShellProps) {
   const skipEnabled = isVideoSkipEnabled()
   const skipSeconds = getVideoSkipSeconds()
-  const { ref: fullscreenRef, element: fullscreenElement, isFullscreen, toggleFullscreen } =
-    useFullscreen<HTMLDivElement>()
+  const { ref: fullscreenRef, element: fullscreenElement, isFullscreen, pseudoFullscreen, toggleFullscreen } =
+    useFullscreen<HTMLDivElement>({ nativeVideo })
   const hideTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const hoveringControlsRef = useRef(false)
   const settingsMenuOpenRef = useRef(false)
@@ -148,15 +151,17 @@ export function VideoPlayerShell({
 
   const showOverlay = !playing && !autoPlay && ready
 
+  const cinemaMode = isFullscreen || pseudoFullscreen
+
   return (
     <div
       ref={fullscreenRef}
       tabIndex={0}
       className={cn(
         "flex w-full flex-col bg-black outline-none",
-        isFullscreen && "h-screen justify-center",
-        flexible && "min-h-0 flex-1",
-        variant === "modal" && !isFullscreen && "max-h-[calc(100vh-6rem)]",
+        cinemaMode && "fixed inset-0 z-[100] h-dvh w-screen justify-center",
+        flexible && !cinemaMode && "min-h-0 flex-1",
+        variant === "modal" && !cinemaMode && "max-h-[calc(100vh-6rem)]",
         className,
       )}
       onContextMenu={(e) => e.preventDefault()}
@@ -171,11 +176,13 @@ export function VideoPlayerShell({
       <div
         className={cn(
           "relative w-full overflow-hidden",
-          isFullscreen || flexible
-            ? "min-h-0 flex-1"
-            : variant === "modal"
+          cinemaMode && "absolute inset-0 min-h-0 flex-1",
+          !cinemaMode && flexible && "min-h-0 flex-1",
+          !cinemaMode &&
+            !flexible &&
+            (variant === "modal"
               ? "mx-auto aspect-video max-h-[min(52vh,28rem)] w-full"
-              : "aspect-video",
+              : "aspect-video"),
         )}
       >
         {videoArea}
@@ -213,7 +220,8 @@ export function VideoPlayerShell({
         current={current}
         duration={duration}
         playbackRate={playbackRate}
-        isFullscreen={isFullscreen}
+        isFullscreen={cinemaMode}
+        overlay={cinemaMode}
         visible={controlsVisible || !playing}
         variant={variant}
         menuPortalContainer={fullscreenElement}

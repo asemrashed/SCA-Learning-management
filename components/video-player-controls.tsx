@@ -39,6 +39,8 @@ interface VideoPlayerControlsProps {
   duration: number
   playbackRate: number
   isFullscreen: boolean
+  /** Fullscreen cinema mode: controls overlaid on the video. */
+  overlay?: boolean
   visible?: boolean
   variant?: "default" | "modal"
   menuPortalContainer?: HTMLElement | null
@@ -70,6 +72,7 @@ export function VideoPlayerControls({
   duration,
   playbackRate,
   isFullscreen,
+  overlay = false,
   visible = true,
   variant = "default",
   menuPortalContainer,
@@ -91,7 +94,10 @@ export function VideoPlayerControls({
   return (
     <div
       className={cn(
-        "z-30 flex shrink-0 flex-col gap-2 border-t border-white/10 bg-black/95 p-3 transition-opacity duration-300",
+        "z-30 flex shrink-0 flex-col gap-2 transition-opacity duration-300",
+        overlay
+          ? "absolute inset-x-0 bottom-0 border-t-0 bg-gradient-to-t from-black/95 via-black/75 to-transparent px-3 pt-6 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+          : "border-t border-white/10 bg-black/95 p-3",
         !visible && "pointer-events-none opacity-0",
         className,
       )}
