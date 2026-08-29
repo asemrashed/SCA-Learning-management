@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { BatchDetailView } from "@/features/batch/components/BatchDetailView"
+import { serverApiUrl } from '@/lib/api-url'
 
 interface BatchDetailPageProps {
   params: Promise<{ idOrSlug: string }>
@@ -9,7 +10,7 @@ export async function generateMetadata({
   params,
 }: BatchDetailPageProps): Promise<Metadata> {
   const { idOrSlug } = await params
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api'
+  const apiUrl = serverApiUrl()
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
 
   try {
